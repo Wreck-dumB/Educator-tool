@@ -18,6 +18,9 @@ export default function NavBar({ email }: { email: string }) {
           <Link href="/children" className="hover:text-gray-900">
             Children
           </Link>
+          <Link href="/materials" className="hover:text-gray-900">
+            Materials
+          </Link>
           <Link href="/observations" className="hover:text-gray-900">
             Observations
           </Link>
