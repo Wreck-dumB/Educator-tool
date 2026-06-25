@@ -44,6 +44,11 @@ export async function savePolicy(
 
 export async function markPolicyReviewed(id: string) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
   await supabase.from("policies").update({ reviewed_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/policies");
 }

@@ -44,6 +44,11 @@ export async function saveRiskAssessment(
 
 export async function markRiskAssessmentReviewed(id: string, activityId: string | null) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
   await supabase.from("risk_assessments").update({ reviewed_at: new Date().toISOString() }).eq("id", id);
   if (activityId) revalidatePath(`/activities/${activityId}`);
   revalidatePath("/risk-assessments");

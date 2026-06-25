@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Write",
+      "Edit",
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash(npx tsc --noEmit)",
+      "PowerShell(npx tsc --noEmit)",
+      "Bash(npx eslint src)",
+      "PowerShell(npx eslint src)",
+      "Bash(npm run lint)",
+      "PowerShell(npm run lint)",
+      "Bash(npm run build)",
+      "PowerShell(npm run build)",
+      "Bash(npm install)",
+      "PowerShell(npm install)",
+      "Bash(git status*)",
+      "PowerShell(git status*)",
+      "Bash(git diff*)",
+      "PowerShell(git diff*)",
+      "Bash(git log*)",
+      "PowerShell(git log*)",
+      "Bash(git add*)",
+      "PowerShell(git add*)",
+      "Bash(git commit*)",
+      "PowerShell(git commit*)"
+    ]
+  }
+}

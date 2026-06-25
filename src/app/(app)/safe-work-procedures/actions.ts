@@ -41,6 +41,11 @@ export async function saveSafeWorkProcedure(
 
 export async function markSafeWorkProcedureReviewed(id: string) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
   await supabase.from("safe_work_procedures").update({ reviewed_at: new Date().toISOString() }).eq("id", id);
   revalidatePath("/safe-work-procedures");
 }
