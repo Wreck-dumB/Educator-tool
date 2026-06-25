@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getChildren } from "@/lib/supabase/children";
 import { createChild } from "@/app/(app)/children/actions";
+import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 
 export default async function ChildrenPage({
   searchParams,
@@ -12,34 +13,32 @@ export default async function ChildrenPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">Children</h1>
-      <p className="mt-1 text-sm text-gray-500">
+      <h1 className="font-display text-3xl font-semibold text-coral-dark">Children</h1>
+      <p className="mt-1 text-sm text-ink/60">
         Profiles you manage on behalf of the children in your care &mdash; no login for them,
         just a name, age, and what they&apos;re currently into.
       </p>
 
-      {error && (
-        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
-      )}
+      {error && <p className={errorBannerClass}>{error}</p>}
 
-      <div className="mt-6 rounded-lg border border-gray-200 bg-white">
-        <div className="border-b border-gray-200 px-4 py-3">
-          <h2 className="text-sm font-semibold text-gray-900">All children</h2>
+      <div className={`mt-6 ${cardClass}`}>
+        <div className="border-b border-coral-light px-4 py-3">
+          <h2 className="font-display text-sm font-semibold text-ink">All children</h2>
         </div>
         {children.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-gray-500">No children added yet.</p>
+          <p className="px-4 py-6 text-sm text-ink/50">No children added yet.</p>
         ) : (
-          <ul className="divide-y divide-gray-100">
+          <ul className="divide-y divide-coral-light">
             {children.map((child) => (
               <li key={child.id} className="px-4 py-3">
                 <Link
                   href={`/children/${child.id}`}
-                  className="font-medium text-gray-900 hover:text-blue-600"
+                  className="font-medium text-ink hover:text-coral-dark"
                 >
-                  {child.first_name}
+                  🧒 {child.first_name}
                 </Link>
                 {child.current_interests && (
-                  <p className="mt-0.5 text-sm text-gray-500">{child.current_interests}</p>
+                  <p className="mt-0.5 text-sm text-ink/50">{child.current_interests}</p>
                 )}
               </li>
             ))}
@@ -47,37 +46,23 @@ export default async function ChildrenPage({
         )}
       </div>
 
-      <div className="mt-6 rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-900">Add a child</h2>
+      <div className={`mt-6 p-5 ${cardClass}`}>
+        <h2 className="font-display text-sm font-semibold text-ink">Add a child</h2>
         <form action={createChild} className="mt-4 space-y-4">
           <div>
-            <label htmlFor="first_name" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="first_name" className="block text-sm font-medium text-ink/70">
               First name
             </label>
-            <input
-              id="first_name"
-              name="first_name"
-              type="text"
-              required
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+            <input id="first_name" name="first_name" type="text" required className={inputClass} />
           </div>
           <div>
-            <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="date_of_birth" className="block text-sm font-medium text-ink/70">
               Date of birth (optional)
             </label>
-            <input
-              id="date_of_birth"
-              name="date_of_birth"
-              type="date"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+            <input id="date_of_birth" name="date_of_birth" type="date" className={inputClass} />
           </div>
           <div>
-            <label
-              htmlFor="current_interests"
-              className="block text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="current_interests" className="block text-sm font-medium text-ink/70">
               Current interests (optional)
             </label>
             <input
@@ -85,16 +70,13 @@ export default async function ChildrenPage({
               name="current_interests"
               type="text"
               placeholder="e.g. dinosaurs, trucks, drawing"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={inputClass}
             />
-            <p className="mt-1 text-xs text-gray-500">
+            <p className="mt-1 text-xs text-ink/50">
               Feeds into activity generation when you pick this child.
             </p>
           </div>
-          <button
-            type="submit"
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-          >
+          <button type="submit" className={`w-full ${primaryButtonClass}`}>
             Add child
           </button>
         </form>

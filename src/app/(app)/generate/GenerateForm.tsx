@@ -5,6 +5,16 @@ import Link from "next/link";
 import type { EylfOutcome, Material, ChildProfile, ActivitySuggestion } from "@/lib/types/domain";
 import type { GenerationMode } from "@/lib/types/database.types";
 import { saveActivity } from "./save";
+import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
+
+const inputClass =
+  "mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral";
+
+function pillClass(active: boolean) {
+  return `rounded-full border px-3 py-1 text-sm transition-colors ${
+    active ? "border-coral bg-coral-light text-coral-dark" : "border-coral-light/60 text-ink/70 hover:bg-coral-light/40"
+  }`;
+}
 
 interface Props {
   outcomes: EylfOutcome[];
@@ -63,12 +73,11 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
     const child = childProfiles.find((c) => c.id === childId);
 
     let generationMode: GenerationMode = "surprise_me";
-    if (!surpriseMe) {
-      if (allMaterials.length > 0) generationMode = "materials";
-      else if (selectedOutcomes.size > 0) generationMode = "outcome";
-      else if (child?.current_interests) generationMode = "interest";
-      else if (timeMinutes) generationMode = "time";
-    }
+    if (allMaterials.length > 0) generationMode = "materials";
+    else if (selectedOutcomes.size > 0) generationMode = "outcome";
+    else if (child?.current_interests) generationMode = "interest";
+    else if (timeMinutes) generationMode = "time";
+    else if (surpriseMe) generationMode = "surprise_me";
     setMode(generationMode);
 
     try {
@@ -77,12 +86,13 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: generationMode,
-          materials: surpriseMe ? undefined : allMaterials,
-          timeMinutes: surpriseMe ? undefined : timeMinutes || undefined,
-          groupSize: surpriseMe ? undefined : groupSize || undefined,
-          energyLevel: surpriseMe ? undefined : energyLevel || undefined,
-          targetOutcomeCodes: surpriseMe ? undefined : [...selectedOutcomes],
-          childInterest: surpriseMe ? undefined : child?.current_interests ?? undefined,
+          surpriseMe,
+          materials: allMaterials,
+          timeMinutes: timeMinutes || undefined,
+          groupSize: groupSize || undefined,
+          energyLevel: energyLevel || undefined,
+          targetOutcomeCodes: [...selectedOutcomes],
+          childInterest: child?.current_interests ?? undefined,
         }),
       });
 
@@ -112,25 +122,21 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
 
   return (
     <div>
-      <div className="rounded-lg border border-gray-200 bg-white p-4">
-        <h2 className="text-sm font-semibold text-gray-900">What do you have?</h2>
+      <div className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
+        <h2 className="font-display text-lg font-semibold text-coral-dark">What do you have?</h2>
 
         {materials.length > 0 && (
           <div className="mt-3">
-            <p className="text-sm font-medium text-gray-700">Saved materials</p>
+            <p className="text-sm font-medium text-ink/70">Saved materials</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {materials.map((m) => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => toggleMaterial(m.name)}
-                  className={`rounded-full border px-3 py-1 text-sm ${
-                    selectedMaterials.has(m.name)
-                      ? "border-blue-600 bg-blue-50 text-blue-700"
-                      : "border-gray-300 text-gray-700"
-                  }`}
+                  className={pillClass(selectedMaterials.has(m.name))}
                 >
-                  {m.name}
+                  {getMaterialIcon(m.name)} {m.name}
                 </button>
               ))}
             </div>
@@ -138,7 +144,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
         )}
 
         <div className="mt-3">
-          <label htmlFor="adhoc" className="block text-sm font-medium text-gray-700">
+          <label htmlFor="adhoc" className="block text-sm font-medium text-ink/70">
             Other materials (comma separated)
           </label>
           <input
@@ -147,13 +153,13 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
             value={adhocMaterials}
             onChange={(e) => setAdhocMaterials(e.target.value)}
             placeholder="cardboard boxes, fabric scraps"
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            className={inputClass}
           />
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="time" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="time" className="block text-sm font-medium text-ink/70">
               Time available (minutes)
             </label>
             <input
@@ -163,18 +169,18 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
               max={240}
               value={timeMinutes}
               onChange={(e) => setTimeMinutes(e.target.value ? Number(e.target.value) : "")}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <div>
-            <label htmlFor="group" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="group" className="block text-sm font-medium text-ink/70">
               Group size
             </label>
             <select
               id="group"
               value={groupSize}
               onChange={(e) => setGroupSize(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={inputClass}
             >
               <option value="">Any</option>
               <option value="solo">Solo</option>
@@ -186,14 +192,14 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
 
         <div className="mt-4 grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="energy" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="energy" className="block text-sm font-medium text-ink/70">
               Energy level
             </label>
             <select
               id="energy"
               value={energyLevel}
               onChange={(e) => setEnergyLevel(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={inputClass}
             >
               <option value="">Any</option>
               <option value="calm">Calm</option>
@@ -203,14 +209,14 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           </div>
           {childProfiles.length > 0 && (
             <div>
-              <label htmlFor="child" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="child" className="block text-sm font-medium text-ink/70">
                 Tailor to a child
               </label>
               <select
                 id="child"
                 value={childId}
                 onChange={(e) => setChildId(e.target.value)}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                className={inputClass}
               >
                 <option value="">None</option>
                 {childProfiles.map((c) => (
@@ -225,7 +231,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
 
         {outcomes.length > 0 && (
           <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700">Target EYLF outcomes (optional)</p>
+            <p className="text-sm font-medium text-ink/70">Target EYLF outcomes (optional)</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {outcomes.map((o) => (
                 <button
@@ -233,11 +239,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
                   type="button"
                   onClick={() => toggleOutcome(o.code)}
                   title={o.sub_outcome_text}
-                  className={`rounded-full border px-3 py-1 text-sm ${
-                    selectedOutcomes.has(o.code)
-                      ? "border-blue-600 bg-blue-50 text-blue-700"
-                      : "border-gray-300 text-gray-700"
-                  }`}
+                  className={pillClass(selectedOutcomes.has(o.code))}
                 >
                   {o.code}
                 </button>
@@ -251,7 +253,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
             type="button"
             onClick={() => generate(false)}
             disabled={loading}
-            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+            className="rounded-full bg-coral px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-coral-dark disabled:opacity-50"
           >
             {loading ? "Generating…" : "Generate"}
           </button>
@@ -259,33 +261,43 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
             type="button"
             onClick={() => generate(true)}
             disabled={loading}
-            className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-full border-2 border-sage px-5 py-2.5 text-sm font-semibold text-sage-dark transition-colors hover:bg-sage-light disabled:opacity-50"
           >
-            Surprise me
+            ✨ Surprise me
           </button>
         </div>
       </div>
 
       {error && (
-        <p className="mt-4 rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="mt-4 rounded-xl bg-coral-light px-3 py-2 text-sm text-coral-dark">{error}</p>
       )}
 
       {suggestions.length > 0 && (
         <div className="mt-6 space-y-4">
           {suggestions.map((s, i) => (
-            <div key={i} className="rounded-lg border border-gray-200 bg-white p-4">
-              <h3 className="font-semibold text-gray-900">{s.title}</h3>
-              <p className="mt-1 text-sm text-gray-600">{s.summary}</p>
+            <div key={i} className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
+              <h3 className="font-display text-lg font-semibold text-ink">{s.title}</h3>
+              <p className="mt-1 text-sm text-ink/70">{s.summary}</p>
 
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-gray-500">
-                {s.durationMinutes && <span>{s.durationMinutes} min</span>}
-                {s.energyLevel && <span>&middot; {s.energyLevel} energy</span>}
-                {s.groupSizeFit && <span>&middot; {s.groupSizeFit.replace("_", " ")}</span>}
-                {s.ageRange && <span>&middot; {s.ageRange}</span>}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {s.energyLevel && (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${getEnergyBadgeClass(s.energyLevel)}`}
+                  >
+                    {getEnergyIcon(s.energyLevel)} {s.energyLevel} energy
+                  </span>
+                )}
+                {s.groupSizeFit && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cream-dark px-2.5 py-1 text-xs font-medium text-ink/70">
+                    {getGroupIcon(s.groupSizeFit)} {s.groupSizeFit.replace("_", " ")}
+                  </span>
+                )}
+                {s.durationMinutes && <span className="text-xs text-ink/50">{s.durationMinutes} min</span>}
+                {s.ageRange && <span className="text-xs text-ink/50">&middot; {s.ageRange}</span>}
               </div>
 
               {s.steps.length > 0 && (
-                <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-gray-700">
+                <ol className="mt-3 list-decimal space-y-1 pl-5 text-sm text-ink/80">
                   {s.steps.map((step, idx) => (
                     <li key={idx}>{step}</li>
                   ))}
@@ -293,15 +305,21 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
               )}
 
               {s.materialsUsed.length > 0 && (
-                <p className="mt-3 text-sm text-gray-600">
-                  <span className="font-medium">Materials:</span> {s.materialsUsed.join(", ")}
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink/70">
+                  <span className="font-medium">Materials:</span>
+                  {s.materialsUsed.map((m, idx) => (
+                    <span key={idx} className="inline-flex items-center gap-1">
+                      <span aria-hidden>{getMaterialIcon(m)}</span>
+                      {m}
+                    </span>
+                  ))}
+                </div>
               )}
 
               {s.reflectionPrompts.length > 0 && (
-                <div className="mt-3">
-                  <p className="text-sm font-medium text-gray-700">Reflection prompts</p>
-                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-gray-600">
+                <div className="mt-3 rounded-xl bg-amber-light p-3">
+                  <p className="text-sm font-medium text-amber-dark">Reflection prompts</p>
+                  <ul className="mt-1 list-disc space-y-1 pl-5 text-sm text-amber-dark/90">
                     {s.reflectionPrompts.map((p, idx) => (
                       <li key={idx}>{p}</li>
                     ))}
@@ -314,7 +332,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
                   {s.eylfCodes.map((code) => (
                     <span
                       key={code}
-                      className="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-700"
+                      className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark"
                     >
                       EYLF {code}
                     </span>
@@ -326,7 +344,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
                 {saveStates[i] === "saved" ? (
                   <Link
                     href={`/activities/${savedIds[i]}`}
-                    className="text-sm font-medium text-green-700 hover:text-green-800"
+                    className="text-sm font-medium text-sage-dark hover:underline"
                   >
                     Saved &mdash; view & log an observation
                   </Link>
@@ -335,13 +353,13 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
                     type="button"
                     onClick={() => handleSave(s, i)}
                     disabled={saveStates[i] === "saving"}
-                    className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-gray-800 disabled:opacity-50"
+                    className="rounded-full bg-ink px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-ink/80 disabled:opacity-50"
                   >
                     {saveStates[i] === "saving" ? "Saving…" : "Save to library"}
                   </button>
                 )}
                 {saveStates[i] === "error" && (
-                  <span className="ml-2 text-sm text-red-600">Could not save, try again.</span>
+                  <span className="ml-2 text-sm text-coral-dark">Could not save, try again.</span>
                 )}
               </div>
             </div>

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { login } from "@/app/auth/actions";
 
+const inputClass =
+  "mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2.5 shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral";
+
 export default async function LoginPage({
   searchParams,
 }: {
@@ -9,33 +12,29 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-      <div className="w-full max-w-sm space-y-6">
+    <div className="flex min-h-screen items-center justify-center bg-cream px-4">
+      <div className="w-full max-w-sm space-y-6 rounded-2xl border border-coral-light bg-white p-8 shadow-sm">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">SparkPlay</h1>
-          <p className="mt-1 text-sm text-gray-500">Log in to your account</p>
+          <span className="text-3xl" aria-hidden>
+            ✨
+          </span>
+          <h1 className="font-display mt-2 text-2xl font-semibold text-coral-dark">SparkPlay</h1>
+          <p className="mt-1 text-sm text-ink/60">Log in to your account</p>
         </div>
 
         {error && (
-          <p className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+          <p className="rounded-xl bg-coral-light px-3 py-2 text-sm text-coral-dark">{error}</p>
         )}
 
         <form action={login} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="email" className="block text-sm font-medium text-ink/80">
               Email
             </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              autoComplete="email"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-            />
+            <input id="email" name="email" type="email" required autoComplete="email" className={inputClass} />
           </div>
           <div>
-            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="password" className="block text-sm font-medium text-ink/80">
               Password
             </label>
             <input
@@ -44,20 +43,20 @@ export default async function LoginPage({
               type="password"
               required
               autoComplete="current-password"
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className={inputClass}
             />
           </div>
           <button
             type="submit"
-            className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+            className="w-full rounded-full bg-coral px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-coral-dark"
           >
             Log in
           </button>
         </form>
 
-        <p className="text-center text-sm text-gray-500">
+        <p className="text-center text-sm text-ink/60">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500">
+          <Link href="/signup" className="font-medium text-coral-dark hover:underline">
             Sign up
           </Link>
         </p>

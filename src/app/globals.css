@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fbf6ee;
+  --foreground: #2d2a26;
+
+  --color-cream: #fbf6ee;
+  --color-cream-dark: #f3ead9;
+  --color-ink: #2d2a26;
+
+  --color-coral: #e8825a;
+  --color-coral-dark: #d9683f;
+  --color-coral-light: #fbe7dd;
+
+  --color-sage: #7c9a72;
+  --color-sage-dark: #5f7d56;
+  --color-sage-light: #e8efe3;
+
+  --color-amber: #e8a23d;
+  --color-amber-dark: #cb8526;
+  --color-amber-light: #fbf1dc;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --font-sans: var(--font-nunito);
+  --font-display: var(--font-fredoka);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-cream: var(--color-cream);
+  --color-cream-dark: var(--color-cream-dark);
+  --color-ink: var(--color-ink);
+  --color-coral: var(--color-coral);
+  --color-coral-dark: var(--color-coral-dark);
+  --color-coral-light: var(--color-coral-light);
+  --color-sage: var(--color-sage);
+  --color-sage-dark: var(--color-sage-dark);
+  --color-sage-light: var(--color-sage-light);
+  --color-amber: var(--color-amber);
+  --color-amber-dark: var(--color-amber-dark);
+  --color-amber-light: var(--color-amber-light);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-nunito), Arial, Helvetica, sans-serif;
+}
+
+h1, h2, h3, .font-display {
+  font-family: var(--font-fredoka), var(--font-nunito), sans-serif;
+}
+
+@page {
+  margin: 1.5cm;
+}
+
+@media print {
+  body {
+    background: #ffffff;
+  }
+  /* Force background colors (risk badges, callouts) to print instead of being
+     stripped by the browser's default print color-conflict handling. */
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }

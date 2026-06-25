@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
   }
 
-  const input: GenerationInput = { mode };
+  const input: GenerationInput = { mode, surpriseMe: body.surpriseMe === true };
 
   if (Array.isArray(body.materials)) {
     input.materials = body.materials

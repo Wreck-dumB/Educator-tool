@@ -5,6 +5,18 @@
 export type EnergyLevel = "calm" | "moderate" | "high";
 export type GroupSizeFit = "solo" | "small_group" | "whole_group";
 export type GenerationMode = "materials" | "time" | "outcome" | "interest" | "surprise_me";
+export type RiskLikelihood = "rare" | "unlikely" | "possible" | "likely" | "almost_certain";
+export type RiskConsequence = "insignificant" | "minor" | "moderate" | "significant" | "major";
+export type RiskRating = "low" | "medium" | "high" | "extreme";
+
+export interface Hazard {
+  hazard: string;
+  who_could_be_harmed: string;
+  likelihood: RiskLikelihood;
+  consequence: RiskConsequence;
+  risk_rating: RiskRating;
+  control_measures: string[];
+}
 
 export interface Database {
   public: {
@@ -143,6 +155,94 @@ export interface Database {
           eylf_outcome_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["observation_eylf_links"]["Insert"]>;
+        Relationships: [];
+      };
+      risk_assessments: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          activity_id: string | null;
+          title: string;
+          context_notes: string | null;
+          hazards: Hazard[];
+          involves_excursion: boolean;
+          involves_sleep_rest: boolean;
+          involves_water: boolean;
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          activity_id?: string | null;
+          title: string;
+          context_notes?: string | null;
+          hazards?: Hazard[];
+          involves_excursion?: boolean;
+          involves_sleep_rest?: boolean;
+          involves_water?: boolean;
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["risk_assessments"]["Insert"]>;
+        Relationships: [];
+      };
+      safe_work_procedures: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          task_title: string;
+          task_description: string | null;
+          ppe_required: string[];
+          steps: string[];
+          hazards: Hazard[];
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          task_title: string;
+          task_description?: string | null;
+          ppe_required?: string[];
+          steps?: string[];
+          hazards?: Hazard[];
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["safe_work_procedures"]["Insert"]>;
+        Relationships: [];
+      };
+      policies: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          category: string;
+          title: string;
+          your_input: string;
+          purpose: string | null;
+          scope: string | null;
+          procedure_steps: string[];
+          related_legislation: string[];
+          suggested_additions: string[];
+          reviewed_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          category: string;
+          title: string;
+          your_input: string;
+          purpose?: string | null;
+          scope?: string | null;
+          procedure_steps?: string[];
+          related_legislation?: string[];
+          suggested_additions?: string[];
+          reviewed_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["policies"]["Insert"]>;
         Relationships: [];
       };
     };

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getActivities } from "@/lib/supabase/activities";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
+import { getEnergyIcon } from "@/lib/icons";
 
 export default async function ActivitiesPage({
   searchParams,
@@ -18,14 +19,14 @@ export default async function ActivitiesPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-900">Activity library</h1>
-      <p className="mt-1 text-sm text-gray-500">Activities you&apos;ve saved from the generator.</p>
+      <h1 className="font-display text-3xl font-semibold text-coral-dark">Activity library</h1>
+      <p className="mt-1 text-sm text-ink/60">Activities you&apos;ve saved from the generator.</p>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href="/activities"
           className={`rounded-full border px-3 py-1 text-sm ${
-            !outcome ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-300 text-gray-700"
+            !outcome ? "border-coral bg-coral-light text-coral-dark" : "border-coral-light/60 text-ink/70"
           }`}
         >
           All outcomes
@@ -37,8 +38,8 @@ export default async function ActivitiesPage({
             title={o.sub_outcome_text}
             className={`rounded-full border px-3 py-1 text-sm ${
               outcome === o.code
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-gray-300 text-gray-700"
+                ? "border-coral bg-coral-light text-coral-dark"
+                : "border-coral-light/60 text-ink/70"
             }`}
           >
             {o.code}
@@ -53,34 +54,38 @@ export default async function ActivitiesPage({
             href={`/activities?energy=${level}${outcome ? `&outcome=${outcome}` : ""}`}
             className={`rounded-full border px-3 py-1 text-sm ${
               energy === level
-                ? "border-gray-900 bg-gray-100 text-gray-900"
-                : "border-gray-300 text-gray-700"
+                ? "border-sage bg-sage-light text-sage-dark"
+                : "border-coral-light/60 text-ink/70"
             }`}
           >
-            {level}
+            {getEnergyIcon(level)} {level}
           </Link>
         ))}
       </div>
 
       <div className="mt-6 space-y-4">
         {filtered.length === 0 && (
-          <p className="text-sm text-gray-500">No activities match yet.</p>
+          <p className="text-sm text-ink/50">No activities match yet.</p>
         )}
         {filtered.map((activity) => (
           <Link
             key={activity.id}
             href={`/activities/${activity.id}`}
-            className="block rounded-lg border border-gray-200 bg-white p-4 hover:border-blue-300"
+            className="block rounded-2xl border border-coral-light bg-white p-4 shadow-sm transition-colors hover:border-coral"
           >
-            <h2 className="font-semibold text-gray-900">{activity.title}</h2>
-            <p className="mt-1 text-sm text-gray-600">{activity.summary}</p>
-            <div className="mt-2 flex flex-wrap gap-2 text-xs text-gray-500">
+            <h2 className="font-display font-semibold text-ink">{activity.title}</h2>
+            <p className="mt-1 text-sm text-ink/70">{activity.summary}</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink/50">
+              {activity.energy_level && (
+                <span className="text-base" title={activity.energy_level}>
+                  {getEnergyIcon(activity.energy_level)}
+                </span>
+              )}
               {activity.duration_minutes && <span>{activity.duration_minutes} min</span>}
-              {activity.energy_level && <span>&middot; {activity.energy_level}</span>}
               {activity.eylf_codes.map((code) => (
                 <span
                   key={code}
-                  className="rounded-full bg-blue-50 px-2 py-0.5 font-medium text-blue-700"
+                  className="rounded-full bg-sage-light px-2 py-0.5 font-medium text-sage-dark"
                 >
                   {code}
                 </span>
