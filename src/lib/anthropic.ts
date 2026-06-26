@@ -474,3 +474,167 @@ export async function generatePolicy(category: string, userInput: string): Promi
   const userPrompt = `Policy category: ${category}\n\nThe educator's description of their service's situation/approach:\n${userInput}\n\nDraft the policy using the propose_policy tool.`;
   return callTool<RawPolicy>(POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL);
 }
+
+// =========================================
+// Cultural/national days generation
+// =========================================
+export interface RawCulturalDay {
+  name: string;
+  date: string;
+  origin: string;
+  note: string;
+  confidence: "high" | "approximate";
+}
+
+const PROPOSE_CULTURAL_DAYS_TOOL: Anthropic.Tool = {
+  name: "propose_cultural_days",
+  description: "List cultural festivities, national days, and significant observances falling within a date range, for an Australian early childhood program.",
+  input_schema: {
+    type: "object",
+    required: ["days"],
+    properties: {
+      days: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["name", "date", "origin", "note", "confidence"],
+          properties: {
+            name: { type: "string", description: "e.g. 'Diwali', 'Harmony Day', 'NAIDOC Week'." },
+            date: { type: "string", description: "YYYY-MM-DD, within the requested range." },
+            origin: { type: "string", description: "Country or culture of origin, e.g. 'India', 'Australia (First Nations)', 'Vietnam'." },
+            note: { type: "string", description: "One sentence on what it is and a simple, respectful way young children could acknowledge it." },
+            confidence: {
+              type: "string",
+              enum: ["high", "approximate"],
+              description: "'high' for fixed-calendar-date observances you're confident about; 'approximate' for lunar/lunisolar or moveable-feast dates (Diwali, Lunar New Year, Eid, Easter, etc.) that shift yearly and need the educator to verify the exact current-year date.",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const CULTURAL_DAYS_SYSTEM_PROMPT = `You help Australian early childhood educators build culturally inclusive programs, in the spirit of EYLF Outcome 2: children responding to diversity with respect.
+
+List genuine cultural festivities, national days, and significant observances that fall within the given date range. Favour a mix of: Australian-relevant days (Harmony Day, NAIDOC Week, Reconciliation Week, ANZAC Day, etc. when in range) AND genuinely diverse international cultural/religious observances reflecting different countries of origin (e.g. Diwali, Lunar New Year, Eid al-Fitr, Hanukkah, Vesak, etc. when in range) - this is a planning aid for real diversity, not just a token gesture, so include observances beyond the most obvious ones when genuinely relevant to the date range.
+
+Be honest about date certainty: mark fixed-calendar-date observances as "high" confidence, and mark anything based on a lunar/lunisolar calendar or a moveable feast as "approximate" - these shift every year and you are not a live calendar, so the educator must verify the exact current-year date before relying on it. Do not invent a day that doesn't genuinely fall in or near this range. It's fine to return an empty list if nothing relevant falls in range.`;
+
+export async function generateCulturalDays(startDate: string, endDate: string): Promise<RawCulturalDay[]> {
+  const userPrompt = `Date range: ${startDate} to ${endDate}.\n\nList relevant cultural/national days using the propose_cultural_days tool.`;
+  const result = await callTool<{ days: RawCulturalDay[] }>(
+    CULTURAL_DAYS_SYSTEM_PROMPT,
+    userPrompt,
+    PROPOSE_CULTURAL_DAYS_TOOL,
+  );
+  return result.days ?? [];
+}
+
+// =========================================
+// Program planner generation
+// =========================================
+export interface RawProgramEntry {
+  day_date: string;
+  title: string;
+  notes?: string;
+  eylf_codes: string[];
+  reused_activity_title?: string | null;
+}
+
+const PROPOSE_PROGRAM_TOOL: Anthropic.Tool = {
+  name: "propose_program",
+  description: "Draft a fun, inclusive educational program of learning experiences across a date range, linked to EYLF outcomes.",
+  input_schema: {
+    type: "object",
+    required: ["entries"],
+    properties: {
+      entries: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["day_date", "title", "eylf_codes"],
+          properties: {
+            day_date: { type: "string", description: "YYYY-MM-DD, within the program's date range." },
+            title: { type: "string" },
+            notes: { type: "string", description: "Brief practical note - what to do, or how it ties to a cultural day if relevant." },
+            eylf_codes: { type: "array", items: { type: "string" }, description: "EYLF sub-outcome codes this entry targets, from the provided taxonomy only." },
+            reused_activity_title: {
+              type: "string",
+              description: "If this entry reuses one of the educator's existing saved activities, its EXACT title as given. Omit/null if this is a new suggestion.",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+function buildProgramSystemPrompt(outcomes: EylfOutcome[]): string {
+  const taxonomy = outcomes.map((o) => `${o.code} — ${o.sub_outcome_text}`).join("\n");
+  return `You help Australian early childhood educators write a fun, inclusive learning program as quickly as possible, so they can spend less time on paperwork and more time with the children. Every entry must use EYLF sub-outcome codes ONLY from this list:
+
+${taxonomy}
+
+Never invent a code outside this list. Prefer reusing the educator's existing saved activities (listed below) where they genuinely fit a day/outcome well — that's less prep work for them — rather than always inventing something new. When you do reuse one, set reused_activity_title to its EXACT title as given; do not paraphrase it. Spread coverage across the outcomes that need it most (also listed below) rather than repeating the same one or two outcomes every day. Where a cultural/national day genuinely falls on or near one of the program's dates, consider weaving in a simple, age-appropriate, respectful entry for it — but don't force one in if nothing fits naturally.`;
+}
+
+function buildProgramUserPrompt(
+  startDate: string,
+  endDate: string,
+  outcomeGaps: { code: string; subOutcomeText: string; timesCovered: number }[],
+  culturalDays: RawCulturalDay[],
+  existingActivities: { title: string; eylfCodes: string[] }[],
+  educatorNotes?: string,
+): string {
+  const lines: string[] = [`Program date range: ${startDate} to ${endDate}.`];
+
+  if (outcomeGaps.length > 0) {
+    lines.push(
+      `Outcomes needing attention (least recently/often covered first):\n${outcomeGaps
+        .slice(0, 8)
+        .map((g) => `- ${g.code} (covered ${g.timesCovered}x recently): ${g.subOutcomeText}`)
+        .join("\n")}`,
+    );
+  }
+
+  if (culturalDays.length > 0) {
+    lines.push(
+      `Cultural/national days in this range:\n${culturalDays
+        .map((d) => `- ${d.date}: ${d.name} (${d.origin})${d.confidence === "approximate" ? " [date approximate]" : ""}`)
+        .join("\n")}`,
+    );
+  }
+
+  if (existingActivities.length > 0) {
+    lines.push(
+      `Educator's existing saved activities, available to reuse:\n${existingActivities
+        .map((a) => `- "${a.title}" (EYLF: ${a.eylfCodes.join(", ") || "none tagged"})`)
+        .join("\n")}`,
+    );
+  }
+
+  if (educatorNotes) {
+    lines.push(`Educator's guidance for this program: ${educatorNotes}`);
+  }
+
+  lines.push("Propose the program entries using the propose_program tool — one or more entries per day across the range.");
+  return lines.join("\n\n");
+}
+
+export async function generateProgram(
+  startDate: string,
+  endDate: string,
+  outcomes: EylfOutcome[],
+  outcomeGaps: { code: string; subOutcomeText: string; timesCovered: number }[],
+  culturalDays: RawCulturalDay[],
+  existingActivities: { title: string; eylfCodes: string[] }[],
+  educatorNotes?: string,
+): Promise<RawProgramEntry[]> {
+  const result = await callTool<{ entries: RawProgramEntry[] }>(
+    buildProgramSystemPrompt(outcomes),
+    buildProgramUserPrompt(startDate, endDate, outcomeGaps, culturalDays, existingActivities, educatorNotes),
+    PROPOSE_PROGRAM_TOOL,
+  );
+  return result.entries ?? [];
+}

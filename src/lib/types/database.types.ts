@@ -9,6 +9,16 @@ export type RiskLikelihood = "rare" | "unlikely" | "possible" | "likely" | "almo
 export type RiskConsequence = "insignificant" | "minor" | "moderate" | "significant" | "major";
 export type RiskRating = "low" | "medium" | "high" | "extreme";
 
+export type CulturalDayConfidence = "high" | "approximate";
+
+export interface CulturalDay {
+  name: string;
+  date: string;
+  origin: string;
+  note: string;
+  confidence: CulturalDayConfidence;
+}
+
 export interface Hazard {
   hazard: string;
   who_could_be_harmed: string;
@@ -243,6 +253,52 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["policies"]["Insert"]>;
+        Relationships: [];
+      };
+      programs: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          start_date: string;
+          end_date: string;
+          cultural_days: CulturalDay[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title: string;
+          start_date: string;
+          end_date: string;
+          cultural_days?: CulturalDay[];
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["programs"]["Insert"]>;
+        Relationships: [];
+      };
+      program_entries: {
+        Row: {
+          id: string;
+          program_id: string;
+          day_date: string;
+          title: string;
+          notes: string | null;
+          activity_id: string | null;
+          eylf_codes: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          program_id: string;
+          day_date: string;
+          title: string;
+          notes?: string | null;
+          activity_id?: string | null;
+          eylf_codes?: string[];
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["program_entries"]["Insert"]>;
         Relationships: [];
       };
     };

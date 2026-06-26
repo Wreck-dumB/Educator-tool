@@ -8,6 +8,8 @@ export type Observation = Database["public"]["Tables"]["observations"]["Row"];
 export type RiskAssessment = Database["public"]["Tables"]["risk_assessments"]["Row"];
 export type SafeWorkProcedure = Database["public"]["Tables"]["safe_work_procedures"]["Row"];
 export type Policy = Database["public"]["Tables"]["policies"]["Row"];
+export type Program = Database["public"]["Tables"]["programs"]["Row"];
+export type ProgramEntry = Database["public"]["Tables"]["program_entries"]["Row"];
 
 /** A candidate activity returned by the generation engine, before it's saved. */
 export interface ActivitySuggestion {
@@ -47,4 +49,29 @@ export interface PolicySuggestion {
   procedureSteps: string[];
   relatedLegislation: string[];
   suggestedAdditions: string[];
+}
+
+/** One EYLF outcome's recent coverage, used to drive the program planner's gap view. */
+export interface OutcomeCoverage {
+  code: string;
+  outcomeNumber: number;
+  outcomeTitle: string;
+  subOutcomeText: string;
+  timesCovered: number;
+  lastCoveredAt: string | null;
+}
+
+/** A candidate program entry returned by the generation engine, before it's saved. */
+export interface ProgramEntrySuggestion {
+  dayDate: string;
+  title: string;
+  notes: string | null;
+  eylfCodes: string[];
+  activityId: string | null;
+}
+
+/** A candidate program returned by the generation engine, before it's saved. */
+export interface ProgramSuggestion {
+  entries: ProgramEntrySuggestion[];
+  culturalDays: import("./database.types").CulturalDay[];
 }
