@@ -21,6 +21,7 @@ export interface GenerationInput {
   childInterest?: string;
   childName?: string;
   childRecentObservations?: ChildObservationSummary[];
+  additionalNeeds?: string;
 }
 
 export interface RawActivitySuggestion {
@@ -86,7 +87,9 @@ function buildSystemPrompt(outcomes: EylfOutcome[]): string {
 
 ${taxonomy}
 
-Never invent a code that isn't in this list. Keep activities playful, safe, age-appropriate, and achievable with ordinary classroom/home resources.`;
+Never invent a code that isn't in this list. Keep activities playful, safe, age-appropriate, and achievable with ordinary classroom/home resources.
+
+When additional needs/constraints are given (physical, emotional, disability, neurodiversity, family, environmental, or legal), adapt the activity practically and respectfully — focus on concrete accommodations (e.g. seated/standing alternatives, quieter sensory options, simpler instructions, alternative materials) rather than discussing or diagnosing the need itself. Take the educator's description at face value without speculating beyond what's stated.`;
 }
 
 function buildUserPrompt(input: GenerationInput): string {
@@ -118,6 +121,13 @@ function buildUserPrompt(input: GenerationInput): string {
   if (input.childInterest) {
     const who = input.childName ? `${input.childName}'s` : "A child's";
     lines.push(`${who} current interest to weave in if relevant: ${input.childInterest}.`);
+  }
+
+  if (input.additionalNeeds) {
+    const who = input.childName ?? "a child in the group";
+    lines.push(
+      `Additional needs/constraints to accommodate for ${who}: ${input.additionalNeeds}. Adapt the activity practically (alternative materials, pacing, sensory load, positioning, etc.) so it's genuinely accessible, without making this the activity's whole focus.`,
+    );
   }
 
   if (input.childRecentObservations && input.childRecentObservations.length > 0) {

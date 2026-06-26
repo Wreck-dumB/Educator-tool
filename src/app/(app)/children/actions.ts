@@ -14,6 +14,7 @@ export async function createChild(formData: FormData) {
   const firstName = (formData.get("first_name") as string)?.trim();
   const dateOfBirth = (formData.get("date_of_birth") as string) || null;
   const currentInterests = (formData.get("current_interests") as string)?.trim() || null;
+  const additionalNeeds = (formData.get("additional_needs") as string)?.trim() || null;
 
   if (!firstName) {
     redirect("/children?error=Please enter a first name");
@@ -24,6 +25,7 @@ export async function createChild(formData: FormData) {
     first_name: firstName,
     date_of_birth: dateOfBirth,
     current_interests: currentInterests,
+    additional_needs: additionalNeeds,
   });
 
   if (error) {
@@ -41,6 +43,7 @@ export async function updateChild(formData: FormData) {
   const firstName = (formData.get("first_name") as string)?.trim();
   const dateOfBirth = (formData.get("date_of_birth") as string) || null;
   const currentInterests = (formData.get("current_interests") as string)?.trim() || null;
+  const additionalNeeds = (formData.get("additional_needs") as string)?.trim() || null;
 
   if (!firstName) {
     redirect(`/children/${id}?error=Please enter a first name`);
@@ -52,6 +55,7 @@ export async function updateChild(formData: FormData) {
       first_name: firstName,
       date_of_birth: dateOfBirth,
       current_interests: currentInterests,
+      additional_needs: additionalNeeds,
     })
     .eq("id", id);
 

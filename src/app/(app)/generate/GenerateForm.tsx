@@ -34,6 +34,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
   const [childId, setChildId] = useState("");
   const [childQuery, setChildQuery] = useState("");
   const [focusInterest, setFocusInterest] = useState("");
+  const [additionalNeeds, setAdditionalNeeds] = useState("");
 
   const selectedChild = childProfiles.find((c) => c.id === childId);
   const childMatches =
@@ -45,6 +46,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
     setChildId(child.id);
     setChildQuery("");
     setFocusInterest(child.current_interests ?? "");
+    setAdditionalNeeds(child.additional_needs ?? "");
   }
 
   function clearChild() {
@@ -90,6 +92,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
       .filter(Boolean);
     const allMaterials = [...selectedMaterials, ...adhoc];
     const trimmedInterest = focusInterest.trim();
+    const trimmedNeeds = additionalNeeds.trim();
 
     let generationMode: GenerationMode = "surprise_me";
     if (allMaterials.length > 0) generationMode = "materials";
@@ -113,6 +116,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           targetOutcomeCodes: [...selectedOutcomes],
           childInterest: trimmedInterest || undefined,
           childId: childId || undefined,
+          additionalNeeds: trimmedNeeds || undefined,
         }),
       });
 
@@ -295,6 +299,25 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           <p className="mt-1 text-xs text-ink/50">
             Selecting a focus child above fills this in from their saved interests — feel free to
             type your own topic instead, whether or not a child is selected.
+          </p>
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="additional_needs_field" className="block text-sm font-medium text-ink/70">
+            Additional needs (optional)
+          </label>
+          <textarea
+            id="additional_needs_field"
+            rows={2}
+            value={additionalNeeds}
+            onChange={(e) => setAdditionalNeeds(e.target.value)}
+            placeholder="e.g. uses a wheelchair, sensory sensitivity to loud noise, recent family change at home"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-ink/50">
+            Any physical, emotional, disability, neurodiversity, family, environmental, or legal
+            needs/constraints to help the activity adapt respectfully. Selecting a focus child
+            fills this in from their saved profile, but you can type your own regardless.
           </p>
         </div>
 

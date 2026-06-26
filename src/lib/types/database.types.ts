@@ -58,6 +58,7 @@ export interface Database {
           first_name: string;
           date_of_birth: string | null;
           current_interests: string | null;
+          additional_needs: string | null;
           created_at: string;
         };
         Insert: {
@@ -66,6 +67,7 @@ export interface Database {
           first_name: string;
           date_of_birth?: string | null;
           current_interests?: string | null;
+          additional_needs?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;

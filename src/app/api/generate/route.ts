@@ -69,6 +69,10 @@ export async function POST(request: Request) {
     input.childInterest = body.childInterest.trim().slice(0, 200) || undefined;
   }
 
+  if (typeof body.additionalNeeds === "string") {
+    input.additionalNeeds = body.additionalNeeds.trim().slice(0, 500) || undefined;
+  }
+
   // Resolve the focus child server-side rather than trusting client-supplied
   // history — RLS scopes this to the caller's own children/observations
   // regardless, but fetching the real rows also means we can't be fed a
@@ -76,7 +80,7 @@ export async function POST(request: Request) {
   if (typeof body.childId === "string" && body.childId) {
     const { data: child } = await supabase
       .from("children")
-      .select("first_name, current_interests")
+      .select("first_name, current_interests, additional_needs")
       .eq("id", body.childId)
       .maybeSingle();
 
@@ -84,6 +88,9 @@ export async function POST(request: Request) {
       input.childName = child.first_name;
       if (!input.childInterest && child.current_interests) {
         input.childInterest = child.current_interests;
+      }
+      if (!input.additionalNeeds && child.additional_needs) {
+        input.additionalNeeds = child.additional_needs;
       }
       const observations = await getObservations(body.childId);
       input.childRecentObservations = observations.slice(0, 5).map((o) => ({

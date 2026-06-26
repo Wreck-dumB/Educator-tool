@@ -76,6 +76,22 @@ export default async function ChildrenPage({
               Feeds into activity generation when you pick this child.
             </p>
           </div>
+          <div>
+            <label htmlFor="additional_needs" className="block text-sm font-medium text-ink/70">
+              Additional needs (optional)
+            </label>
+            <textarea
+              id="additional_needs"
+              name="additional_needs"
+              rows={2}
+              placeholder="e.g. uses a wheelchair, sensory sensitivity to loud noise, recent family change at home"
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-ink/50">
+              Any physical, emotional, disability, neurodiversity, family, environmental, or legal
+              needs/constraints worth the generator knowing about, to adapt activities respectfully.
+            </p>
+          </div>
           <button type="submit" className={`w-full ${primaryButtonClass}`}>
             Add child
           </button>
