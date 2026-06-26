@@ -4,6 +4,12 @@ import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
+export interface ChildObservationSummary {
+  noteText: string;
+  observedAt: string;
+  eylfCodes: string[];
+}
+
 export interface GenerationInput {
   mode: "materials" | "time" | "outcome" | "interest" | "surprise_me";
   surpriseMe?: boolean;
@@ -13,6 +19,8 @@ export interface GenerationInput {
   energyLevel?: "calm" | "moderate" | "high";
   targetOutcomeCodes?: string[];
   childInterest?: string;
+  childName?: string;
+  childRecentObservations?: ChildObservationSummary[];
 }
 
 export interface RawActivitySuggestion {
@@ -108,7 +116,21 @@ function buildUserPrompt(input: GenerationInput): string {
     lines.push(`Target these EYLF outcome codes specifically: ${input.targetOutcomeCodes.join(", ")}.`);
   }
   if (input.childInterest) {
-    lines.push(`A child's current interest to weave in if relevant: ${input.childInterest}.`);
+    const who = input.childName ? `${input.childName}'s` : "A child's";
+    lines.push(`${who} current interest to weave in if relevant: ${input.childInterest}.`);
+  }
+
+  if (input.childRecentObservations && input.childRecentObservations.length > 0) {
+    const who = input.childName ?? "this child";
+    const summary = input.childRecentObservations
+      .map((o) => {
+        const codes = o.eylfCodes.length > 0 ? ` (EYLF ${o.eylfCodes.join(", ")})` : "";
+        return `- ${o.observedAt}: ${o.noteText}${codes}`;
+      })
+      .join("\n");
+    lines.push(
+      `Recent observations logged about ${who}, most recent first:\n${summary}\nUse this real history to inform the activity — build on what ${who} has been doing or vary it meaningfully (e.g. extend a skill that's emerging, target an EYLF outcome not in this recent list, or revisit an interest from a fresh angle) rather than proposing something disconnected from their actual recent experience.`,
+    );
   }
 
   if (lines.length === 0) {

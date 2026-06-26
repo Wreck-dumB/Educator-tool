@@ -32,7 +32,25 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
   const [energyLevel, setEnergyLevel] = useState("");
   const [selectedOutcomes, setSelectedOutcomes] = useState<Set<string>>(new Set());
   const [childId, setChildId] = useState("");
+  const [childQuery, setChildQuery] = useState("");
   const [focusInterest, setFocusInterest] = useState("");
+
+  const selectedChild = childProfiles.find((c) => c.id === childId);
+  const childMatches =
+    !childId && childQuery.trim()
+      ? childProfiles.filter((c) => c.first_name.toLowerCase().includes(childQuery.trim().toLowerCase()))
+      : [];
+
+  function selectChild(child: ChildProfile) {
+    setChildId(child.id);
+    setChildQuery("");
+    setFocusInterest(child.current_interests ?? "");
+  }
+
+  function clearChild() {
+    setChildId("");
+    setChildQuery("");
+  }
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +112,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           energyLevel: energyLevel || undefined,
           targetOutcomeCodes: [...selectedOutcomes],
           childInterest: trimmedInterest || undefined,
+          childId: childId || undefined,
         }),
       });
 
@@ -209,28 +228,54 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
             </select>
           </div>
           {childProfiles.length > 0 && (
-            <div>
-              <label htmlFor="child" className="block text-sm font-medium text-ink/70">
-                Tailor to a child
+            <div className="relative">
+              <label htmlFor="child_search" className="block text-sm font-medium text-ink/70">
+                Focus child
               </label>
-              <select
-                id="child"
-                value={childId}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  setChildId(id);
-                  const child = childProfiles.find((c) => c.id === id);
-                  if (child) setFocusInterest(child.current_interests ?? "");
-                }}
-                className={inputClass}
-              >
-                <option value="">None</option>
-                {childProfiles.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.first_name}
-                  </option>
-                ))}
-              </select>
+              {selectedChild ? (
+                <div className="mt-1 flex items-center justify-between rounded-xl border border-coral bg-coral-light px-3 py-2">
+                  <span className="text-sm font-medium text-coral-dark">
+                    🧒 {selectedChild.first_name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={clearChild}
+                    className="text-xs font-medium text-coral-dark hover:underline"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <input
+                    id="child_search"
+                    type="text"
+                    value={childQuery}
+                    onChange={(e) => setChildQuery(e.target.value)}
+                    placeholder="Search by name…"
+                    className={inputClass}
+                    autoComplete="off"
+                  />
+                  {childMatches.length > 0 && (
+                    <ul className="absolute z-10 mt-1 w-full rounded-xl border border-coral-light bg-white py-1 shadow-md">
+                      {childMatches.map((c) => (
+                        <li key={c.id}>
+                          <button
+                            type="button"
+                            onClick={() => selectChild(c)}
+                            className="block w-full px-3 py-1.5 text-left text-sm text-ink hover:bg-coral-light/40"
+                          >
+                            🧒 {c.first_name}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+              <p className="mt-1 text-xs text-ink/50">
+                Pulls their saved interest plus recent observations into the generation.
+              </p>
             </div>
           )}
         </div>
@@ -248,8 +293,8 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
             className={inputClass}
           />
           <p className="mt-1 text-xs text-ink/50">
-            Picking a child above fills this in from their saved interests — feel free to type
-            your own instead, whether or not a child is selected.
+            Selecting a focus child above fills this in from their saved interests — feel free to
+            type your own topic instead, whether or not a child is selected.
           </p>
         </div>
 

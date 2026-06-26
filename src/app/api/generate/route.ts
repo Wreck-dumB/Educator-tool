@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
+import { getObservations } from "@/lib/supabase/observations";
 import { generateActivitySuggestions, type GenerationInput } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
 import type { ActivitySuggestion } from "@/lib/types/domain";
@@ -66,6 +67,31 @@ export async function POST(request: Request) {
 
   if (typeof body.childInterest === "string") {
     input.childInterest = body.childInterest.trim().slice(0, 200) || undefined;
+  }
+
+  // Resolve the focus child server-side rather than trusting client-supplied
+  // history — RLS scopes this to the caller's own children/observations
+  // regardless, but fetching the real rows also means we can't be fed a
+  // fabricated observation history for a real child.
+  if (typeof body.childId === "string" && body.childId) {
+    const { data: child } = await supabase
+      .from("children")
+      .select("first_name, current_interests")
+      .eq("id", body.childId)
+      .maybeSingle();
+
+    if (child) {
+      input.childName = child.first_name;
+      if (!input.childInterest && child.current_interests) {
+        input.childInterest = child.current_interests;
+      }
+      const observations = await getObservations(body.childId);
+      input.childRecentObservations = observations.slice(0, 5).map((o) => ({
+        noteText: o.note_text.slice(0, 300),
+        observedAt: new Date(o.observed_at).toLocaleDateString(),
+        eylfCodes: o.eylf_codes,
+      }));
+    }
   }
 
   const outcomes = await getEylfOutcomes();
