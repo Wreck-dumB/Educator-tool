@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getOutcomeCoverage } from "@/lib/supabase/eylf";
 import { getPrograms } from "@/lib/supabase/programs";
 import { cardClass } from "@/lib/ui";
-import ProgramBuilderForm from "./ProgramBuilderForm";
+import ProgramPlannerClient from "./ProgramPlannerClient";
 
 export default async function ProgramsPage() {
   const [coverage, programs] = await Promise.all([getOutcomeCoverage(30), getPrograms()]);
@@ -37,9 +37,7 @@ export default async function ProgramsPage() {
         </div>
       )}
 
-      <div className="mt-6">
-        <ProgramBuilderForm />
-      </div>
+      <ProgramPlannerClient />
 
       <div className="mt-6 space-y-4">
         {programs.length === 0 && <p className="text-sm text-ink/50">No programs saved yet.</p>}

@@ -11,11 +11,17 @@ function todayPlus(days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default function ProgramBuilderForm() {
+interface Props {
+  initialStartDate?: string;
+  initialEndDate?: string;
+  initialNotes?: string;
+}
+
+export default function ProgramBuilderForm({ initialStartDate, initialEndDate, initialNotes }: Props) {
   const [title, setTitle] = useState("");
-  const [startDate, setStartDate] = useState(todayPlus(0));
-  const [endDate, setEndDate] = useState(todayPlus(6));
-  const [educatorNotes, setEducatorNotes] = useState("");
+  const [startDate, setStartDate] = useState(initialStartDate ?? todayPlus(0));
+  const [endDate, setEndDate] = useState(initialEndDate ?? todayPlus(6));
+  const [educatorNotes, setEducatorNotes] = useState(initialNotes ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProgramSuggestion | null>(null);
