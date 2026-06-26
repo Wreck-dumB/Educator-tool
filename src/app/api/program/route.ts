@@ -4,6 +4,7 @@ import { getEylfOutcomes, getOutcomeCoverage } from "@/lib/supabase/eylf";
 import { getActivities } from "@/lib/supabase/activities";
 import { generateCulturalDays, generateProgram, type RawCulturalDay } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { withBathurst1000 } from "@/lib/bathurst1000";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -52,9 +53,13 @@ export async function POST(request: Request) {
   try {
     culturalDays = await generateCulturalDays(startDate, endDate);
   } catch (err) {
-    console.error("Cultural days generation failed", err);
+    console.error("Cultural days generation failed — still including non-negotiable entries", err);
     culturalDays = [];
   }
+  // Bathurst 1000 is always included regardless of the AI lookup outcome,
+  // and merged in before program generation so it can be woven into an
+  // entry like any other cultural day.
+  culturalDays = withBathurst1000(culturalDays, startDate, endDate);
 
   let rawEntries;
   try {
