@@ -32,6 +32,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
   const [energyLevel, setEnergyLevel] = useState("");
   const [selectedOutcomes, setSelectedOutcomes] = useState<Set<string>>(new Set());
   const [childId, setChildId] = useState("");
+  const [focusInterest, setFocusInterest] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,12 +71,12 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
       .map((m) => m.trim())
       .filter(Boolean);
     const allMaterials = [...selectedMaterials, ...adhoc];
-    const child = childProfiles.find((c) => c.id === childId);
+    const trimmedInterest = focusInterest.trim();
 
     let generationMode: GenerationMode = "surprise_me";
     if (allMaterials.length > 0) generationMode = "materials";
     else if (selectedOutcomes.size > 0) generationMode = "outcome";
-    else if (child?.current_interests) generationMode = "interest";
+    else if (trimmedInterest) generationMode = "interest";
     else if (timeMinutes) generationMode = "time";
     else if (surpriseMe) generationMode = "surprise_me";
     setMode(generationMode);
@@ -92,7 +93,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           groupSize: groupSize || undefined,
           energyLevel: energyLevel || undefined,
           targetOutcomeCodes: [...selectedOutcomes],
-          childInterest: child?.current_interests ?? undefined,
+          childInterest: trimmedInterest || undefined,
         }),
       });
 
@@ -215,7 +216,12 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
               <select
                 id="child"
                 value={childId}
-                onChange={(e) => setChildId(e.target.value)}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setChildId(id);
+                  const child = childProfiles.find((c) => c.id === id);
+                  if (child) setFocusInterest(child.current_interests ?? "");
+                }}
                 className={inputClass}
               >
                 <option value="">None</option>
@@ -227,6 +233,24 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
               </select>
             </div>
           )}
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="focus_interest" className="block text-sm font-medium text-ink/70">
+            Focus interest (optional)
+          </label>
+          <input
+            id="focus_interest"
+            type="text"
+            value={focusInterest}
+            onChange={(e) => setFocusInterest(e.target.value)}
+            placeholder="e.g. dinosaurs, space, trucks, dragons"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-ink/50">
+            Picking a child above fills this in from their saved interests — feel free to type
+            your own instead, whether or not a child is selected.
+          </p>
         </div>
 
         {outcomes.length > 0 && (
