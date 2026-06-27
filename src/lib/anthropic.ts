@@ -22,6 +22,7 @@ export interface GenerationInput {
   childName?: string;
   childRecentObservations?: ChildObservationSummary[];
   additionalNeeds?: string;
+  targetAgeBracket?: string;
 }
 
 export interface RawActivitySuggestion {
@@ -61,7 +62,7 @@ const PROPOSE_ACTIVITIES_TOOL: Anthropic.Tool = {
               items: { type: "string" },
               description: "Open questions the educator can ask children after the activity, to support the 'do, then reflect' approach.",
             },
-            age_range: { type: "string", description: "e.g. '2-3 years' or 'toddlers'." },
+            age_range: { type: "string", description: "e.g. '2-3 years' or 'toddlers'. If the educator gave a target age bracket, this MUST match it." },
             duration_minutes: { type: "integer" },
             energy_level: { type: "string", enum: ["calm", "moderate", "high"] },
             group_size_fit: { type: "string", enum: ["solo", "small_group", "whole_group"] },
@@ -114,6 +115,9 @@ function buildUserPrompt(input: GenerationInput): string {
   }
   if (input.energyLevel) {
     lines.push(`Desired energy/regulation level: ${input.energyLevel}.`);
+  }
+  if (input.targetAgeBracket) {
+    lines.push(`Target age bracket: ${input.targetAgeBracket}. Every activity's age_range MUST reflect this bracket.`);
   }
   if (input.targetOutcomeCodes && input.targetOutcomeCodes.length > 0) {
     lines.push(`Target these EYLF outcome codes specifically: ${input.targetOutcomeCodes.join(", ")}.`);

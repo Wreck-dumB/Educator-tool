@@ -16,6 +16,16 @@ function pillClass(active: boolean) {
   }`;
 }
 
+const AGE_BRACKET_SUGGESTIONS = [
+  "Babies (0-12 months)",
+  "Toddlers (1-2 years)",
+  "Toddlers (2-3 years)",
+  "Preschool (3-4 years)",
+  "Preschool (4-5 years)",
+  "Kindergarten / school age (5+ years)",
+  "Mixed age group",
+];
+
 interface Props {
   outcomes: EylfOutcome[];
   materials: Material[];
@@ -35,12 +45,17 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
   const [childQuery, setChildQuery] = useState("");
   const [focusInterest, setFocusInterest] = useState("");
   const [additionalNeeds, setAdditionalNeeds] = useState("");
+  const [targetAgeBracket, setTargetAgeBracket] = useState("");
+  const [ageBracketFocused, setAgeBracketFocused] = useState(false);
 
   const selectedChild = childProfiles.find((c) => c.id === childId);
   const childMatches =
     !childId && childQuery.trim()
       ? childProfiles.filter((c) => c.first_name.toLowerCase().includes(childQuery.trim().toLowerCase()))
       : [];
+  const ageBracketMatches = ageBracketFocused
+    ? AGE_BRACKET_SUGGESTIONS.filter((b) => b.toLowerCase().includes(targetAgeBracket.trim().toLowerCase()))
+    : [];
 
   function selectChild(child: ChildProfile) {
     setChildId(child.id);
@@ -117,6 +132,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           childInterest: trimmedInterest || undefined,
           childId: childId || undefined,
           additionalNeeds: trimmedNeeds || undefined,
+          targetAgeBracket: targetAgeBracket.trim() || undefined,
         }),
       });
 
@@ -318,6 +334,46 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
             Any physical, emotional, disability, neurodiversity, family, environmental, or legal
             needs/constraints to help the activity adapt respectfully. Selecting a focus child
             fills this in from their saved profile, but you can type your own regardless.
+          </p>
+        </div>
+
+        <div className="relative mt-4">
+          <label htmlFor="age_bracket" className="block text-sm font-medium text-ink/70">
+            Target age bracket (optional)
+          </label>
+          <input
+            id="age_bracket"
+            type="text"
+            value={targetAgeBracket}
+            onChange={(e) => setTargetAgeBracket(e.target.value)}
+            onFocus={() => setAgeBracketFocused(true)}
+            onBlur={() => setAgeBracketFocused(false)}
+            placeholder="Search or type, e.g. Toddlers (2-3 years)"
+            className={inputClass}
+            autoComplete="off"
+          />
+          {ageBracketMatches.length > 0 && (
+            <ul className="absolute z-10 mt-1 w-full rounded-xl border border-coral-light bg-white py-1 shadow-md">
+              {ageBracketMatches.map((bracket) => (
+                <li key={bracket}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setTargetAgeBracket(bracket);
+                      setAgeBracketFocused(false);
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-sm text-ink hover:bg-coral-light/40"
+                  >
+                    {bracket}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1 text-xs text-ink/50">
+            Pick a common bracket or type your own — keeps the activity&apos;s age-appropriateness
+            on target even without a specific focus child selected.
           </p>
         </div>
 
