@@ -380,18 +380,26 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
         {outcomes.length > 0 && (
           <div className="mt-4">
             <p className="text-sm font-medium text-ink/70">Target EYLF outcomes (optional)</p>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {outcomes.map((o) => (
-                <button
-                  key={o.id}
-                  type="button"
-                  onClick={() => toggleOutcome(o.code)}
-                  title={o.sub_outcome_text}
-                  className={pillClass(selectedOutcomes.has(o.code))}
-                >
-                  {o.code}
-                </button>
-              ))}
+            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {outcomes.map((o) => {
+                const active = selectedOutcomes.has(o.code);
+                return (
+                  <button
+                    key={o.id}
+                    type="button"
+                    onClick={() => toggleOutcome(o.code)}
+                    title={o.sub_outcome_text}
+                    className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                      active
+                        ? "border-coral bg-coral-light text-coral-dark"
+                        : "border-coral-light/60 text-ink/70 hover:bg-coral-light/40"
+                    }`}
+                  >
+                    <span className="block text-base font-semibold">{o.code}</span>
+                    <span className="mt-0.5 block text-xs leading-snug">{o.sub_outcome_text}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
