@@ -97,6 +97,7 @@ const MILESTONE_DOMAIN_LABELS: Record<string, string> = {
   language: "Language",
   social_emotional: "Social-emotional",
   cognitive: "Cognitive",
+  physical: "Physical development",
 };
 
 const MILESTONE_DOMAIN_ICONS: Record<string, string> = {
@@ -105,6 +106,7 @@ const MILESTONE_DOMAIN_ICONS: Record<string, string> = {
   language: "💬",
   social_emotional: "🤝",
   cognitive: "🧠",
+  physical: "🌱",
 };
 
 export function getMilestoneDomainLabel(domain: string): string {

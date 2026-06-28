@@ -8,7 +8,7 @@ export type GenerationMode = "materials" | "time" | "outcome" | "interest" | "su
 export type RiskLikelihood = "rare" | "unlikely" | "possible" | "likely" | "almost_certain";
 export type RiskConsequence = "insignificant" | "minor" | "moderate" | "significant" | "major";
 export type RiskRating = "low" | "medium" | "high" | "extreme";
-export type MilestoneDomain = "gross_motor" | "fine_motor" | "language" | "social_emotional" | "cognitive";
+export type MilestoneDomain = "gross_motor" | "fine_motor" | "language" | "social_emotional" | "cognitive" | "physical";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
