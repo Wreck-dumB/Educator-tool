@@ -8,6 +8,7 @@ export type GenerationMode = "materials" | "time" | "outcome" | "interest" | "su
 export type RiskLikelihood = "rare" | "unlikely" | "possible" | "likely" | "almost_certain";
 export type RiskConsequence = "insignificant" | "minor" | "moderate" | "significant" | "major";
 export type RiskRating = "low" | "medium" | "high" | "extreme";
+export type MilestoneDomain = "gross_motor" | "fine_motor" | "language" | "social_emotional" | "cognitive";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
@@ -301,6 +302,26 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["program_entries"]["Insert"]>;
+        Relationships: [];
+      };
+      developmental_milestones: {
+        Row: {
+          id: string;
+          age_band: string;
+          age_band_order: number;
+          domain: MilestoneDomain;
+          milestone_text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          age_band: string;
+          age_band_order: number;
+          domain: MilestoneDomain;
+          milestone_text: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["developmental_milestones"]["Insert"]>;
         Relationships: [];
       };
     };

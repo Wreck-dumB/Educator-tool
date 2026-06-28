@@ -77,6 +77,10 @@ export async function POST(request: Request) {
     input.targetAgeBracket = body.targetAgeBracket.trim().slice(0, 80) || undefined;
   }
 
+  if (typeof body.targetMilestone === "string") {
+    input.targetMilestone = body.targetMilestone.trim().slice(0, 300) || undefined;
+  }
+
   // Resolve the focus child server-side rather than trusting client-supplied
   // history — RLS scopes this to the caller's own children/observations
   // regardless, but fetching the real rows also means we can't be fed a

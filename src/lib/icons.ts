@@ -90,3 +90,27 @@ export function getRiskRatingBadgeClass(rating: string): string {
       return "bg-cream-dark text-ink/60";
   }
 }
+
+const MILESTONE_DOMAIN_LABELS: Record<string, string> = {
+  gross_motor: "Gross motor",
+  fine_motor: "Fine motor",
+  language: "Language",
+  social_emotional: "Social-emotional",
+  cognitive: "Cognitive",
+};
+
+const MILESTONE_DOMAIN_ICONS: Record<string, string> = {
+  gross_motor: "🏃",
+  fine_motor: "✋",
+  language: "💬",
+  social_emotional: "🤝",
+  cognitive: "🧠",
+};
+
+export function getMilestoneDomainLabel(domain: string): string {
+  return MILESTONE_DOMAIN_LABELS[domain] ?? domain;
+}
+
+export function getMilestoneDomainIcon(domain: string): string {
+  return MILESTONE_DOMAIN_ICONS[domain] ?? "📌";
+}

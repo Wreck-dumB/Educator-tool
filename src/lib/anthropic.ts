@@ -23,6 +23,7 @@ export interface GenerationInput {
   childRecentObservations?: ChildObservationSummary[];
   additionalNeeds?: string;
   targetAgeBracket?: string;
+  targetMilestone?: string;
 }
 
 export interface RawActivitySuggestion {
@@ -118,6 +119,11 @@ function buildUserPrompt(input: GenerationInput): string {
   }
   if (input.targetAgeBracket) {
     lines.push(`Target age bracket: ${input.targetAgeBracket}. Every activity's age_range MUST reflect this bracket.`);
+  }
+  if (input.targetMilestone) {
+    lines.push(
+      `Target developmental milestone to build towards: "${input.targetMilestone}". Design at least one activity that genuinely supports practising or progressing this specific skill — this is a general developmental guide, not a diagnostic target, so keep it playful rather than drill-like.`,
+    );
   }
   if (input.targetOutcomeCodes && input.targetOutcomeCodes.length > 0) {
     lines.push(`Target these EYLF outcome codes specifically: ${input.targetOutcomeCodes.join(", ")}.`);

@@ -2,10 +2,16 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import type { EylfOutcome, Material, ChildProfile, ActivitySuggestion } from "@/lib/types/domain";
+import type { EylfOutcome, Material, ChildProfile, ActivitySuggestion, DevelopmentalMilestone } from "@/lib/types/domain";
 import type { GenerationMode } from "@/lib/types/database.types";
 import { saveActivity } from "./save";
-import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
+import {
+  getMaterialIcon,
+  getEnergyIcon,
+  getGroupIcon,
+  getEnergyBadgeClass,
+  getMilestoneDomainIcon,
+} from "@/lib/icons";
 
 const inputClass =
   "mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral";
@@ -30,11 +36,12 @@ interface Props {
   outcomes: EylfOutcome[];
   materials: Material[];
   childProfiles: ChildProfile[];
+  milestones: DevelopmentalMilestone[];
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export default function GenerateForm({ outcomes, materials, childProfiles }: Props) {
+export default function GenerateForm({ outcomes, materials, childProfiles, milestones }: Props) {
   const [selectedMaterials, setSelectedMaterials] = useState<Set<string>>(new Set());
   const [adhocMaterials, setAdhocMaterials] = useState("");
   const [timeMinutes, setTimeMinutes] = useState<number | "">("");
@@ -47,6 +54,8 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
   const [additionalNeeds, setAdditionalNeeds] = useState("");
   const [targetAgeBracket, setTargetAgeBracket] = useState("");
   const [ageBracketFocused, setAgeBracketFocused] = useState(false);
+  const [targetMilestone, setTargetMilestone] = useState("");
+  const [milestoneFocused, setMilestoneFocused] = useState(false);
 
   const selectedChild = childProfiles.find((c) => c.id === childId);
   const childMatches =
@@ -55,6 +64,11 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
       : [];
   const ageBracketMatches = ageBracketFocused
     ? AGE_BRACKET_SUGGESTIONS.filter((b) => b.toLowerCase().includes(targetAgeBracket.trim().toLowerCase()))
+    : [];
+  const milestoneMatches = milestoneFocused
+    ? milestones
+        .filter((m) => m.milestone_text.toLowerCase().includes(targetMilestone.trim().toLowerCase()))
+        .slice(0, 8)
     : [];
 
   function selectChild(child: ChildProfile) {
@@ -133,6 +147,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           childId: childId || undefined,
           additionalNeeds: trimmedNeeds || undefined,
           targetAgeBracket: targetAgeBracket.trim() || undefined,
+          targetMilestone: targetMilestone.trim() || undefined,
         }),
       });
 
@@ -374,6 +389,52 @@ export default function GenerateForm({ outcomes, materials, childProfiles }: Pro
           <p className="mt-1 text-xs text-ink/50">
             Pick a common bracket or type your own — keeps the activity&apos;s age-appropriateness
             on target even without a specific focus child selected.
+          </p>
+        </div>
+
+        <div className="relative mt-4">
+          <label htmlFor="milestone_search" className="block text-sm font-medium text-ink/70">
+            Target developmental milestone (optional)
+          </label>
+          <input
+            id="milestone_search"
+            type="text"
+            value={targetMilestone}
+            onChange={(e) => setTargetMilestone(e.target.value)}
+            onFocus={() => setMilestoneFocused(true)}
+            onBlur={() => setMilestoneFocused(false)}
+            placeholder="Search, e.g. hops, pincer grasp, two-word sentences"
+            className={inputClass}
+            autoComplete="off"
+          />
+          {milestoneMatches.length > 0 && (
+            <ul className="absolute z-10 mt-1 w-full rounded-xl border border-coral-light bg-white py-1 shadow-md">
+              {milestoneMatches.map((m) => (
+                <li key={m.id}>
+                  <button
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => {
+                      setTargetMilestone(m.milestone_text);
+                      setMilestoneFocused(false);
+                    }}
+                    className="block w-full px-3 py-1.5 text-left text-sm text-ink hover:bg-coral-light/40"
+                  >
+                    <span className="text-xs text-ink/40">
+                      {getMilestoneDomainIcon(m.domain)} {m.age_band}
+                    </span>{" "}
+                    {m.milestone_text}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <p className="mt-1 text-xs text-ink/50">
+            Search the{" "}
+            <Link href="/milestones" className="underline">
+              developmental milestones
+            </Link>{" "}
+            list to build an activity around a specific skill a child is working towards.
           </p>
         </div>
 

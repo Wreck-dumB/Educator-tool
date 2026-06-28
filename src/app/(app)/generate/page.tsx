@@ -2,13 +2,15 @@ import Link from "next/link";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getMaterials } from "@/lib/supabase/materials";
 import { getChildren } from "@/lib/supabase/children";
+import { getDevelopmentalMilestones } from "@/lib/supabase/milestones";
 import GenerateForm from "./GenerateForm";
 
 export default async function GeneratePage() {
-  const [outcomes, materials, children] = await Promise.all([
+  const [outcomes, materials, children, milestones] = await Promise.all([
     getEylfOutcomes(),
     getMaterials(),
     getChildren(),
+    getDevelopmentalMilestones(),
   ]);
 
   return (
@@ -35,7 +37,7 @@ export default async function GeneratePage() {
       )}
 
       <div className="mt-6">
-        <GenerateForm outcomes={outcomes} materials={materials} childProfiles={children} />
+        <GenerateForm outcomes={outcomes} materials={materials} childProfiles={children} milestones={milestones} />
       </div>
     </div>
   );
