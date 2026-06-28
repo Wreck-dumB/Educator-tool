@@ -8,14 +8,15 @@ export async function login(formData: FormData) {
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const next = (formData.get("next") as string) || "/generate";
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}`);
+    redirect(`/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
   }
 
-  redirect("/generate");
+  redirect(next);
 }
 
 export async function signup(formData: FormData) {
@@ -25,7 +26,7 @@ export async function signup(formData: FormData) {
   const password = formData.get("password") as string;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -35,6 +36,14 @@ export async function signup(formData: FormData) {
 
   if (error) {
     redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+  }
+
+  if (data.user) {
+    await supabase.from("profiles").insert({
+      id: data.user.id,
+      role: "educator",
+      display_name: email.split("@")[0],
+    });
   }
 
   redirect("/signup?message=Check your email to confirm your account, then log in.");

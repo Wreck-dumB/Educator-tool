@@ -1,8 +1,15 @@
 import { notFound } from "next/navigation";
-import { getChild } from "@/lib/supabase/children";
-import { updateChild, deleteChild } from "@/app/(app)/children/actions";
+import { getChild, getChildInvites } from "@/lib/supabase/children";
+import { updateChild, deleteChild, createChildInvite, revokeChildInvite } from "@/app/(app)/children/actions";
 import { getObservations } from "@/lib/supabase/observations";
-import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
+import { inputClass, cardClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
+
+const INVITE_STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  accepted: "Joined",
+  expired: "Expired",
+  revoked: "Revoked",
+};
 
 export default async function ChildDetailPage({
   params,
@@ -18,6 +25,8 @@ export default async function ChildDetailPage({
   if (!child) notFound();
 
   const observations = await getObservations(id);
+  const invites = await getChildInvites(id);
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -86,6 +95,62 @@ export default async function ChildDetailPage({
             Save changes
           </button>
         </form>
+      </div>
+
+      <div className={`mt-6 ${cardClass}`}>
+        <div className="border-b border-coral-light px-4 py-3">
+          <h2 className="font-display text-sm font-semibold text-ink">Family access</h2>
+        </div>
+        <div className="px-4 py-4">
+          <p className="text-sm text-ink/60">
+            Invite {child.first_name}&apos;s family to a linked view where they can see what you
+            explicitly choose to share, message you, and upload documents.
+          </p>
+          <form action={createChildInvite} className="mt-3 flex gap-2">
+            <input type="hidden" name="child_id" value={child.id} />
+            <input
+              type="email"
+              name="invited_email"
+              placeholder="family@example.com"
+              required
+              className={`${inputClass} mt-0 flex-1`}
+            />
+            <button type="submit" className={secondaryButtonClass}>
+              Invite
+            </button>
+          </form>
+
+          {invites.length > 0 && (
+            <ul className="mt-4 divide-y divide-coral-light">
+              {invites.map((invite) => (
+                <li key={invite.id} className="flex items-center justify-between gap-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm text-ink/80">{invite.invited_email}</p>
+                    {invite.status === "pending" && (
+                      <p className="truncate text-xs text-ink/40">
+                        {siteUrl}/parent/accept-invite/{invite.token}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <span className="text-xs font-medium text-ink/50">
+                      {INVITE_STATUS_LABELS[invite.status] ?? invite.status}
+                    </span>
+                    {invite.status === "pending" && (
+                      <form action={revokeChildInvite}>
+                        <input type="hidden" name="invite_id" value={invite.id} />
+                        <input type="hidden" name="child_id" value={child.id} />
+                        <button type="submit" className="text-xs font-medium text-coral-dark hover:underline">
+                          Revoke
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
 
       <div className={`mt-6 ${cardClass}`}>

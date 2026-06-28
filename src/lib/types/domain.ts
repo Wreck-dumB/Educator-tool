@@ -11,6 +11,9 @@ export type Policy = Database["public"]["Tables"]["policies"]["Row"];
 export type Program = Database["public"]["Tables"]["programs"]["Row"];
 export type ProgramEntry = Database["public"]["Tables"]["program_entries"]["Row"];
 export type DevelopmentalMilestone = Database["public"]["Tables"]["developmental_milestones"]["Row"];
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+export type ChildInvite = Database["public"]["Tables"]["child_invites"]["Row"];
+export type ParentChildLink = Database["public"]["Tables"]["parent_child_links"]["Row"];
 
 /** A candidate activity returned by the generation engine, before it's saved. */
 export interface ActivitySuggestion {

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth"];
+const PUBLIC_PATHS = ["/", "/login", "/signup", "/auth", "/parent/signup", "/parent/accept-invite"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -42,10 +42,39 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && (path === "/login" || path === "/signup")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/generate";
-    return NextResponse.redirect(url);
+  if (user) {
+    // Role-based routing is UX only -- the real security boundary is the
+    // RLS policies and security-definer functions, not this redirect.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+    const isParent = profile?.role === "parent";
+    const home = isParent ? "/parent" : "/generate";
+
+    const isAuthPage = path === "/login" || path === "/signup" || path.startsWith("/parent/signup");
+    const isParentInvitePage = path.startsWith("/parent/accept-invite");
+
+    if (isAuthPage) {
+      const url = request.nextUrl.clone();
+      url.pathname = home;
+      return NextResponse.redirect(url);
+    }
+
+    if (!isParentInvitePage) {
+      const isParentRoute = path.startsWith("/parent");
+      if (isParentRoute && !isParent) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/generate";
+        return NextResponse.redirect(url);
+      }
+      if (!isParentRoute && isParent && !isPublic) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/parent";
+        return NextResponse.redirect(url);
+      }
+    }
   }
 
   return response;

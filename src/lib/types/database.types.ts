@@ -9,6 +9,8 @@ export type RiskLikelihood = "rare" | "unlikely" | "possible" | "likely" | "almo
 export type RiskConsequence = "insignificant" | "minor" | "moderate" | "significant" | "major";
 export type RiskRating = "low" | "medium" | "high" | "extreme";
 export type MilestoneDomain = "gross_motor" | "fine_motor" | "language" | "social_emotional" | "cognitive" | "physical";
+export type ProfileRole = "educator" | "parent";
+export type ChildInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
@@ -324,8 +326,89 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["developmental_milestones"]["Insert"]>;
         Relationships: [];
       };
+      profiles: {
+        Row: {
+          id: string;
+          role: ProfileRole;
+          display_name: string;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          role: ProfileRole;
+          display_name: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      child_invites: {
+        Row: {
+          id: string;
+          child_id: string;
+          educator_user_id: string;
+          invited_email: string;
+          token: string;
+          status: ChildInviteStatus;
+          created_at: string;
+          expires_at: string;
+          accepted_by: string | null;
+          accepted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          educator_user_id: string;
+          invited_email: string;
+          token?: string;
+          status?: ChildInviteStatus;
+          created_at?: string;
+          expires_at?: string;
+          accepted_by?: string | null;
+          accepted_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_invites"]["Insert"]>;
+        Relationships: [];
+      };
+      parent_child_links: {
+        Row: {
+          id: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          created_via_invite_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          created_via_invite_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["parent_child_links"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      is_linked_parent: {
+        Args: { _child_id: string };
+        Returns: boolean;
+      };
+      get_child_invite_preview: {
+        Args: { _token: string };
+        Returns: {
+          child_first_name: string;
+          status: string;
+          expires_at: string;
+        }[];
+      };
+      accept_child_invite: {
+        Args: { _token: string };
+        Returns: string;
+      };
+    };
   };
 }
