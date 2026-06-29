@@ -548,6 +548,91 @@ export async function generateFormTemplate(category: string, userInput: string):
 }
 
 // =========================================
+// Child-friendly recipe generation
+// =========================================
+export interface RawRecipe {
+  title: string;
+  description?: string;
+  ingredients: string[];
+  steps: string[];
+  prep_time_minutes?: number;
+  servings?: number;
+  age_range?: string;
+  dietary_tags: string[];
+  allergens_present: string[];
+  choking_hazard_notes?: string;
+}
+
+const PROPOSE_RECIPES_TOOL: Anthropic.Tool = {
+  name: "propose_recipes",
+  description: "Propose child-friendly recipes for an Australian early childhood education and care service.",
+  input_schema: {
+    type: "object",
+    required: ["recipes"],
+    properties: {
+      recipes: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["title", "ingredients", "steps", "dietary_tags", "allergens_present"],
+          properties: {
+            title: { type: "string" },
+            description: { type: "string", description: "One sentence on what makes this suitable for the setting described." },
+            ingredients: { type: "array", items: { type: "string" } },
+            steps: { type: "array", items: { type: "string" } },
+            prep_time_minutes: { type: "integer" },
+            servings: { type: "integer", description: "Number of child-sized servings." },
+            age_range: { type: "string", description: "e.g. '2-3 years', 'toddlers and up'." },
+            dietary_tags: { type: "array", items: { type: "string" }, description: "e.g. 'vegetarian', 'dairy-free', 'no added sugar'." },
+            allergens_present: {
+              type: "array",
+              items: { type: "string" },
+              description: "Common allergens genuinely present in this recipe as written (e.g. 'egg', 'dairy', 'tree nuts', 'gluten'). Empty array if none of the common allergens apply.",
+            },
+            choking_hazard_notes: {
+              type: "string",
+              description: "Any choking-hazard modifications needed for younger children (e.g. 'quarter grapes lengthwise for under-3s; avoid for children not yet eating modified-texture foods'), or omit if not applicable.",
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+const RECIPE_SYSTEM_PROMPT = `You are an assistant helping an Australian early childhood education and care service plan child-friendly recipes for snacks, meals, or cooking activities with children.
+
+Safety comes first, ahead of variety or novelty:
+- Actively avoid or modify known choking hazards for young children (whole grapes, whole nuts, popcorn, hard raw vegetable chunks, large chunks of meat/cheese, etc.) - if a recipe includes something like this, explicitly note the modification needed (e.g. quartering grapes) in choking_hazard_notes, don't just silently include the hazard.
+- Always list allergens genuinely present in allergens_present (egg, dairy, tree nuts, peanuts, gluten, soy, sesame, shellfish, fish - whatever genuinely applies), even if not asked. Never omit a present allergen to make a recipe seem more accommodating than it is.
+- If the educator specifies allergies/dietary restrictions to avoid, the recipe must not include those allergens/ingredients at all - do not propose a recipe that violates a stated restriction and then just note it in allergens_present instead of avoiding it.
+- If ingredients on hand are given, prefer using them, but you may suggest reasonable common pantry additions if the dish genuinely needs them.
+
+This is a draft for the educator's own judgement, not a substitute for checking each child's actual enrolment/allergy record before serving - you don't know which specific children will eat this.`;
+
+export async function generateRecipes(
+  userInput: string,
+  ingredientsOnHand?: string[],
+  avoidAllergensOrRestrictions?: string,
+  servings?: number,
+): Promise<RawRecipe[]> {
+  const lines = [`The educator's request:\n${userInput}`];
+  if (ingredientsOnHand && ingredientsOnHand.length > 0) {
+    lines.push(`Ingredients/pantry items on hand: ${ingredientsOnHand.join(", ")}.`);
+  }
+  if (avoidAllergensOrRestrictions) {
+    lines.push(`MUST avoid (allergies/dietary restrictions): ${avoidAllergensOrRestrictions}. Do not include these at all.`);
+  }
+  if (servings) {
+    lines.push(`Number of child-sized servings needed: ${servings}.`);
+  }
+  lines.push("Propose 2-3 recipes using the propose_recipes tool.");
+
+  const result = await callTool<{ recipes: RawRecipe[] }>(RECIPE_SYSTEM_PROMPT, lines.join("\n\n"), PROPOSE_RECIPES_TOOL);
+  return result.recipes ?? [];
+}
+
+// =========================================
 // Cultural/national days generation
 // =========================================
 export interface RawCulturalDay {

@@ -17,6 +17,7 @@ export type QipItemStatus = "not_started" | "in_progress" | "achieved";
 export type IncidentRecordType = "incident" | "injury" | "trauma" | "illness";
 export type PermissionSlipType = "excursion_consent" | "photo_media_consent" | "medication_authorisation" | "other";
 export type PermissionSlipStatus = "draft" | "sent" | "closed";
+export type MaterialCategory = "classroom" | "food";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
@@ -143,12 +144,20 @@ export interface Database {
           id: string;
           owner_user_id: string;
           name: string;
+          category: MaterialCategory;
+          quantity: number | null;
+          unit: string | null;
+          low_stock_threshold: number | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           owner_user_id: string;
           name: string;
+          category?: MaterialCategory;
+          quantity?: number | null;
+          unit?: string | null;
+          low_stock_threshold?: number | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["materials"]["Insert"]>;
@@ -724,6 +733,42 @@ export interface Database {
           signed_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["permission_slip_signatures"]["Insert"]>;
+        Relationships: [];
+      };
+      recipes: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          description: string | null;
+          ingredients: string[];
+          steps: string[];
+          prep_time_minutes: number | null;
+          servings: number | null;
+          age_range: string | null;
+          dietary_tags: string[];
+          allergens_present: string[];
+          choking_hazard_notes: string | null;
+          your_input: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title: string;
+          description?: string | null;
+          ingredients?: string[];
+          steps?: string[];
+          prep_time_minutes?: number | null;
+          servings?: number | null;
+          age_range?: string | null;
+          dietary_tags?: string[];
+          allergens_present?: string[];
+          choking_hazard_notes?: string | null;
+          your_input: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["recipes"]["Insert"]>;
         Relationships: [];
       };
     };

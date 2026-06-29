@@ -18,6 +18,7 @@ const LINKS = [
   { href: "/permission-slips", label: "Permission Slips" },
   { href: "/children", label: "Children" },
   { href: "/materials", label: "Materials" },
+  { href: "/recipes", label: "Recipes" },
   { href: "/observations", label: "Observations" },
 ];
 

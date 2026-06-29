@@ -25,6 +25,21 @@ export type PermissionSlip = Database["public"]["Tables"]["permission_slips"]["R
 export type PermissionSlipVersion = Database["public"]["Tables"]["permission_slip_versions"]["Row"];
 export type PermissionSlipTarget = Database["public"]["Tables"]["permission_slip_targets"]["Row"];
 export type PermissionSlipSignature = Database["public"]["Tables"]["permission_slip_signatures"]["Row"];
+export type Recipe = Database["public"]["Tables"]["recipes"]["Row"];
+
+/** A candidate recipe returned by the generation engine, before it's saved. */
+export interface RecipeSuggestion {
+  title: string;
+  description: string | null;
+  ingredients: string[];
+  steps: string[];
+  prepTimeMinutes: number | null;
+  servings: number | null;
+  ageRange: string | null;
+  dietaryTags: string[];
+  allergensPresent: string[];
+  chokingHazardNotes: string | null;
+}
 
 /** A candidate form template returned by the generation engine, before it's saved. */
 export interface FormTemplateSuggestion {
