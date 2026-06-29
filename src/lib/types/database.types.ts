@@ -11,6 +11,9 @@ export type RiskRating = "low" | "medium" | "high" | "extreme";
 export type MilestoneDomain = "gross_motor" | "fine_motor" | "language" | "social_emotional" | "cognitive" | "physical";
 export type ProfileRole = "educator" | "parent";
 export type ChildInviteStatus = "pending" | "accepted" | "expired" | "revoked";
+export type QipItemType = "strength" | "improvement";
+export type QipItemPriority = "low" | "medium" | "high";
+export type QipItemStatus = "not_started" | "in_progress" | "achieved";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
@@ -388,6 +391,84 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["parent_child_links"]["Insert"]>;
+        Relationships: [];
+      };
+      nqs_standards: {
+        Row: {
+          id: string;
+          code: string;
+          quality_area_number: number;
+          quality_area_title: string;
+          standard_title: string;
+          standard_text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          quality_area_number: number;
+          quality_area_title: string;
+          standard_title: string;
+          standard_text: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["nqs_standards"]["Insert"]>;
+        Relationships: [];
+      };
+      quality_improvement_plans: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          context_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title?: string;
+          context_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["quality_improvement_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      qip_items: {
+        Row: {
+          id: string;
+          qip_id: string;
+          owner_user_id: string;
+          quality_area_number: number;
+          standard_code: string | null;
+          item_type: QipItemType;
+          description: string;
+          priority: QipItemPriority | null;
+          success_measure: string | null;
+          steps: string[];
+          timeframe: string | null;
+          status: QipItemStatus;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          qip_id: string;
+          owner_user_id: string;
+          quality_area_number: number;
+          standard_code?: string | null;
+          item_type: QipItemType;
+          description: string;
+          priority?: QipItemPriority | null;
+          success_measure?: string | null;
+          steps?: string[];
+          timeframe?: string | null;
+          status?: QipItemStatus;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["qip_items"]["Insert"]>;
         Relationships: [];
       };
     };

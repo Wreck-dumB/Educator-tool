@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { EylfOutcome, GeneratedActivity } from "@/lib/types/domain";
+import type { EylfOutcome, GeneratedActivity, NqsStandard } from "@/lib/types/domain";
 import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/types/database.types";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
@@ -657,4 +657,88 @@ export async function generateProgram(
     PROPOSE_PROGRAM_TOOL,
   );
   return result.entries ?? [];
+}
+
+// =========================================
+// Quality Improvement Plan (QIP) generation
+// =========================================
+export interface RawQipItem {
+  quality_area_number: number;
+  standard_code?: string | null;
+  item_type: "strength" | "improvement";
+  description: string;
+  priority?: "low" | "medium" | "high" | null;
+  success_measure?: string | null;
+  steps?: string[];
+  timeframe?: string | null;
+}
+
+function buildQipSystemPrompt(standards: NqsStandard[]): string {
+  const taxonomy = standards
+    .map((s) => `${s.code} (QA${s.quality_area_number} ${s.quality_area_title} — "${s.standard_title}"): ${s.standard_text}`)
+    .join("\n");
+
+  return `You are an assistant helping an Australian early childhood education and care service write entries for their Quality Improvement Plan (QIP) under the National Quality Standard (NQS).
+
+The current NQS has 7 Quality Areas and 15 Standards. When you reference a standard, choose ONLY from this exact list of codes — never invent one:
+
+${taxonomy}
+
+A QIP does not need to address every standard — focus on what the educator actually describes. For each thing they mention, produce either:
+- a "strength" item (something working well, worth recording as a strength against a quality area), or
+- an "improvement" item (an identified area for improvement), which should also include a concrete success_measure ("how will we know this has been achieved"), realistic steps, and a timeframe.
+
+standard_code is optional — omit it (or set null) if an item is genuinely about a whole quality area rather than one specific standard. Do not force-fit every item to a standard code.
+
+Be concrete and specific to what the educator describes, not generic continuous-improvement boilerplate. This is a working draft for the educator to refine, not a finished, certified self-assessment.`;
+}
+
+function buildQipUserPrompt(userInput: string, targetQualityAreas?: number[]): string {
+  const lines = [`The educator's notes on current practice, strengths, and known issues:\n${userInput}`];
+  if (targetQualityAreas && targetQualityAreas.length > 0) {
+    lines.push(`Focus specifically on Quality Area(s): ${targetQualityAreas.join(", ")}.`);
+  }
+  lines.push("Propose QIP items using the propose_qip_items tool.");
+  return lines.join("\n\n");
+}
+
+const PROPOSE_QIP_ITEMS_TOOL: Anthropic.Tool = {
+  name: "propose_qip_items",
+  description: "Propose Quality Improvement Plan (strength/improvement) entries for an Australian education and care service, based on the educator's notes.",
+  input_schema: {
+    type: "object",
+    required: ["items"],
+    properties: {
+      items: {
+        type: "array",
+        items: {
+          type: "object",
+          required: ["quality_area_number", "item_type", "description"],
+          properties: {
+            quality_area_number: { type: "integer", minimum: 1, maximum: 7, description: "Which of the 7 NQS quality areas this item relates to." },
+            standard_code: { type: "string", description: "e.g. '1.1' — MUST be one of the standard codes given, or omitted entirely if the item is about a whole quality area rather than one standard." },
+            item_type: { type: "string", enum: ["strength", "improvement"] },
+            description: { type: "string", description: "For a strength: what's working well. For an improvement: the identified issue/area for improvement." },
+            priority: { type: "string", enum: ["low", "medium", "high"], description: "Only for improvement items." },
+            success_measure: { type: "string", description: "Only for improvement items: how will the service know this has been achieved." },
+            steps: { type: "array", items: { type: "string" }, description: "Only for improvement items: concrete steps to get there." },
+            timeframe: { type: "string", description: "Only for improvement items, e.g. 'Next 3 months', 'By end of Term 4'." },
+          },
+        },
+      },
+    },
+  },
+};
+
+export async function generateQipItems(
+  standards: NqsStandard[],
+  userInput: string,
+  targetQualityAreas?: number[],
+): Promise<RawQipItem[]> {
+  const result = await callTool<{ items: RawQipItem[] }>(
+    buildQipSystemPrompt(standards),
+    buildQipUserPrompt(userInput, targetQualityAreas),
+    PROPOSE_QIP_ITEMS_TOOL,
+  );
+  return result.items ?? [];
 }

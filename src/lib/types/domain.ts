@@ -14,6 +14,21 @@ export type DevelopmentalMilestone = Database["public"]["Tables"]["developmental
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type ChildInvite = Database["public"]["Tables"]["child_invites"]["Row"];
 export type ParentChildLink = Database["public"]["Tables"]["parent_child_links"]["Row"];
+export type NqsStandard = Database["public"]["Tables"]["nqs_standards"]["Row"];
+export type QualityImprovementPlan = Database["public"]["Tables"]["quality_improvement_plans"]["Row"];
+export type QipItem = Database["public"]["Tables"]["qip_items"]["Row"];
+
+/** A candidate QIP item returned by the generation engine, before it's saved. */
+export interface QipItemSuggestion {
+  qualityAreaNumber: number;
+  standardCode: string | null;
+  itemType: QipItem["item_type"];
+  description: string;
+  priority: QipItem["priority"];
+  successMeasure: string | null;
+  steps: string[];
+  timeframe: string | null;
+}
 
 /** A candidate activity returned by the generation engine, before it's saved. */
 export interface ActivitySuggestion {

@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/risk-assessments", label: "Risk Assessments" },
   { href: "/safe-work-procedures", label: "Safe Work" },
   { href: "/policies", label: "Policies" },
+  { href: "/qip", label: "QIP" },
   { href: "/children", label: "Children" },
   { href: "/materials", label: "Materials" },
   { href: "/observations", label: "Observations" },
