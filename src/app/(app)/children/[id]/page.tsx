@@ -1,8 +1,26 @@
 import { notFound } from "next/navigation";
-import { getChild, getChildInvites } from "@/lib/supabase/children";
-import { updateChild, deleteChild, createChildInvite, revokeChildInvite } from "@/app/(app)/children/actions";
+import { getChild, getChildInvites, getChildContacts } from "@/lib/supabase/children";
+import {
+  updateChild,
+  deleteChild,
+  createChildInvite,
+  revokeChildInvite,
+  updateChildEnrolment,
+  createChildContact,
+  deleteChildContact,
+} from "@/app/(app)/children/actions";
 import { getObservations } from "@/lib/supabase/observations";
 import { inputClass, cardClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
+import PrintButton from "@/components/PrintButton";
+
+const AUTHORISATION_LABELS: Record<string, string> = {
+  is_parent_guardian: "Parent/guardian",
+  is_emergency_contact: "Emergency contact",
+  is_authorised_nominee: "Authorised pickup",
+  can_consent_medical_treatment: "Medical treatment consent",
+  can_authorise_medication: "Medication consent",
+  can_authorise_excursions: "Excursion consent",
+};
 
 const INVITE_STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
@@ -26,11 +44,15 @@ export default async function ChildDetailPage({
 
   const observations = await getObservations(id);
   const invites = await getChildInvites(id);
+  const contacts = await getChildContacts(id);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="font-display text-3xl font-semibold text-coral-dark">🧒 {child.first_name}</h1>
+    <div className="mx-auto max-w-2xl print:max-w-none">
+      <div className="flex items-center justify-between gap-3 print:hidden">
+        <h1 className="font-display text-3xl font-semibold text-coral-dark">🧒 {child.first_name}</h1>
+        <PrintButton />
+      </div>
 
       {error && <p className={errorBannerClass}>{error}</p>}
 
@@ -97,7 +119,206 @@ export default async function ChildDetailPage({
         </form>
       </div>
 
-      <div className={`mt-6 ${cardClass}`}>
+      <div className={`mt-6 p-5 print:border print:border-black print:bg-white ${cardClass}`}>
+        <h2 className="font-display text-sm font-semibold text-ink print:text-black">
+          Enrolment &amp; emergency information
+        </h2>
+        <p className="mt-1 text-xs text-ink/50 print:hidden">
+          The fields the National Regulations require services to keep on file (Reg 161&ndash;162) &mdash;
+          kept here so it&apos;s on hand in an emergency, not buried in a paper file.
+        </p>
+        <form action={updateChildEnrolment} className="mt-4 space-y-4 print:hidden">
+          <input type="hidden" name="id" value={child.id} />
+          <div>
+            <label htmlFor="address" className="block text-sm font-medium text-ink/70">
+              Address
+            </label>
+            <input id="address" name="address" type="text" defaultValue={child.address ?? ""} className={inputClass} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="medical_practice_name" className="block text-sm font-medium text-ink/70">
+                Doctor / medical practice
+              </label>
+              <input
+                id="medical_practice_name"
+                name="medical_practice_name"
+                type="text"
+                defaultValue={child.medical_practice_name ?? ""}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor="medical_practice_phone" className="block text-sm font-medium text-ink/70">
+                Practice phone
+              </label>
+              <input
+                id="medical_practice_phone"
+                name="medical_practice_phone"
+                type="text"
+                defaultValue={child.medical_practice_phone ?? ""}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="medicare_number" className="block text-sm font-medium text-ink/70">
+              Medicare number
+            </label>
+            <input
+              id="medicare_number"
+              name="medicare_number"
+              type="text"
+              defaultValue={child.medicare_number ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="medical_conditions" className="block text-sm font-medium text-ink/70">
+              Medical conditions / specific healthcare needs
+            </label>
+            <textarea
+              id="medical_conditions"
+              name="medical_conditions"
+              rows={2}
+              defaultValue={child.medical_conditions ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm text-ink/70">
+            <input
+              type="checkbox"
+              name="is_anaphylaxis_risk"
+              defaultChecked={child.is_anaphylaxis_risk}
+              className="h-4 w-4 rounded border-coral-light"
+            />
+            Diagnosed as at risk of anaphylaxis
+          </label>
+          <div>
+            <label htmlFor="medical_management_plan" className="block text-sm font-medium text-ink/70">
+              Medical management / risk minimisation plan
+            </label>
+            <textarea
+              id="medical_management_plan"
+              name="medical_management_plan"
+              rows={2}
+              placeholder="e.g. EpiPen location, asthma action plan summary"
+              defaultValue={child.medical_management_plan ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="dietary_restrictions" className="block text-sm font-medium text-ink/70">
+              Dietary restrictions
+            </label>
+            <input
+              id="dietary_restrictions"
+              name="dietary_restrictions"
+              type="text"
+              defaultValue={child.dietary_restrictions ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="immunisation_status" className="block text-sm font-medium text-ink/70">
+              Immunisation status
+            </label>
+            <input
+              id="immunisation_status"
+              name="immunisation_status"
+              type="text"
+              placeholder="e.g. Up to date per AIR, sighted DD/MM/YYYY"
+              defaultValue={child.immunisation_status ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <button type="submit" className={`w-full ${primaryButtonClass}`}>
+            Save enrolment details
+          </button>
+        </form>
+
+        <div className="hidden space-y-1 text-sm print:block print:text-black">
+          {child.address && <p>Address: {child.address}</p>}
+          {child.medical_practice_name && (
+            <p>
+              Doctor: {child.medical_practice_name} {child.medical_practice_phone}
+            </p>
+          )}
+          {child.medicare_number && <p>Medicare: {child.medicare_number}</p>}
+          {child.medical_conditions && <p>Medical conditions: {child.medical_conditions}</p>}
+          {child.is_anaphylaxis_risk && <p className="font-semibold">⚠ Anaphylaxis risk</p>}
+          {child.medical_management_plan && <p>Management plan: {child.medical_management_plan}</p>}
+          {child.dietary_restrictions && <p>Dietary restrictions: {child.dietary_restrictions}</p>}
+          {child.immunisation_status && <p>Immunisation: {child.immunisation_status}</p>}
+        </div>
+      </div>
+
+      <div className={`mt-6 p-5 print:border print:border-black print:bg-white ${cardClass}`}>
+        <h2 className="font-display text-sm font-semibold text-ink print:text-black">Contacts &amp; authorisations</h2>
+        <ul className="mt-3 divide-y divide-coral-light">
+          {contacts.map((contact) => (
+            <li key={contact.id} className="py-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-medium text-ink print:text-black">
+                    {contact.full_name} {contact.relationship && <span className="text-ink/50">({contact.relationship})</span>}
+                  </p>
+                  <p className="text-xs text-ink/60 print:text-black">
+                    {[contact.phone, contact.email].filter(Boolean).join(" · ")}
+                  </p>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {Object.entries(AUTHORISATION_LABELS)
+                      .filter(([key]) => contact[key as keyof typeof contact])
+                      .map(([key, label]) => (
+                        <span
+                          key={key}
+                          className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark print:border print:border-black print:bg-white print:text-black"
+                        >
+                          {label}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+                <form action={deleteChildContact} className="print:hidden">
+                  <input type="hidden" name="contact_id" value={contact.id} />
+                  <input type="hidden" name="child_id" value={child.id} />
+                  <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
+                    Remove
+                  </button>
+                </form>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <details className="mt-4 print:hidden">
+          <summary className="cursor-pointer text-sm font-medium text-coral-dark">Add a contact</summary>
+          <form action={createChildContact} className="mt-3 space-y-3">
+            <input type="hidden" name="child_id" value={child.id} />
+            <div className="grid grid-cols-2 gap-3">
+              <input name="full_name" type="text" placeholder="Full name" required className={inputClass} />
+              <input name="relationship" type="text" placeholder="Relationship, e.g. Mother" className={inputClass} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <input name="phone" type="text" placeholder="Phone" className={inputClass} />
+              <input name="email" type="email" placeholder="Email" className={inputClass} />
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm text-ink/70">
+              {Object.entries(AUTHORISATION_LABELS).map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2">
+                  <input type="checkbox" name={key} className="h-4 w-4 rounded border-coral-light" />
+                  {label}
+                </label>
+              ))}
+            </div>
+            <button type="submit" className={secondaryButtonClass}>
+              Add contact
+            </button>
+          </form>
+        </details>
+      </div>
+
+      <div className={`mt-6 print:hidden ${cardClass}`}>
         <div className="border-b border-coral-light px-4 py-3">
           <h2 className="font-display text-sm font-semibold text-ink">Family access</h2>
         </div>
@@ -153,7 +374,7 @@ export default async function ChildDetailPage({
         </div>
       </div>
 
-      <div className={`mt-6 ${cardClass}`}>
+      <div className={`mt-6 print:hidden ${cardClass}`}>
         <div className="border-b border-coral-light px-4 py-3">
           <h2 className="font-display text-sm font-semibold text-ink">Observations</h2>
         </div>
@@ -190,7 +411,7 @@ export default async function ChildDetailPage({
         )}
       </div>
 
-      <form action={deleteChild} className="mt-6">
+      <form action={deleteChild} className="mt-6 print:hidden">
         <input type="hidden" name="id" value={child.id} />
         <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
           Delete this child profile

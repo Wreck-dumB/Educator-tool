@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/auth/actions";
@@ -27,7 +28,15 @@ export default async function ParentPortalLayout({
     <div className="min-h-screen bg-cream">
       <header className="border-b border-coral-light bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <span className="font-display text-lg font-semibold text-coral-dark">SparkPlay for families</span>
+          <div className="flex items-center gap-6">
+            <span className="font-display text-lg font-semibold text-coral-dark">SparkPlay for families</span>
+            <Link href="/parent" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
+              Children
+            </Link>
+            <Link href="/parent/permission-slips" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
+              Permission Slips
+            </Link>
+          </div>
           <form action={logout}>
             <button type="submit" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
               Log out

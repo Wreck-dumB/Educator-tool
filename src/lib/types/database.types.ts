@@ -14,6 +14,9 @@ export type ChildInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 export type QipItemType = "strength" | "improvement";
 export type QipItemPriority = "low" | "medium" | "high";
 export type QipItemStatus = "not_started" | "in_progress" | "achieved";
+export type IncidentRecordType = "incident" | "injury" | "trauma" | "illness";
+export type PermissionSlipType = "excursion_consent" | "photo_media_consent" | "medication_authorisation" | "other";
+export type PermissionSlipStatus = "draft" | "sent" | "closed";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
@@ -65,6 +68,15 @@ export interface Database {
           date_of_birth: string | null;
           current_interests: string | null;
           additional_needs: string | null;
+          address: string | null;
+          medical_practice_name: string | null;
+          medical_practice_phone: string | null;
+          medicare_number: string | null;
+          medical_conditions: string | null;
+          is_anaphylaxis_risk: boolean;
+          medical_management_plan: string | null;
+          dietary_restrictions: string | null;
+          immunisation_status: string | null;
           created_at: string;
         };
         Insert: {
@@ -74,9 +86,56 @@ export interface Database {
           date_of_birth?: string | null;
           current_interests?: string | null;
           additional_needs?: string | null;
+          address?: string | null;
+          medical_practice_name?: string | null;
+          medical_practice_phone?: string | null;
+          medicare_number?: string | null;
+          medical_conditions?: string | null;
+          is_anaphylaxis_risk?: boolean;
+          medical_management_plan?: string | null;
+          dietary_restrictions?: string | null;
+          immunisation_status?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
+        Relationships: [];
+      };
+      child_contacts: {
+        Row: {
+          id: string;
+          child_id: string;
+          owner_user_id: string;
+          full_name: string;
+          relationship: string | null;
+          phone: string | null;
+          email: string | null;
+          is_parent_guardian: boolean;
+          is_emergency_contact: boolean;
+          is_authorised_nominee: boolean;
+          can_consent_medical_treatment: boolean;
+          can_authorise_medication: boolean;
+          can_authorise_excursions: boolean;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          owner_user_id: string;
+          full_name: string;
+          relationship?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          is_parent_guardian?: boolean;
+          is_emergency_contact?: boolean;
+          is_authorised_nominee?: boolean;
+          can_consent_medical_treatment?: boolean;
+          can_authorise_medication?: boolean;
+          can_authorise_excursions?: boolean;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_contacts"]["Insert"]>;
         Relationships: [];
       };
       materials: {
@@ -469,6 +528,202 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["qip_items"]["Insert"]>;
+        Relationships: [];
+      };
+      form_templates: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          category: string;
+          title: string;
+          your_input: string;
+          purpose: string | null;
+          fields_to_complete: string[];
+          body_text: string | null;
+          requires_signature: boolean;
+          suggested_additions: string[];
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          category: string;
+          title: string;
+          your_input: string;
+          purpose?: string | null;
+          fields_to_complete?: string[];
+          body_text?: string | null;
+          requires_signature?: boolean;
+          suggested_additions?: string[];
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["form_templates"]["Insert"]>;
+        Relationships: [];
+      };
+      child_incident_reports: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          record_type: IncidentRecordType;
+          occurred_at: string;
+          location: string | null;
+          description: string;
+          action_taken: string | null;
+          parent_notified_at: string | null;
+          parent_notification_method: string | null;
+          nominated_supervisor_notified: boolean;
+          monitoring_plan: string | null;
+          witness_name: string | null;
+          completed_by_name: string;
+          completed_by_role: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          record_type: IncidentRecordType;
+          occurred_at: string;
+          location?: string | null;
+          description: string;
+          action_taken?: string | null;
+          parent_notified_at?: string | null;
+          parent_notification_method?: string | null;
+          nominated_supervisor_notified?: boolean;
+          monitoring_plan?: string | null;
+          witness_name?: string | null;
+          completed_by_name: string;
+          completed_by_role?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_incident_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      staff_incident_reports: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          staff_name: string;
+          staff_role: string | null;
+          occurred_at: string;
+          location: string | null;
+          description: string;
+          injury_description: string | null;
+          first_aid_provided: boolean;
+          medical_treatment_sought: boolean;
+          is_potentially_notifiable: boolean;
+          witness_name: string | null;
+          immediate_actions: string | null;
+          corrective_actions: string | null;
+          completed_by_name: string;
+          completed_by_role: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          staff_name: string;
+          staff_role?: string | null;
+          occurred_at: string;
+          location?: string | null;
+          description: string;
+          injury_description?: string | null;
+          first_aid_provided?: boolean;
+          medical_treatment_sought?: boolean;
+          is_potentially_notifiable?: boolean;
+          witness_name?: string | null;
+          immediate_actions?: string | null;
+          corrective_actions?: string | null;
+          completed_by_name: string;
+          completed_by_role?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_incident_reports"]["Insert"]>;
+        Relationships: [];
+      };
+      permission_slips: {
+        Row: {
+          id: string;
+          educator_user_id: string;
+          slip_type: PermissionSlipType;
+          title: string;
+          current_version: number;
+          status: PermissionSlipStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          educator_user_id: string;
+          slip_type: PermissionSlipType;
+          title: string;
+          current_version?: number;
+          status?: PermissionSlipStatus;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["permission_slips"]["Insert"]>;
+        Relationships: [];
+      };
+      permission_slip_versions: {
+        Row: {
+          id: string;
+          slip_id: string;
+          version_number: number;
+          body_text: string;
+          requires_high_stakes_ack: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          slip_id: string;
+          version_number: number;
+          body_text: string;
+          requires_high_stakes_ack?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["permission_slip_versions"]["Insert"]>;
+        Relationships: [];
+      };
+      permission_slip_targets: {
+        Row: {
+          id: string;
+          slip_id: string;
+          child_id: string;
+          sent_version_number: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          slip_id: string;
+          child_id: string;
+          sent_version_number: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["permission_slip_targets"]["Insert"]>;
+        Relationships: [];
+      };
+      permission_slip_signatures: {
+        Row: {
+          id: string;
+          slip_id: string;
+          child_id: string;
+          version_id: string;
+          signed_by: string;
+          signer_typed_name: string;
+          affirmed: boolean;
+          signed_at: string;
+        };
+        Insert: {
+          id?: string;
+          slip_id: string;
+          child_id: string;
+          version_id: string;
+          signed_by: string;
+          signer_typed_name: string;
+          affirmed: boolean;
+          signed_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["permission_slip_signatures"]["Insert"]>;
         Relationships: [];
       };
     };

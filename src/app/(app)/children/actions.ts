@@ -119,3 +119,80 @@ export async function revokeChildInvite(formData: FormData) {
   revalidatePath(`/children/${childId}`);
   redirect(`/children/${childId}`);
 }
+
+export async function updateChildEnrolment(formData: FormData) {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+
+  const field = (name: string) => (formData.get(name) as string)?.trim() || null;
+
+  const { error } = await supabase
+    .from("children")
+    .update({
+      address: field("address"),
+      medical_practice_name: field("medical_practice_name"),
+      medical_practice_phone: field("medical_practice_phone"),
+      medicare_number: field("medicare_number"),
+      medical_conditions: field("medical_conditions"),
+      is_anaphylaxis_risk: formData.get("is_anaphylaxis_risk") === "on",
+      medical_management_plan: field("medical_management_plan"),
+      dietary_restrictions: field("dietary_restrictions"),
+      immunisation_status: field("immunisation_status"),
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`/children/${id}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/children/${id}`);
+  redirect(`/children/${id}`);
+}
+
+export async function createChildContact(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const childId = formData.get("child_id") as string;
+  const fullName = (formData.get("full_name") as string)?.trim();
+
+  if (!fullName) {
+    redirect(`/children/${childId}?error=Please enter the contact's name`);
+  }
+
+  const { error } = await supabase.from("child_contacts").insert({
+    child_id: childId,
+    owner_user_id: user.id,
+    full_name: fullName,
+    relationship: (formData.get("relationship") as string)?.trim() || null,
+    phone: (formData.get("phone") as string)?.trim() || null,
+    email: (formData.get("email") as string)?.trim() || null,
+    is_parent_guardian: formData.get("is_parent_guardian") === "on",
+    is_emergency_contact: formData.get("is_emergency_contact") === "on",
+    is_authorised_nominee: formData.get("is_authorised_nominee") === "on",
+    can_consent_medical_treatment: formData.get("can_consent_medical_treatment") === "on",
+    can_authorise_medication: formData.get("can_authorise_medication") === "on",
+    can_authorise_excursions: formData.get("can_authorise_excursions") === "on",
+  });
+
+  if (error) {
+    redirect(`/children/${childId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/children/${childId}`);
+  redirect(`/children/${childId}`);
+}
+
+export async function deleteChildContact(formData: FormData) {
+  const supabase = await createClient();
+  const contactId = formData.get("contact_id") as string;
+  const childId = formData.get("child_id") as string;
+
+  await supabase.from("child_contacts").delete().eq("id", contactId);
+
+  revalidatePath(`/children/${childId}`);
+  redirect(`/children/${childId}`);
+}

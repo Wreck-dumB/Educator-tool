@@ -2,6 +2,7 @@ import type { Database } from "./database.types";
 
 export type EylfOutcome = Database["public"]["Tables"]["eylf_outcomes"]["Row"];
 export type ChildProfile = Database["public"]["Tables"]["children"]["Row"];
+export type ChildContact = Database["public"]["Tables"]["child_contacts"]["Row"];
 export type Material = Database["public"]["Tables"]["materials"]["Row"];
 export type GeneratedActivity = Database["public"]["Tables"]["generated_activities"]["Row"];
 export type Observation = Database["public"]["Tables"]["observations"]["Row"];
@@ -17,6 +18,23 @@ export type ParentChildLink = Database["public"]["Tables"]["parent_child_links"]
 export type NqsStandard = Database["public"]["Tables"]["nqs_standards"]["Row"];
 export type QualityImprovementPlan = Database["public"]["Tables"]["quality_improvement_plans"]["Row"];
 export type QipItem = Database["public"]["Tables"]["qip_items"]["Row"];
+export type FormTemplate = Database["public"]["Tables"]["form_templates"]["Row"];
+export type ChildIncidentReport = Database["public"]["Tables"]["child_incident_reports"]["Row"];
+export type StaffIncidentReport = Database["public"]["Tables"]["staff_incident_reports"]["Row"];
+export type PermissionSlip = Database["public"]["Tables"]["permission_slips"]["Row"];
+export type PermissionSlipVersion = Database["public"]["Tables"]["permission_slip_versions"]["Row"];
+export type PermissionSlipTarget = Database["public"]["Tables"]["permission_slip_targets"]["Row"];
+export type PermissionSlipSignature = Database["public"]["Tables"]["permission_slip_signatures"]["Row"];
+
+/** A candidate form template returned by the generation engine, before it's saved. */
+export interface FormTemplateSuggestion {
+  title: string;
+  purpose: string | null;
+  fieldsToComplete: string[];
+  bodyText: string | null;
+  requiresSignature: boolean;
+  suggestedAdditions: string[];
+}
 
 /** A candidate QIP item returned by the generation engine, before it's saved. */
 export interface QipItemSuggestion {

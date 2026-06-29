@@ -496,6 +496,58 @@ export async function generatePolicy(category: string, userInput: string): Promi
 }
 
 // =========================================
+// General form template generation (permission slips, consent forms, and
+// other miscellaneous templates whose wording genuinely varies by service
+// - NOT used for enrolment or incident records, which have specific
+// mandatory fields fixed by the National Regulations and get dedicated
+// structured forms instead).
+// =========================================
+export interface RawFormTemplate {
+  title: string;
+  purpose?: string;
+  fields_to_complete: string[];
+  body_text?: string;
+  requires_signature: boolean;
+  suggested_additions: string[];
+}
+
+const PROPOSE_FORM_TEMPLATE_TOOL: Anthropic.Tool = {
+  name: "propose_form_template",
+  description: "Draft a form/template document for an Australian education and care service, based on the educator's description of what it's for.",
+  input_schema: {
+    type: "object",
+    required: ["title", "fields_to_complete", "requires_signature", "suggested_additions"],
+    properties: {
+      title: { type: "string", description: "A clear form title, e.g. 'Excursion Permission Slip — Botanic Gardens Visit'." },
+      purpose: { type: "string", description: "One or two sentences on what this form is for and why families/staff are being asked to complete it." },
+      fields_to_complete: {
+        type: "array",
+        items: { type: "string" },
+        description: "Plain list of blanks/fields the person filling this out needs to provide, e.g. 'Child's full name', 'Date of excursion', 'Emergency contact phone number'.",
+      },
+      body_text: { type: "string", description: "Any explanatory or consent wording that should appear on the form (e.g. what is being consented to), written in plain language." },
+      requires_signature: { type: "boolean", description: "Whether this form needs a signature block (true for permission slips/consent forms, often false for an informational notice)." },
+      suggested_additions: {
+        type: "array",
+        items: { type: "string" },
+        description: "Specific things the educator's description did NOT cover that a complete form of this kind would normally need to address. Be concrete, not generic.",
+      },
+    },
+  },
+};
+
+const FORM_TEMPLATE_SYSTEM_PROMPT = `You are an assistant helping an Australian early childhood education and care service draft a BASELINE form or template - permission slips, consent forms, and other one-off notices - to be reviewed and customised by the service before use. This is a starting draft, not a finished legal document.
+
+Write the form's purpose, the fields it needs filled in, and any consent/explanatory wording based specifically on what the educator describes - do not write generic boilerplate that ignores their input.
+
+Separately, identify specific things the educator's description left out that a complete form of this kind would normally need to cover (e.g. an excursion permission slip normally needs transport method and a medical-emergency consent line even if the educator didn't mention them) - be concrete and specific to what's missing, not generic advice.`;
+
+export async function generateFormTemplate(category: string, userInput: string): Promise<RawFormTemplate> {
+  const userPrompt = `Form category: ${category}\n\nThe educator's description of what this form is for:\n${userInput}\n\nDraft the form using the propose_form_template tool.`;
+  return callTool<RawFormTemplate>(FORM_TEMPLATE_SYSTEM_PROMPT, userPrompt, PROPOSE_FORM_TEMPLATE_TOOL);
+}
+
+// =========================================
 // Cultural/national days generation
 // =========================================
 export interface RawCulturalDay {
