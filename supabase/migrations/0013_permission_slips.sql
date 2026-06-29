@@ -18,6 +18,13 @@
 -- exists to force an extra warning screen for higher-stakes categories
 -- like medication authorisation, but does not itself make the signature
 -- legally sufficient for that use.
+--
+-- All four tables are created first, then RLS is enabled, then policies
+-- are added - several policies below reference a sibling table (e.g. the
+-- permission_slips policy references permission_slip_targets), so every
+-- table this script touches must already exist before any policy creation
+-- begins.
+
 create table public.permission_slips (
   id uuid primary key default gen_random_uuid(),
   educator_user_id uuid not null references auth.users(id) on delete cascade,
@@ -27,17 +34,6 @@ create table public.permission_slips (
   status text not null default 'draft' check (status in ('draft', 'sent', 'closed')),
   created_at timestamptz not null default now()
 );
-
-alter table public.permission_slips enable row level security;
-
-create policy "Educator can manage own slips" on public.permission_slips for all
-  using (educator_user_id = auth.uid()) with check (educator_user_id = auth.uid());
-
-create policy "Linked parent can view slip sent to their child" on public.permission_slips for select
-  using (exists (
-    select 1 from public.permission_slip_targets t
-    where t.slip_id = permission_slips.id and public.is_linked_parent(t.child_id)
-  ));
 
 create table public.permission_slip_versions (
   id uuid primary key default gen_random_uuid(),
@@ -50,7 +46,41 @@ create table public.permission_slip_versions (
 );
 -- No update/delete policy on this table at all, for anyone, ever.
 
+create table public.permission_slip_targets (
+  id uuid primary key default gen_random_uuid(),
+  slip_id uuid not null references public.permission_slips(id) on delete cascade,
+  child_id uuid not null references public.children(id) on delete cascade,
+  sent_version_number int not null,
+  created_at timestamptz not null default now(),
+  unique (slip_id, child_id)
+);
+
+create table public.permission_slip_signatures (
+  id uuid primary key default gen_random_uuid(),
+  slip_id uuid not null references public.permission_slips(id) on delete cascade,
+  child_id uuid not null references public.children(id) on delete cascade,
+  version_id uuid not null references public.permission_slip_versions(id) on delete restrict,
+  signed_by uuid not null references auth.users(id) on delete cascade,
+  signer_typed_name text not null check (char_length(signer_typed_name) between 1 and 200),
+  affirmed boolean not null check (affirmed = true),
+  signed_at timestamptz not null default now(),
+  unique (slip_id, child_id)
+);
+-- No update/delete policy on signatures, for anyone, ever.
+
+alter table public.permission_slips enable row level security;
 alter table public.permission_slip_versions enable row level security;
+alter table public.permission_slip_targets enable row level security;
+alter table public.permission_slip_signatures enable row level security;
+
+create policy "Educator can manage own slips" on public.permission_slips for all
+  using (educator_user_id = auth.uid()) with check (educator_user_id = auth.uid());
+
+create policy "Linked parent can view slip sent to their child" on public.permission_slips for select
+  using (exists (
+    select 1 from public.permission_slip_targets t
+    where t.slip_id = permission_slips.id and public.is_linked_parent(t.child_id)
+  ));
 
 create policy "Educator can view own slip versions" on public.permission_slip_versions for select
   using (exists (select 1 from public.permission_slips s where s.id = slip_id and s.educator_user_id = auth.uid()));
@@ -66,37 +96,11 @@ create policy "Linked parent can view version sent to their child" on public.per
       and public.is_linked_parent(t.child_id)
   ));
 
-create table public.permission_slip_targets (
-  id uuid primary key default gen_random_uuid(),
-  slip_id uuid not null references public.permission_slips(id) on delete cascade,
-  child_id uuid not null references public.children(id) on delete cascade,
-  sent_version_number int not null,
-  created_at timestamptz not null default now(),
-  unique (slip_id, child_id)
-);
-
-alter table public.permission_slip_targets enable row level security;
-
 create policy "Educator can manage targets for own slips" on public.permission_slip_targets for all
   using (exists (select 1 from public.permission_slips s where s.id = slip_id and s.educator_user_id = auth.uid()))
   with check (exists (select 1 from public.permission_slips s where s.id = slip_id and s.educator_user_id = auth.uid()));
 create policy "Linked parent can view own child's target" on public.permission_slip_targets for select
   using (public.is_linked_parent(child_id));
-
-create table public.permission_slip_signatures (
-  id uuid primary key default gen_random_uuid(),
-  slip_id uuid not null references public.permission_slips(id) on delete cascade,
-  child_id uuid not null references public.children(id) on delete cascade,
-  version_id uuid not null references public.permission_slip_versions(id) on delete restrict,
-  signed_by uuid not null references auth.users(id) on delete cascade,
-  signer_typed_name text not null check (char_length(signer_typed_name) between 1 and 200),
-  affirmed boolean not null check (affirmed = true),
-  signed_at timestamptz not null default now(),
-  unique (slip_id, child_id)
-);
--- No update/delete policy on signatures, for anyone, ever.
-
-alter table public.permission_slip_signatures enable row level security;
 
 create policy "Educator can view signatures for own slips" on public.permission_slip_signatures for select
   using (exists (select 1 from public.permission_slips s where s.id = slip_id and s.educator_user_id = auth.uid()));
