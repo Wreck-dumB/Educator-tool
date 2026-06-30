@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 
 export async function createChild(formData: FormData) {
   const supabase = await createClient();
@@ -20,8 +21,13 @@ export async function createChild(formData: FormData) {
     redirect("/children?error=Please enter a first name");
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect("/children?error=No active service membership");
+  }
+
   const { error } = await supabase.from("children").insert({
-    owner_user_id: user.id,
+    owner_user_id: ownerUserId,
     first_name: firstName,
     date_of_birth: dateOfBirth,
     current_interests: currentInterests,
@@ -92,12 +98,18 @@ export async function createChildInvite(formData: FormData) {
     redirect(`/children/${childId}?error=Please enter the family's email`);
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect(`/children/${childId}?error=No active service membership`);
+  }
+
   // RLS re-checks ownership of childId server-side -- a forged child_id for
   // someone else's child simply fails to insert (zero rows affected), not
-  // a leak. educator_user_id is set to the caller, never trusted from input.
+  // a leak. educator_user_id is always the Director's id (the service's
+  // identity for the parent-trust model), never the acting staff member's.
   const { error } = await supabase.from("child_invites").insert({
     child_id: childId,
-    educator_user_id: user.id,
+    educator_user_id: ownerUserId,
     invited_email: invitedEmail,
   });
 
@@ -163,9 +175,14 @@ export async function createChildContact(formData: FormData) {
     redirect(`/children/${childId}?error=Please enter the contact's name`);
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect(`/children/${childId}?error=No active service membership`);
+  }
+
   const { error } = await supabase.from("child_contacts").insert({
     child_id: childId,
-    owner_user_id: user.id,
+    owner_user_id: ownerUserId,
     full_name: fullName,
     relationship: (formData.get("relationship") as string)?.trim() || null,
     phone: (formData.get("phone") as string)?.trim() || null,

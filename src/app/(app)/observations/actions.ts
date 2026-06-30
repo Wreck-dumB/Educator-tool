@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 
 export async function logObservation(formData: FormData) {
   const supabase = await createClient();
@@ -21,10 +22,15 @@ export async function logObservation(formData: FormData) {
     redirect(`${returnTo}?error=${encodeURIComponent("Please choose a child and write a note")}`);
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect(`${returnTo}?error=${encodeURIComponent("No active service membership")}`);
+  }
+
   const { data: observation, error } = await supabase
     .from("observations")
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       child_id: childId,
       activity_id: activityId,
       note_text: noteText,

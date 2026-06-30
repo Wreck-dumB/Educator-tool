@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { NqsStandard, QualityImprovementPlan, QipItem } from "@/lib/types/domain";
 
 export async function getNqsStandards(): Promise<NqsStandard[]> {
@@ -7,25 +8,29 @@ export async function getNqsStandards(): Promise<NqsStandard[]> {
   return data ?? [];
 }
 
-/** Fetches the current user's single QIP, creating an empty one on first visit. */
+/**
+ * Fetches the current service's single QIP, creating an empty one on first
+ * visit. Resolves "my service" via getMyServiceOwnerId() rather than
+ * filtering by owner_user_id = my own auth.uid() -- a 2IC or staff member's
+ * own id is never the QIP's owner_user_id (that's always the Director's).
+ */
 export async function getOrCreateQip(): Promise<QualityImprovementPlan | null> {
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return null;
+
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return null;
 
   const { data: existing } = await supabase
     .from("quality_improvement_plans")
     .select("*")
-    .eq("owner_user_id", user.id)
+    .eq("owner_user_id", ownerUserId)
     .maybeSingle();
 
   if (existing) return existing;
 
   const { data: created } = await supabase
     .from("quality_improvement_plans")
-    .insert({ owner_user_id: user.id })
+    .insert({ owner_user_id: ownerUserId })
     .select("*")
     .single();
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { SafeWorkProcedureSuggestion } from "@/lib/types/domain";
 
 export async function saveSafeWorkProcedure(
@@ -18,10 +19,15 @@ export async function saveSafeWorkProcedure(
     return { error: "Not authenticated" };
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    return { error: "No active service membership" };
+  }
+
   const { data, error } = await supabase
     .from("safe_work_procedures")
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       task_title: taskTitle,
       task_description: taskDescription,
       ppe_required: suggestion.ppeRequired,

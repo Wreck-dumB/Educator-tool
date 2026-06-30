@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { IncidentRecordType } from "@/lib/types/database.types";
 
 function field(formData: FormData, name: string): string | null {
@@ -27,8 +28,14 @@ export async function createChildIncidentReport(formData: FormData) {
 
   const parentNotifiedAt = formData.get("parent_notified_at") as string;
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect("/incident-reports?error=No active service membership");
+  }
+
   const { error } = await supabase.from("child_incident_reports").insert({
-    owner_user_id: user.id,
+    owner_user_id: ownerUserId,
+    created_by_user_id: user.id,
     child_id: childId,
     record_type: formData.get("record_type") as IncidentRecordType,
     occurred_at: new Date(occurredAt).toISOString(),
@@ -75,8 +82,14 @@ export async function createStaffIncidentReport(formData: FormData) {
     redirect("/incident-reports?error=Staff name, date/time, description, and completed-by name are required");
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect("/incident-reports?error=No active service membership");
+  }
+
   const { error } = await supabase.from("staff_incident_reports").insert({
-    owner_user_id: user.id,
+    owner_user_id: ownerUserId,
+    created_by_user_id: user.id,
     staff_name: staffName,
     staff_role: field(formData, "staff_role"),
     occurred_at: new Date(occurredAt).toISOString(),

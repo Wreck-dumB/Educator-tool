@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { ProgramEntrySuggestion } from "@/lib/types/domain";
 import type { CulturalDay } from "@/lib/types/database.types";
 
@@ -21,10 +22,15 @@ export async function saveProgram(
     return { error: "Not authenticated" };
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    return { error: "No active service membership" };
+  }
+
   const { data: program, error: programError } = await supabase
     .from("programs")
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       title,
       start_date: startDate,
       end_date: endDate,

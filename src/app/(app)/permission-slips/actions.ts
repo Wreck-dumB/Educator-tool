@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { PermissionSlipType } from "@/lib/types/database.types";
 
 export async function createPermissionSlip(formData: FormData) {
@@ -22,9 +23,14 @@ export async function createPermissionSlip(formData: FormData) {
     redirect("/permission-slips?error=Title, body text, and at least one child are required");
   }
 
+  const educatorUserId = await getMyServiceOwnerId();
+  if (!educatorUserId) {
+    redirect("/permission-slips?error=No active service membership");
+  }
+
   const { data: slip, error: slipError } = await supabase
     .from("permission_slips")
-    .insert({ educator_user_id: user.id, slip_type: slipType, title, status: "sent" })
+    .insert({ educator_user_id: educatorUserId, created_by_user_id: user.id, slip_type: slipType, title, status: "sent" })
     .select("id")
     .single();
 

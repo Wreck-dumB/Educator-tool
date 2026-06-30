@@ -24,18 +24,19 @@ export async function signup(formData: FormData) {
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const next = (formData.get("next") as string) || "/onboarding";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=${encodeURIComponent(next)}`,
     },
   });
 
   if (error) {
-    redirect(`/signup?error=${encodeURIComponent(error.message)}`);
+    redirect(`/signup?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
   }
 
   if (data.user) {
@@ -46,7 +47,9 @@ export async function signup(formData: FormData) {
     });
   }
 
-  redirect("/signup?message=Check your email to confirm your account, then log in.");
+  redirect(
+    `/signup?message=${encodeURIComponent("Check your email to confirm your account, then log in.")}&next=${encodeURIComponent(next)}`,
+  );
 }
 
 export async function logout() {

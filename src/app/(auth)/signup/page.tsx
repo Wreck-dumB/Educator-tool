@@ -7,9 +7,9 @@ const inputClass =
 export default async function SignupPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; next?: string }>;
 }) {
-  const { error, message } = await searchParams;
+  const { error, message, next } = await searchParams;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4">
@@ -30,6 +30,7 @@ export default async function SignupPage({
         )}
 
         <form action={signup} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-ink/80">
               Email
@@ -61,7 +62,10 @@ export default async function SignupPage({
 
         <p className="text-center text-sm text-ink/60">
           Already have an account?{" "}
-          <Link href="/login" className="font-medium text-coral-dark hover:underline">
+          <Link
+            href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"}
+            className="font-medium text-coral-dark hover:underline"
+          >
             Log in
           </Link>
         </p>

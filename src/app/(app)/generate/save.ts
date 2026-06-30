@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { ActivitySuggestion } from "@/lib/types/domain";
 import type { GenerationMode } from "@/lib/types/database.types";
 
@@ -17,10 +18,15 @@ export async function saveActivity(
     return { error: "Not authenticated" };
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    return { error: "No active service membership" };
+  }
+
   const { data: activity, error: insertError } = await supabase
     .from("generated_activities")
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       title: suggestion.title,
       summary: suggestion.summary,
       steps: suggestion.steps,

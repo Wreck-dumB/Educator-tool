@@ -18,6 +18,10 @@ export type IncidentRecordType = "incident" | "injury" | "trauma" | "illness";
 export type PermissionSlipType = "excursion_consent" | "photo_media_consent" | "medication_authorisation" | "other";
 export type PermissionSlipStatus = "draft" | "sent" | "closed";
 export type MaterialCategory = "classroom" | "food";
+export type StaffRole = "director" | "2ic" | "staff";
+export type StaffMembershipStatus = "active" | "removed";
+export type StaffInviteRole = "2ic" | "staff";
+export type StaffInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 
 export type CulturalDayConfidence = "high" | "approximate";
 
@@ -586,6 +590,7 @@ export interface Database {
           witness_name: string | null;
           completed_by_name: string;
           completed_by_role: string | null;
+          created_by_user_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -604,6 +609,7 @@ export interface Database {
           witness_name?: string | null;
           completed_by_name: string;
           completed_by_role?: string | null;
+          created_by_user_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["child_incident_reports"]["Insert"]>;
@@ -627,6 +633,8 @@ export interface Database {
           corrective_actions: string | null;
           completed_by_name: string;
           completed_by_role: string | null;
+          created_by_user_id: string | null;
+          subject_user_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -646,6 +654,8 @@ export interface Database {
           corrective_actions?: string | null;
           completed_by_name: string;
           completed_by_role?: string | null;
+          created_by_user_id?: string | null;
+          subject_user_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["staff_incident_reports"]["Insert"]>;
@@ -655,6 +665,7 @@ export interface Database {
         Row: {
           id: string;
           educator_user_id: string;
+          created_by_user_id: string | null;
           slip_type: PermissionSlipType;
           title: string;
           current_version: number;
@@ -664,6 +675,7 @@ export interface Database {
         Insert: {
           id?: string;
           educator_user_id: string;
+          created_by_user_id?: string | null;
           slip_type: PermissionSlipType;
           title: string;
           current_version?: number;
@@ -771,6 +783,76 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["recipes"]["Insert"]>;
         Relationships: [];
       };
+      services: {
+        Row: {
+          id: string;
+          director_user_id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          director_user_id: string;
+          name?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;
+        Relationships: [];
+      };
+      staff_memberships: {
+        Row: {
+          id: string;
+          service_id: string;
+          user_id: string;
+          role: StaffRole;
+          status: StaffMembershipStatus;
+          invited_by: string | null;
+          created_at: string;
+          removed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          service_id: string;
+          user_id: string;
+          role: StaffRole;
+          status?: StaffMembershipStatus;
+          invited_by?: string | null;
+          created_at?: string;
+          removed_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_memberships"]["Insert"]>;
+        Relationships: [];
+      };
+      staff_invites: {
+        Row: {
+          id: string;
+          service_id: string;
+          invited_role: StaffInviteRole;
+          invited_email: string;
+          token: string;
+          status: StaffInviteStatus;
+          invited_by: string;
+          created_at: string;
+          expires_at: string;
+          accepted_by: string | null;
+          accepted_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          service_id: string;
+          invited_role: StaffInviteRole;
+          invited_email: string;
+          token?: string;
+          status?: StaffInviteStatus;
+          invited_by: string;
+          created_at?: string;
+          expires_at?: string;
+          accepted_by?: string | null;
+          accepted_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_invites"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -787,6 +869,31 @@ export interface Database {
         }[];
       };
       accept_child_invite: {
+        Args: { _token: string };
+        Returns: string;
+      };
+      has_service_role: {
+        Args: { _owner_user_id: string; _min_role: string };
+        Returns: boolean;
+      };
+      my_service_owner_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      start_new_service: {
+        Args: { _name: string };
+        Returns: string;
+      };
+      get_staff_invite_preview: {
+        Args: { _token: string };
+        Returns: {
+          service_name: string;
+          invited_role: string;
+          status: string;
+          expires_at: string;
+        }[];
+      };
+      accept_staff_invite: {
         Args: { _token: string };
         Returns: string;
       };

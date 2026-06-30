@@ -20,6 +20,7 @@ const LINKS = [
   { href: "/materials", label: "Materials" },
   { href: "/recipes", label: "Recipes" },
   { href: "/observations", label: "Observations" },
+  { href: "/staff", label: "Staff" },
 ];
 
 export default function NavBar({ email }: { email: string }) {

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { PolicySuggestion } from "@/lib/types/domain";
 
 export async function savePolicy(
@@ -18,10 +19,15 @@ export async function savePolicy(
     return { error: "Not authenticated" };
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    return { error: "No active service membership" };
+  }
+
   const { data, error } = await supabase
     .from("policies")
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       category,
       title: suggestion.title,
       your_input: userInput,

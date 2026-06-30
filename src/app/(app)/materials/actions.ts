@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { MaterialCategory } from "@/lib/types/database.types";
 
 export async function addMaterial(formData: FormData) {
@@ -22,8 +23,13 @@ export async function addMaterial(formData: FormData) {
     redirect(`/materials?error=Please enter a material name`);
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    redirect("/materials?error=No active service membership");
+  }
+
   const { error } = await supabase.from("materials").insert({
-    owner_user_id: user.id,
+    owner_user_id: ownerUserId,
     name,
     category,
     quantity: quantityRaw ? Number(quantityRaw) : null,

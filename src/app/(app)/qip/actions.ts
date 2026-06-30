@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { QipItemSuggestion } from "@/lib/types/domain";
 import type { QipItemStatus } from "@/lib/types/database.types";
 
@@ -15,10 +16,13 @@ export async function saveQipItems(
   } = await supabase.auth.getUser();
   if (!user) return { error: "Not authenticated" };
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return { error: "No active service membership" };
+
   const { error } = await supabase.from("qip_items").insert(
     items.map((item) => ({
       qip_id: qipId,
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       quality_area_number: item.qualityAreaNumber,
       standard_code: item.standardCode,
       item_type: item.itemType,

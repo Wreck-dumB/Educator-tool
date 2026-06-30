@@ -74,6 +74,21 @@ export async function proxy(request: NextRequest) {
         url.pathname = "/parent";
         return NextResponse.redirect(url);
       }
+
+      // Educator-side users with no active service membership at all (a
+      // brand-new signup, before "start a new service" or redeeming a
+      // staff invite) get routed to onboarding instead of the app -- UX
+      // only, RLS is what actually blocks them from doing anything useful
+      // in the meantime either way.
+      const isOnboardingPath = path.startsWith("/onboarding");
+      if (!isParentRoute && !isParent && !isOnboardingPath && !isPublic) {
+        const { data: hasService } = await supabase.rpc("my_service_owner_id");
+        if (!hasService) {
+          const url = request.nextUrl.clone();
+          url.pathname = "/onboarding";
+          return NextResponse.redirect(url);
+        }
+      }
     }
   }
 

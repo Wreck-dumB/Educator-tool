@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { RiskAssessmentSuggestion } from "@/lib/types/domain";
 
 export async function saveRiskAssessment(
@@ -18,10 +19,15 @@ export async function saveRiskAssessment(
     return { error: "Not authenticated" };
   }
 
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) {
+    return { error: "No active service membership" };
+  }
+
   const { data, error } = await supabase
     .from("risk_assessments")
     .insert({
-      owner_user_id: user.id,
+      owner_user_id: ownerUserId,
       activity_id: activityId,
       title: `Risk assessment: ${activityTitle}`,
       context_notes: suggestion.contextNotes,
