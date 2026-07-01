@@ -46,35 +46,7 @@ where not exists (select 1 from public.staff_memberships sm where sm.service_id 
 alter table public.services enable row level security;
 alter table public.staff_memberships enable row level security;
 
-create policy "Director can view own service" on public.services for select using (director_user_id = auth.uid());
-create policy "Active staff can view their service" on public.services for select
-  using (public.has_service_role(director_user_id, 'staff'));
-
-create policy "2IC+ can view own service's memberships"
-  on public.staff_memberships for select
-  using (exists (select 1 from public.services s where s.id = service_id and public.has_service_role(s.director_user_id, '2ic')));
-create policy "Staff can view their own membership row"
-  on public.staff_memberships for select
-  using (user_id = auth.uid());
--- General staff (below 2ic) still see their OWN row via the policy above,
--- just not the full roster -- matches "staff get read access to
--- organisational info, 2ic+ get management" elsewhere in this design. If
--- you want all staff to see the full roster too (a simple "who works
--- here" directory), broaden this to has_service_role(..., 'staff').
--- No general DELETE policy at all -- removal is always status='removed' via
--- UPDATE, never a row delete, so "who was staff here and when" can never be
--- erased even by the Director.
-create policy "Director can update staff role/status for own service"
-  on public.staff_memberships for update
-  using (exists (select 1 from public.services s where s.id = service_id and s.director_user_id = auth.uid()))
-  with check (
-    -- Director can never demote/remove themselves via this path, and can
-    -- never create a second director row -- ownership transfer is a
-    -- separate, deliberately harder operation, not built here.
-    role in ('2ic', 'staff')
-    or (role = 'director' and user_id = (select director_user_id from public.services where id = service_id))
-  );
-
+-- Functions MUST be defined before any policy that references them.
 -- The single predicate every rewritten policy uses from here on. Hierarchy:
 -- director(3) > 2ic(2) > staff(1). security definer so it can read
 -- staff_memberships regardless of the caller's own RLS visibility into it.
@@ -154,6 +126,23 @@ end;
 $$;
 
 grant execute on function public.start_new_service(text) to authenticated;
+
+-- Now that has_service_role() exists, policies can reference it safely.
+create policy "Director can view own service" on public.services for select using (director_user_id = auth.uid());
+create policy "Active staff can view their service" on public.services for select
+  using (public.has_service_role(director_user_id, 'staff'));
+
+create policy "2IC+ can view own service's memberships" on public.staff_memberships for select
+  using (exists (select 1 from public.services s where s.id = service_id and public.has_service_role(s.director_user_id, '2ic')));
+create policy "Staff can view their own membership row" on public.staff_memberships for select
+  using (user_id = auth.uid());
+-- No DELETE policy -- removal is always status='removed' via UPDATE, never a row delete.
+create policy "Director can update staff role/status for own service" on public.staff_memberships for update
+  using (exists (select 1 from public.services s where s.id = service_id and s.director_user_id = auth.uid()))
+  with check (
+    role in ('2ic', 'staff')
+    or (role = 'director' and user_id = (select director_user_id from public.services where id = service_id))
+  );
 
 -- profiles (0008) only let a user see their own row. A staff list UI needs
 -- to show teammates' display names -- narrow addition: any active staff
