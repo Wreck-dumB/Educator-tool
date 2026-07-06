@@ -39,18 +39,18 @@ export interface RawActivitySuggestion {
   eylf_codes: string[];
 }
 
-const PROPOSE_ACTIVITIES_TOOL: Anthropic.Tool = {
-  name: "propose_activities",
-  description:
-    "Propose 2-3 fun, play-based early childhood activities matching the educator's constraints, each linked to specific EYLF sub-outcome codes drawn only from the provided taxonomy.",
-  input_schema: {
-    type: "object",
-    properties: {
-      activities: {
-        type: "array",
-        minItems: 2,
-        maxItems: 3,
-        items: {
+function makeActivitiesTool(count: number): Anthropic.Tool {
+  return {
+    name: "propose_activities",
+    description: `Propose ${count} fun, play-based early childhood activities matching the educator's constraints, each linked to specific EYLF sub-outcome codes drawn only from the provided taxonomy.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        activities: {
+          type: "array",
+          minItems: 1,
+          maxItems: count,
+          items: {
           type: "object",
           required: ["title", "summary", "steps", "materials_used", "reflection_prompts", "eylf_codes"],
           properties: {
@@ -79,6 +79,7 @@ const PROPOSE_ACTIVITIES_TOOL: Anthropic.Tool = {
     required: ["activities"],
   },
 };
+}
 
 function buildSystemPrompt(outcomes: EylfOutcome[]): string {
   const taxonomy = outcomes
@@ -94,7 +95,7 @@ Never invent a code that isn't in this list. Keep activities playful, safe, age-
 When additional needs/constraints are given (physical, emotional, disability, neurodiversity, family, environmental, or legal), adapt the activity practically and respectfully — focus on concrete accommodations (e.g. seated/standing alternatives, quieter sensory options, simpler instructions, alternative materials) rather than discussing or diagnosing the need itself. Take the educator's description at face value without speculating beyond what's stated.`;
 }
 
-function buildUserPrompt(input: GenerationInput): string {
+function buildUserPrompt(input: GenerationInput, count: number): string {
   const lines: string[] = [];
 
   if (input.surpriseMe) {
@@ -157,13 +158,14 @@ function buildUserPrompt(input: GenerationInput): string {
     lines.push("No specific constraints were given — propose a varied, generally useful set of activities.");
   }
 
-  lines.push("Propose 2-3 activities using the propose_activities tool.");
+  lines.push(`Propose ${count} activities using the propose_activities tool.`);
   return lines.join("\n");
 }
 
 export async function generateActivitySuggestions(
   input: GenerationInput,
   outcomes: EylfOutcome[],
+  count = 5,
 ): Promise<RawActivitySuggestion[]> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
@@ -174,10 +176,10 @@ export async function generateActivitySuggestions(
 
   const message = await client.messages.create({
     model: MODEL,
-    max_tokens: 2048,
+    max_tokens: Math.min(8192, Math.max(2048, count * 700)),
     system: buildSystemPrompt(outcomes),
-    messages: [{ role: "user", content: buildUserPrompt(input) }],
-    tools: [PROPOSE_ACTIVITIES_TOOL],
+    messages: [{ role: "user", content: buildUserPrompt(input, count) }],
+    tools: [makeActivitiesTool(count)],
     tool_choice: { type: "tool", name: "propose_activities" },
   });
 
@@ -346,7 +348,7 @@ export function scoreHazards(hazards: RawHazard[]): Hazard[] {
 }
 
 /** Shared single-tool-call helper used by every generator in this file. */
-async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool): Promise<T> {
+async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 2048): Promise<T> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -355,7 +357,7 @@ async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.T
   const client = new Anthropic({ apiKey });
   const message = await client.messages.create({
     model: MODEL,
-    max_tokens: 2048,
+    max_tokens: maxTokens,
     system,
     messages: [{ role: "user", content: userPrompt }],
     tools: [tool],
@@ -615,6 +617,7 @@ export async function generateRecipes(
   ingredientsOnHand?: string[],
   avoidAllergensOrRestrictions?: string,
   servings?: number,
+  count = 5,
 ): Promise<RawRecipe[]> {
   const lines = [`The educator's request:\n${userInput}`];
   if (ingredientsOnHand && ingredientsOnHand.length > 0) {
@@ -626,9 +629,10 @@ export async function generateRecipes(
   if (servings) {
     lines.push(`Number of child-sized servings needed: ${servings}.`);
   }
-  lines.push("Propose 2-3 recipes using the propose_recipes tool.");
+  lines.push(`Propose ${count} recipes using the propose_recipes tool.`);
 
-  const result = await callTool<{ recipes: RawRecipe[] }>(RECIPE_SYSTEM_PROMPT, lines.join("\n\n"), PROPOSE_RECIPES_TOOL);
+  const maxTokens = Math.min(8192, Math.max(2048, count * 700));
+  const result = await callTool<{ recipes: RawRecipe[] }>(RECIPE_SYSTEM_PROMPT, lines.join("\n\n"), PROPOSE_RECIPES_TOOL, maxTokens);
   return result.recipes ?? [];
 }
 
@@ -794,6 +798,46 @@ export async function generateProgram(
     PROPOSE_PROGRAM_TOOL,
   );
   return result.entries ?? [];
+}
+
+// =========================================
+// Poster/flier copy generation
+// =========================================
+export interface RawPosterCopy {
+  title: string;
+  subtitle?: string;
+  body_text?: string;
+  footer_text?: string;
+  image_search_suggestion?: string;
+}
+
+const PROPOSE_POSTER_COPY_TOOL: Anthropic.Tool = {
+  name: "propose_poster_copy",
+  description:
+    "Draft the wording for a poster or flier for an Australian early childhood education and care service.",
+  input_schema: {
+    type: "object",
+    required: ["title"],
+    properties: {
+      title: { type: "string", description: "Short, punchy headline — a handful of words that read well in very large type." },
+      subtitle: { type: "string", description: "One supporting line under the headline (e.g. the date/time/place for an event), if useful." },
+      body_text: { type: "string", description: "The main message in a few short, warm sentences or lines. Keep it scannable — this is a poster, not a letter." },
+      footer_text: { type: "string", description: "A small closing line if useful — RSVP details, a contact, or a friendly sign-off." },
+      image_search_suggestion: {
+        type: "string",
+        description: "Two or three words the educator could type into a stock-photo search to find a fitting picture, e.g. 'children gardening'.",
+      },
+    },
+  },
+};
+
+const POSTER_COPY_SYSTEM_PROMPT = `You write the wording for posters and fliers pinned up in an Australian early childhood education and care service — event notices for families, reminders (hats, sign-in, gate safety), celebration posters, room displays.
+
+Poster text is read in two seconds from across a hallway: headline first, tiny amount of supporting text, nothing that needs concentration. Keep the tone warm and community-minded, use Australian English spelling, and include only details the educator actually gave you — never invent dates, times, or contact details they didn't mention. If they gave specifics (a date, a time, 'bring a plate'), those must appear.`;
+
+export async function generatePosterCopy(userInput: string): Promise<RawPosterCopy> {
+  const userPrompt = `The educator's description of the poster/flier they need:\n${userInput}\n\nDraft the wording using the propose_poster_copy tool.`;
+  return callTool<RawPosterCopy>(POSTER_COPY_SYSTEM_PROMPT, userPrompt, PROPOSE_POSTER_COPY_TOOL, 1024);
 }
 
 // =========================================

@@ -20,6 +20,17 @@ export default function RecipeGeneratorForm({
   const [error, setError] = useState<string | null>(null);
   const [suggestions, setSuggestions] = useState<RecipeSuggestion[]>([]);
   const [savedTitles, setSavedTitles] = useState<Set<string>>(new Set());
+  const [count, setCount] = useState(5);
+  const [quickList, setQuickList] = useState<Set<number>>(new Set());
+
+  function toggleQuickList(index: number) {
+    setQuickList((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
 
   function toggleIngredient(name: string) {
     setSelectedIngredients((prev) => {
@@ -44,6 +55,7 @@ export default function RecipeGeneratorForm({
     setLoading(true);
     setError(null);
     setSuggestions([]);
+    setQuickList(new Set());
     try {
       const res = await fetch("/api/recipe", {
         method: "POST",
@@ -53,6 +65,7 @@ export default function RecipeGeneratorForm({
           ingredientsOnHand: Array.from(selectedIngredients),
           avoid: avoid.trim() || undefined,
           servings: servings || undefined,
+          count,
         }),
       });
       const data = await res.json();
@@ -140,17 +153,73 @@ export default function RecipeGeneratorForm({
         />
       </div>
 
+      <div className="mt-3 flex items-center gap-3">
+        <label className="text-sm font-medium text-ink/70">How many recipes?</label>
+        <div className="flex gap-1.5">
+          {[3, 5, 7, 10].map((n) => (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setCount(n)}
+              className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                count === n
+                  ? "bg-coral text-white"
+                  : "border border-coral-light/60 text-ink/60 hover:bg-coral-light/40"
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {error && <p className={errorBannerClass}>{error}</p>}
 
       <button type="button" onClick={handleGenerate} disabled={loading} className={`mt-4 ${primaryButtonClass}`}>
         {loading ? "Cooking up ideas…" : "Generate recipes"}
       </button>
 
+      {suggestions.length > 0 && quickList.size > 0 && (
+        <div className="mt-4 rounded-2xl border border-sage bg-sage-light p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-sage-dark">Quick list ({quickList.size})</p>
+            <button
+              type="button"
+              onClick={() => setQuickList(new Set())}
+              className="text-xs text-sage-dark/60 hover:text-sage-dark"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {[...quickList].sort((a, b) => a - b).map((i) => (
+              <li key={i} className="text-sm text-sage-dark">
+                <span className="text-xs text-sage-dark/50">{i + 1}.</span>{" "}
+                {suggestions[i]?.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {suggestions.length > 0 && (
         <div className="mt-4 space-y-4">
           {suggestions.map((recipe, idx) => (
             <div key={idx} className="rounded-xl border border-coral-light p-4">
-              <h3 className="font-display text-lg font-semibold text-ink">{recipe.title}</h3>
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-display text-lg font-semibold text-ink">{recipe.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => toggleQuickList(idx)}
+                  className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                    quickList.has(idx)
+                      ? "bg-sage text-white hover:bg-sage-dark"
+                      : "border border-sage-light text-sage-dark hover:bg-sage-light"
+                  }`}
+                >
+                  {quickList.has(idx) ? "★ Listed" : "☆ Quick list"}
+                </button>
+              </div>
               {recipe.description && <p className="mt-1 text-sm text-ink/70">{recipe.description}</p>}
               <div className="mt-2 flex flex-wrap gap-2 text-xs text-ink/50">
                 {recipe.prepTimeMinutes && <span>⏱ {recipe.prepTimeMinutes} min</span>}

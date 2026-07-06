@@ -26,6 +26,7 @@ export type PermissionSlipVersion = Database["public"]["Tables"]["permission_sli
 export type PermissionSlipTarget = Database["public"]["Tables"]["permission_slip_targets"]["Row"];
 export type PermissionSlipSignature = Database["public"]["Tables"]["permission_slip_signatures"]["Row"];
 export type Recipe = Database["public"]["Tables"]["recipes"]["Row"];
+export type Poster = Database["public"]["Tables"]["posters"]["Row"];
 export type Service = Database["public"]["Tables"]["services"]["Row"];
 export type StaffMembership = Database["public"]["Tables"]["staff_memberships"]["Row"];
 export type StaffInvite = Database["public"]["Tables"]["staff_invites"]["Row"];
@@ -42,6 +43,15 @@ export interface RecipeSuggestion {
   dietaryTags: string[];
   allergensPresent: string[];
   chokingHazardNotes: string | null;
+}
+
+/** Candidate poster wording returned by the generation engine, before it's applied. */
+export interface PosterCopySuggestion {
+  title: string;
+  subtitle: string | null;
+  bodyText: string | null;
+  footerText: string | null;
+  imageSearchSuggestion: string | null;
 }
 
 /** A candidate form template returned by the generation engine, before it's saved. */

@@ -8,7 +8,7 @@ export default async function FormsPage() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="font-display text-3xl font-semibold text-coral-dark">Forms</h1>
+      <h1 className="font-display text-3xl font-semibold text-coral-dark">Document Templates</h1>
       <p className="mt-1 text-sm text-ink/60">
         Describe what you need — a permission slip, consent form, or any other one-off notice — and
         get a drafted template back, plus a gap-check of anything your description didn&apos;t cover.

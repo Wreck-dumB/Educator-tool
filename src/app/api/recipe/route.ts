@@ -27,6 +27,10 @@ export async function POST(request: Request) {
     : undefined;
   const avoid = typeof body?.avoid === "string" ? body.avoid.trim().slice(0, 500) : undefined;
   const servings = typeof body?.servings === "number" && body.servings > 0 ? Math.min(body.servings, 200) : undefined;
+  const count =
+    typeof body?.count === "number" && body.count >= 1
+      ? Math.min(Math.round(body.count), 10)
+      : 5;
 
   if (!userInput) {
     return NextResponse.json({ error: "Describe what you need first" }, { status: 400 });
@@ -34,7 +38,7 @@ export async function POST(request: Request) {
 
   let raw;
   try {
-    raw = await generateRecipes(userInput, ingredientsOnHand, avoid, servings);
+    raw = await generateRecipes(userInput, ingredientsOnHand, avoid, servings, count);
   } catch (err) {
     console.error("Recipe generation failed", err);
     return NextResponse.json({ error: "Failed to generate recipes" }, { status: 502 });

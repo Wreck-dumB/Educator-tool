@@ -23,6 +23,9 @@ export type StaffMembershipStatus = "active" | "removed";
 export type StaffInviteRole = "2ic" | "staff";
 export type StaffInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 
+export type PosterTheme = "coral" | "sage" | "amber" | "ink" | "plain";
+export type PosterImageSource = "upload" | "stock";
+
 export type CulturalDayConfidence = "high" | "approximate";
 
 export interface CulturalDay {
@@ -745,6 +748,38 @@ export interface Database {
           signed_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["permission_slip_signatures"]["Insert"]>;
+        Relationships: [];
+      };
+      posters: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          subtitle: string | null;
+          body_text: string | null;
+          footer_text: string | null;
+          theme: PosterTheme;
+          image_source: PosterImageSource | null;
+          image_path: string | null;
+          image_url: string | null;
+          image_credit: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title: string;
+          subtitle?: string | null;
+          body_text?: string | null;
+          footer_text?: string | null;
+          theme?: PosterTheme;
+          image_source?: PosterImageSource | null;
+          image_path?: string | null;
+          image_url?: string | null;
+          image_credit?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["posters"]["Insert"]>;
         Relationships: [];
       };
       recipes: {

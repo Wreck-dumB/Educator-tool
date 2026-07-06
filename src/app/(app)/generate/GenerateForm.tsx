@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import type { EylfOutcome, Material, ChildProfile, ActivitySuggestion, DevelopmentalMilestone } from "@/lib/types/domain";
 import type { GenerationMode } from "@/lib/types/database.types";
@@ -89,6 +89,16 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
   const [mode, setMode] = useState<GenerationMode>("surprise_me");
   const [saveStates, setSaveStates] = useState<Record<number, SaveState>>({});
   const [savedIds, setSavedIds] = useState<Record<number, string>>({});
+  const [count, setCount] = useState(5);
+  const [quickList, setQuickList] = useState<Set<number>>(new Set());
+  const [outcomeDropdownOpen, setOutcomeDropdownOpen] = useState(false);
+  const outcomeDropdownRef = useRef<HTMLDivElement>(null);
+
+  const outcomeGroups = outcomes.reduce<Record<number, { title: string; items: EylfOutcome[] }>>((acc, o) => {
+    if (!acc[o.outcome_number]) acc[o.outcome_number] = { title: o.outcome_title, items: [] };
+    acc[o.outcome_number].items.push(o);
+    return acc;
+  }, {});
 
   function toggleMaterial(name: string) {
     setSelectedMaterials((prev) => {
@@ -108,12 +118,32 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
     });
   }
 
+  function toggleQuickList(index: number) {
+    setQuickList((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+  }
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (outcomeDropdownRef.current && !outcomeDropdownRef.current.contains(e.target as Node)) {
+        setOutcomeDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   async function generate(surpriseMe: boolean) {
     setLoading(true);
     setError(null);
     setSuggestions([]);
     setSaveStates({});
     setSavedIds({});
+    setQuickList(new Set());
 
     const adhoc = adhocMaterials
       .split(",")
@@ -148,6 +178,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
           additionalNeeds: trimmedNeeds || undefined,
           targetAgeBracket: targetAgeBracket.trim() || undefined,
           targetMilestone: targetMilestone.trim() || undefined,
+          count,
         }),
       });
 
@@ -439,31 +470,112 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
         </div>
 
         {outcomes.length > 0 && (
-          <div className="mt-4">
+          <div className="relative mt-4" ref={outcomeDropdownRef}>
             <p className="text-sm font-medium text-ink/70">Target EYLF outcomes (optional)</p>
-            <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {outcomes.map((o) => {
-                const active = selectedOutcomes.has(o.code);
-                return (
-                  <button
-                    key={o.id}
-                    type="button"
-                    onClick={() => toggleOutcome(o.code)}
-                    title={o.sub_outcome_text}
-                    className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                      active
-                        ? "border-coral bg-coral-light text-coral-dark"
-                        : "border-coral-light/60 text-ink/70 hover:bg-coral-light/40"
-                    }`}
+            <button
+              type="button"
+              onClick={() => setOutcomeDropdownOpen((o) => !o)}
+              className="mt-1 flex w-full items-center justify-between rounded-xl border border-coral-light bg-white px-3 py-2 text-sm shadow-sm hover:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
+            >
+              <span className={selectedOutcomes.size > 0 ? "font-medium text-coral-dark" : "text-ink/50"}>
+                {selectedOutcomes.size > 0
+                  ? `${selectedOutcomes.size} outcome${selectedOutcomes.size !== 1 ? "s" : ""} selected`
+                  : "Select outcomes…"}
+              </span>
+              <div className="flex items-center gap-2">
+                {selectedOutcomes.size > 0 && (
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    onClick={(e) => { e.stopPropagation(); setSelectedOutcomes(new Set()); }}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); setSelectedOutcomes(new Set()); } }}
+                    className="rounded-full bg-coral-light px-2 py-0.5 text-xs text-coral-dark hover:bg-coral hover:text-white"
                   >
-                    <span className="block text-base font-semibold">{o.code}</span>
-                    <span className="mt-0.5 block text-xs leading-snug">{o.sub_outcome_text}</span>
-                  </button>
-                );
-              })}
-            </div>
+                    Clear
+                  </span>
+                )}
+                <svg
+                  className={`h-4 w-4 text-ink/40 transition-transform ${outcomeDropdownOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+            </button>
+
+            {outcomeDropdownOpen && (
+              <div className="absolute z-20 mt-1 max-h-80 w-full overflow-y-auto rounded-xl border border-coral-light bg-white shadow-lg">
+                {Object.entries(outcomeGroups).map(([num, group]) => (
+                  <div key={num}>
+                    <p className="sticky top-0 bg-cream px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-ink/50">
+                      Outcome {num}: {group.title}
+                    </p>
+                    {group.items.map((o) => (
+                      <label
+                        key={o.id}
+                        className="flex cursor-pointer items-start gap-3 px-3 py-2 hover:bg-coral-light/30"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedOutcomes.has(o.code)}
+                          onChange={() => toggleOutcome(o.code)}
+                          className="mt-0.5 h-4 w-4 shrink-0 accent-coral"
+                        />
+                        <span>
+                          <span className="text-xs font-semibold text-coral-dark">{o.code}</span>
+                          <span className="ml-1.5 text-xs text-ink/70">{o.sub_outcome_text}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedOutcomes.size > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {[...selectedOutcomes].map((code) => (
+                  <span
+                    key={code}
+                    className="inline-flex items-center gap-1 rounded-full bg-coral-light px-2 py-0.5 text-xs font-medium text-coral-dark"
+                  >
+                    {code}
+                    <button
+                      type="button"
+                      onClick={() => toggleOutcome(code)}
+                      className="leading-none hover:text-coral"
+                      aria-label={`Remove ${code}`}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
+
+        <div className="mt-4 flex items-center gap-3">
+          <label className="text-sm font-medium text-ink/70">How many ideas?</label>
+          <div className="flex gap-1.5">
+            {[3, 5, 7, 10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setCount(n)}
+                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors ${
+                  count === n
+                    ? "bg-coral text-white"
+                    : "border border-coral-light/60 text-ink/60 hover:bg-coral-light/40"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="mt-6 flex gap-3">
           <button
@@ -489,11 +601,48 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
         <p className="mt-4 rounded-xl bg-coral-light px-3 py-2 text-sm text-coral-dark">{error}</p>
       )}
 
+      {suggestions.length > 0 && quickList.size > 0 && (
+        <div className="mt-6 rounded-2xl border border-sage bg-sage-light p-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-semibold text-sage-dark">Quick list ({quickList.size})</p>
+            <button
+              type="button"
+              onClick={() => setQuickList(new Set())}
+              className="text-xs text-sage-dark/60 hover:text-sage-dark"
+            >
+              Clear
+            </button>
+          </div>
+          <ul className="mt-2 space-y-1">
+            {[...quickList].sort((a, b) => a - b).map((i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-sage-dark">
+                <span className="text-xs text-sage-dark/50">{i + 1}.</span>
+                {suggestions[i]?.title}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {suggestions.length > 0 && (
         <div className="mt-6 space-y-4">
           {suggestions.map((s, i) => (
             <div key={i} className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
-              <h3 className="font-display text-lg font-semibold text-ink">{s.title}</h3>
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="font-display text-lg font-semibold text-ink">{s.title}</h3>
+                <button
+                  type="button"
+                  onClick={() => toggleQuickList(i)}
+                  title={quickList.has(i) ? "Remove from quick list" : "Add to quick list"}
+                  className={`mt-0.5 shrink-0 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                    quickList.has(i)
+                      ? "bg-sage text-white hover:bg-sage-dark"
+                      : "border border-sage-light text-sage-dark hover:bg-sage-light"
+                  }`}
+                >
+                  {quickList.has(i) ? "★ Listed" : "☆ Quick list"}
+                </button>
+              </div>
               <p className="mt-1 text-sm text-ink/70">{s.summary}</p>
 
               <div className="mt-3 flex flex-wrap items-center gap-2">

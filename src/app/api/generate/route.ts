@@ -81,6 +81,11 @@ export async function POST(request: Request) {
     input.targetMilestone = body.targetMilestone.trim().slice(0, 300) || undefined;
   }
 
+  const count =
+    typeof body.count === "number" && body.count >= 1
+      ? Math.min(Math.round(body.count), 10)
+      : 5;
+
   // Resolve the focus child server-side rather than trusting client-supplied
   // history — RLS scopes this to the caller's own children/observations
   // regardless, but fetching the real rows also means we can't be fed a
@@ -117,7 +122,7 @@ export async function POST(request: Request) {
 
   let raw;
   try {
-    raw = await generateActivitySuggestions(input, outcomes);
+    raw = await generateActivitySuggestions(input, outcomes, count);
   } catch (err) {
     console.error("Generation failed", err);
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
