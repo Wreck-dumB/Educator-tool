@@ -7,6 +7,7 @@ import { logObservation } from "@/app/(app)/observations/actions";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import RiskAssessmentPanel from "./RiskAssessmentPanel";
+import PersonalisePanel from "./PersonalisePanel";
 
 export default async function ActivityDetailPage({
   params,
@@ -94,6 +95,8 @@ export default async function ActivityDetailPage({
       )}
 
       {error && <p className={errorBannerClass}>{error}</p>}
+
+      <PersonalisePanel activityId={activity.id} children={children} />
 
       <RiskAssessmentPanel
         activityId={activity.id}

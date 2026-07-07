@@ -929,3 +929,129 @@ export async function generateQipItems(
   );
   return result.items ?? [];
 }
+
+// =========================================
+// Activity personalisation
+// =========================================
+export interface RawPersonalisedActivity {
+  title: string;
+  summary: string;
+  steps: string[];
+  materials_used: string[];
+  reflection_prompts: string[];
+  adaptation_notes: string[];
+  eylf_codes: string[];
+}
+
+const PERSONALISE_ACTIVITY_TOOL: Anthropic.Tool = {
+  name: "personalise_activity",
+  description:
+    "Adapt an existing early childhood activity for a specific child, making only the targeted changes needed to accommodate their needs, interests, or context — preserving as much of the original activity as possible.",
+  input_schema: {
+    type: "object",
+    required: ["title", "summary", "steps", "materials_used", "reflection_prompts", "adaptation_notes", "eylf_codes"],
+    properties: {
+      title: {
+        type: "string",
+        description: "Keep close to the original title, optionally noting the personalisation e.g. 'Name Tracing — for Mia'.",
+      },
+      summary: {
+        type: "string",
+        description: "One or two sentences — keep close to the original summary, noting any personalisation.",
+      },
+      steps: {
+        type: "array",
+        items: { type: "string" },
+        description: "The adapted steps. Keep unchanged steps verbatim; only modify steps that genuinely need adapting for this child.",
+      },
+      materials_used: { type: "array", items: { type: "string" } },
+      reflection_prompts: {
+        type: "array",
+        items: { type: "string" },
+        description: "Personalised prompts — reference the child's interests or learning journey rather than copying the originals verbatim.",
+      },
+      adaptation_notes: {
+        type: "array",
+        items: { type: "string" },
+        description: "One item per distinct change from the original — say specifically what changed and why, e.g. 'Replaced scissors with tearing (fine motor support for Luca)'. Omit if nothing changed for a step.",
+      },
+      eylf_codes: {
+        type: "array",
+        items: { type: "string" },
+        description: "EYLF sub-outcome codes this adapted version supports. Must only use codes from the provided taxonomy.",
+      },
+    },
+  },
+};
+
+const PERSONALISE_SYSTEM_PROMPT_TEMPLATE = `You are an assistant for early childhood educators in Australia. You adapt an existing activity for a specific child — making only the targeted changes needed to accommodate their needs, interests, or context, while preserving as much of the original activity as possible.
+
+Adaptation principles:
+- Change the minimum necessary. Keep unchanged steps verbatim.
+- Make accommodations practical and concrete: alternative materials, seated option, simplified instruction, quieter sensory version, adjusted pacing — not vague advice.
+- Frame adaptations around the child's strengths and interests, not just their limitations.
+- Where additional needs are given, adapt respectfully and practically — focus on concrete accommodations without diagnosing or discussing the need itself beyond what the educator described.
+- Personalise reflection prompts to this child (reference their interests, frame prompts around their specific learning journey) rather than copying the originals.
+- adaptation_notes must be specific: "what changed FROM THE ORIGINAL and why" in plain language the educator can read at a glance — not generic inclusion language.
+
+EYLF taxonomy:
+{TAXONOMY}
+
+Never use a code that isn't in the above list.`;
+
+export async function personaliseActivity(
+  activity: import("@/lib/types/domain").GeneratedActivity & { eylf_codes?: string[] },
+  childName: string | null,
+  interests: string | null,
+  additionalNeeds: string | null,
+  recentObservations: ChildObservationSummary[],
+  outcomes: EylfOutcome[],
+): Promise<RawPersonalisedActivity> {
+  const taxonomy = outcomes
+    .map((o) => `${o.code} — ${o.sub_outcome_text}`)
+    .join("\n");
+  const system = PERSONALISE_SYSTEM_PROMPT_TEMPLATE.replace("{TAXONOMY}", taxonomy);
+
+  const lines: string[] = [
+    `Original activity: "${activity.title}"`,
+    `Summary: ${activity.summary}`,
+    `Steps:\n${activity.steps.map((s, i) => `${i + 1}. ${s}`).join("\n")}`,
+  ];
+  if (activity.materials_used.length > 0) {
+    lines.push(`Materials: ${activity.materials_used.join(", ")}`);
+  }
+  if (activity.reflection_prompts.length > 0) {
+    lines.push(`Reflection prompts:\n${activity.reflection_prompts.map((p) => `- ${p}`).join("\n")}`);
+  }
+  if (activity.eylf_codes && activity.eylf_codes.length > 0) {
+    lines.push(`EYLF codes: ${activity.eylf_codes.join(", ")}`);
+  }
+
+  lines.push("---");
+
+  if (childName) lines.push(`Personalise for: ${childName}`);
+  if (interests) lines.push(`Current interests: ${interests}`);
+  if (additionalNeeds) {
+    const who = childName ?? "this child";
+    lines.push(
+      `Additional needs/constraints for ${who}: ${additionalNeeds}. Adapt practically so the activity is genuinely accessible — without making the adaptation the activity's whole focus.`,
+    );
+  }
+  if (recentObservations.length > 0) {
+    const who = childName ?? "this child";
+    const obs = recentObservations
+      .map((o) => {
+        const codes = o.eylfCodes.length > 0 ? ` (EYLF ${o.eylfCodes.join(", ")})` : "";
+        return `- ${o.observedAt}: ${o.noteText}${codes}`;
+      })
+      .join("\n");
+    lines.push(`Recent observations for ${who}:\n${obs}`);
+  }
+  if (!childName && !interests && !additionalNeeds && recentObservations.length === 0) {
+    lines.push("No specific child context provided — personalise for a generic individual child (solo focus) rather than a whole group.");
+  }
+
+  lines.push("\nAdapt this activity using the personalise_activity tool.");
+
+  return callTool<RawPersonalisedActivity>(system, lines.join("\n"), PERSONALISE_ACTIVITY_TOOL, 2048);
+}
