@@ -304,13 +304,7 @@ export default function PersonalisePanel({ activityId, children }: Props) {
               onClick={() => {
                 const params = new URLSearchParams({ title: result.title });
                 if (result.childName) params.set("name", result.childName);
-                if (result.suggestedTemplate === "name_trace" || result.suggestedTemplate === "drawing_frame") {
-                  params.set("type", result.suggestedTemplate);
-                } else {
-                  params.set("type", "activity_sheet");
-                  result.steps.slice(0, 6).forEach((s) => params.append("step", s));
-                  result.materialsUsed.slice(0, 8).forEach((m) => params.append("material", m));
-                }
+                params.set("type", result.suggestedTemplate === "name_trace" ? "name_trace" : "drawing_frame");
                 window.open(`/worksheet?${params.toString()}`, "_blank");
               }}
               className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"

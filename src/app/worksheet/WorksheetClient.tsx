@@ -161,15 +161,19 @@ function ActivitySheetTemplate({
 }
 
 // ─── Drawing Frame Template ───────────────────────────────────────────────────
-function DrawingFrameTemplate({ title }: { title: string }) {
+function DrawingFrameTemplate({ title, name }: { title: string; name?: string }) {
   return (
-    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-0">
-      <div className="mb-6 border-b border-ink/10 pb-4 print:mb-4">
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        {name && (
+          <p className="text-xs font-bold uppercase tracking-widest text-coral-dark">
+            {name}&apos;s Activity
+          </p>
+        )}
         <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
       </div>
-      <p className="mb-4 text-sm text-ink/60">Draw your picture in the space below.</p>
-      <div className="rounded-lg border-2 border-ink/20" style={{ height: "420px" }} aria-label="Drawing space" />
-      <p className="mb-2 mt-8 text-sm text-ink/60">Tell us about your drawing:</p>
+      <div className="rounded-lg border-2 border-ink/20" style={{ height: "460px" }} aria-label="Working space" />
+      <p className="mb-2 mt-6 text-sm text-ink/50">What I made / what happened:</p>
       <div className="rounded border border-dashed border-ink/20" style={{ height: "68px" }} aria-label="Writing space" />
       <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
     </div>
@@ -272,7 +276,7 @@ export default function WorksheetClient({ type, initialName, title, steps = [], 
       )}
 
       {/* ── Drawing-frame flow ───────────────────────────────────────────── */}
-      {type === "drawing_frame" && <DrawingFrameTemplate title={title} />}
+      {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={initialName || undefined} />}
 
       {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
       {type === "activity_sheet" && (
