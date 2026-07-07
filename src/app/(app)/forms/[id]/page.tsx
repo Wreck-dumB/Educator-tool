@@ -78,30 +78,39 @@ export default async function FormTemplateDetailPage({
           </div>
         )}
 
-        {template.suggested_additions.length > 0 && (
-          <div className="mt-4 rounded-xl bg-amber-light p-3 print:rounded-none print:border print:border-black print:bg-white">
-            <p className="text-sm font-medium text-amber-dark print:text-black">
-              Worth considering — not yet reflected in this draft
-            </p>
-            <ul className="mt-1 list-disc space-y-0.5 pl-4 text-sm text-amber-dark/90 print:text-black">
-              {template.suggested_additions.map((s, idx) => (
-                <li key={idx}>{s}</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <details className="mt-4 print:hidden">
-          <summary className="cursor-pointer text-xs text-ink/40">What was originally described</summary>
-          <p className="mt-1 text-xs text-ink/50">{template.your_input}</p>
-        </details>
-
         <form action={deleteFormTemplate} className="mt-6 print:hidden">
           <input type="hidden" name="id" value={template.id} />
           <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
             Delete this form
           </button>
         </form>
+
+        {/* Educator reflection notes — screen only, never printed */}
+        {(template.suggested_additions.length > 0 || template.your_input) && (
+          <div className="mt-8 border-t-2 border-dashed border-ink/10 pt-6 print:hidden">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-ink/30">
+              Educator notes — not printed
+            </p>
+
+            {template.suggested_additions.length > 0 && (
+              <div className="rounded-xl bg-amber-light p-4">
+                <p className="text-sm font-semibold text-amber-dark">
+                  Worth considering — things not yet in this draft
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-amber-dark/90">
+                  {template.suggested_additions.map((s, idx) => (
+                    <li key={idx}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <details className="mt-3">
+              <summary className="cursor-pointer text-xs text-ink/40">What was originally described</summary>
+              <p className="mt-1 text-xs text-ink/50">{template.your_input}</p>
+            </details>
+          </div>
+        )}
       </div>
     </div>
   );

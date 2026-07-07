@@ -131,17 +131,6 @@ export default function FormBuilderForm() {
             <p className="mt-2 text-xs text-ink/50">Includes a signature block.</p>
           )}
 
-          {draft.suggestedAdditions.length > 0 && (
-            <div className="mt-4 rounded-xl bg-amber-light p-3">
-              <p className="text-sm font-medium text-amber-dark">Worth considering — things your description didn&apos;t cover</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-4 text-sm text-amber-dark/90">
-                {draft.suggestedAdditions.map((s, idx) => (
-                  <li key={idx}>{s}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
           <div className="mt-4 flex gap-3">
             <button type="button" onClick={handleSave} disabled={saving} className={primaryButtonClass}>
               {saving ? "Saving…" : "Save form template"}
@@ -150,6 +139,24 @@ export default function FormBuilderForm() {
               Discard
             </button>
           </div>
+
+          {draft.suggestedAdditions.length > 0 && (
+            <div className="mt-6 border-t-2 border-dashed border-ink/10 pt-5">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink/30">
+                Educator notes — not saved with the form
+              </p>
+              <div className="rounded-xl bg-amber-light p-4">
+                <p className="text-sm font-semibold text-amber-dark">
+                  Worth considering — things your description didn&apos;t cover
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-4 text-sm text-amber-dark/90">
+                  {draft.suggestedAdditions.map((s, idx) => (
+                    <li key={idx}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
