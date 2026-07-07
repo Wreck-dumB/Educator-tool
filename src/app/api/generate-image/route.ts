@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 
-export const maxDuration = 60;
+// Pollinations.ai is free, requires no API key, and generates images on-demand.
+// The API accepts a prompt in the URL and returns an image directly.
 
 const PROMPTS = {
   outline:
-    "Coloring book style outline illustration of: {subject}. Thick clean black outlines only, completely white interior with no shading or color fills, simple bold shapes suitable for young children to cut out with scissors or color in, white background, children's coloring book style.",
+    "{subject}. Simple coloring book page. Bold thick black outlines only. Pure white background. No shading, no color fills, no gradients. Simple shapes children can cut out with scissors. Children's coloring book line art style.",
   colour:
-    "Bright cheerful children's illustration of: {subject}. Flat cartoon style, bold simple colors, friendly and welcoming, white background, suitable for early childhood education ages 3-6, clean and clear.",
+    "{subject}. Bright cheerful children's book illustration. Flat vector art, bold simple colors, friendly cartoon style. Pure white background. Suitable for early childhood ages 3 to 6.",
 };
 
 export async function POST(request: Request) {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  if (isRateLimited(`img:${user.id}`, 10, 60 * 60 * 1000)) {
+  if (isRateLimited(`img:${user.id}`, 20, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Image generation limit reached — try again in an hour." }, { status: 429 });
   }
 
@@ -28,37 +29,14 @@ export async function POST(request: Request) {
 
   if (!subject) return NextResponse.json({ error: "prompt is required" }, { status: 400 });
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "Image generation is not configured — contact your administrator." }, { status: 503 });
-  }
-
   const prompt = PROMPTS[style].replace("{subject}", subject);
+  const seed = Math.floor(Math.random() * 999999);
 
-  const res = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "dall-e-3",
-      prompt,
-      n: 1,
-      size: "1024x1024",
-      response_format: "b64_json",
-    }),
-  });
+  // Build the Pollinations URL — no API key or account needed.
+  // nofeed=true prevents the image appearing in Pollinations' public gallery.
+  const imageUrl =
+    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+    `?width=1024&height=1024&nologo=true&nofeed=true&model=flux&seed=${seed}`;
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    console.error("DALL-E error", err);
-    return NextResponse.json({ error: "Image generation failed — please try again." }, { status: 502 });
-  }
-
-  const data = await res.json();
-  const b64 = data?.data?.[0]?.b64_json;
-  if (!b64) return NextResponse.json({ error: "No image returned" }, { status: 502 });
-
-  return NextResponse.json({ dataUrl: `data:image/png;base64,${b64}` });
+  return NextResponse.json({ imageUrl });
 }

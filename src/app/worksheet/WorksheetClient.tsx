@@ -285,6 +285,7 @@ export default function WorksheetClient({ type, initialName, title, materials = 
   async function generateImage() {
     setImageLoading(true);
     setImageError(null);
+    setImageUrl(null);
     try {
       const res = await fetch("/api/generate-image", {
         method: "POST",
@@ -292,11 +293,16 @@ export default function WorksheetClient({ type, initialName, title, materials = 
         body: JSON.stringify({ prompt: imagePrompt, style: imageStyle }),
       });
       const data = await res.json();
-      if (!res.ok) setImageError(data.error ?? "Image generation failed");
-      else setImageUrl(data.dataUrl);
+      if (!res.ok) {
+        setImageError(data.error ?? "Image generation failed");
+        setImageLoading(false);
+      } else {
+        // imageUrl is a Pollinations URL — image loads in the <img> tag,
+        // imageLoading stays true until onLoad fires
+        setImageUrl(data.imageUrl);
+      }
     } catch {
       setImageError("Could not reach the server");
-    } finally {
       setImageLoading(false);
     }
   }
@@ -413,23 +419,41 @@ export default function WorksheetClient({ type, initialName, title, materials = 
                   disabled={imageLoading || !imagePrompt.trim()}
                   className="shrink-0 rounded-full bg-sage px-4 py-2 text-sm font-semibold text-white hover:bg-sage-dark disabled:opacity-50"
                 >
-                  {imageLoading ? "Generating…" : "Generate"}
+                  {imageLoading ? (imageUrl ? "Loading…" : "Generating…") : "Generate"}
                 </button>
               </div>
 
               {imageError && <p className="mt-2 text-sm text-coral-dark">{imageError}</p>}
 
+              {imageLoading && !imageUrl && (
+                <p className="mt-2 text-sm text-sage-dark/70">Generating image — this takes about 15–20 seconds…</p>
+              )}
+
               {imageUrl && (
                 <div className="mt-3 flex items-center gap-3">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={imageUrl} alt="Generated preview" className="h-16 w-16 rounded border border-sage-light object-contain bg-white" />
-                  <button
-                    type="button"
-                    onClick={() => setImageUrl(null)}
-                    className="text-xs text-ink/40 hover:text-ink"
-                  >
-                    Remove image
-                  </button>
+                  <img
+                    src={imageUrl}
+                    alt="Generated preview"
+                    className="h-16 w-16 rounded border border-sage-light object-contain bg-white"
+                    onLoad={() => setImageLoading(false)}
+                    onError={() => {
+                      setImageError("Image failed to load — please try again.");
+                      setImageUrl(null);
+                      setImageLoading(false);
+                    }}
+                  />
+                  {imageLoading ? (
+                    <span className="text-sm text-sage-dark/70">Loading image…</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl(null)}
+                      className="text-xs text-ink/40 hover:text-ink"
+                    >
+                      Remove image
+                    </button>
+                  )}
                 </div>
               )}
 
