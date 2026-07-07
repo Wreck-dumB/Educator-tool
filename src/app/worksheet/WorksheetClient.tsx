@@ -2,12 +2,14 @@
 
 import { useState, useMemo } from "react";
 
-type TemplateType = "name_trace" | "drawing_frame";
+type TemplateType = "name_trace" | "drawing_frame" | "activity_sheet";
 
 interface Props {
   type: TemplateType;
   initialName: string;
   title: string;
+  steps?: string[];
+  materials?: string[];
 }
 
 function pickFontSize(nameLength: number, maxWidth: number): number {
@@ -106,6 +108,58 @@ function NameTraceTemplate({ name, title }: { name: string; title: string }) {
   );
 }
 
+// ─── Activity Sheet Template ─────────────────────────────────────────────────
+function ActivitySheetTemplate({
+  name, title, steps, materials,
+}: {
+  name: string; title: string; steps: string[]; materials: string[];
+}) {
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        {name && (
+          <p className="text-xs font-bold uppercase tracking-widest text-coral-dark">
+            {name}&apos;s Activity
+          </p>
+        )}
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      {steps.length > 0 && (
+        <div className="mt-2">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/50">
+            What we&apos;re doing today:
+          </p>
+          <ol className="space-y-4">
+            {steps.map((step, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-coral text-sm font-bold text-white">
+                  {i + 1}
+                </span>
+                <p className="mt-1 text-base leading-relaxed text-ink">{step}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {materials.length > 0 && (
+        <div className="mt-6 rounded-xl border border-ink/10 px-4 py-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">You&apos;ll need:</p>
+          <p className="mt-1 text-sm text-ink">{materials.join(", ")}</p>
+        </div>
+      )}
+
+      <div className="mt-6">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">My drawing / work:</p>
+        <div className="rounded-lg border-2 border-dashed border-ink/20" style={{ height: "280px" }} aria-label="Drawing space" />
+      </div>
+
+      <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
+    </div>
+  );
+}
+
 // ─── Drawing Frame Template ───────────────────────────────────────────────────
 function DrawingFrameTemplate({ title }: { title: string }) {
   return (
@@ -123,7 +177,7 @@ function DrawingFrameTemplate({ title }: { title: string }) {
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialName, title }: Props) {
+export default function WorksheetClient({ type, initialName, title, steps = [], materials = [] }: Props) {
   const [names, setNames] = useState<string[]>([initialName]);
 
   function update(i: number, v: string) {
@@ -219,6 +273,11 @@ export default function WorksheetClient({ type, initialName, title }: Props) {
 
       {/* ── Drawing-frame flow ───────────────────────────────────────────── */}
       {type === "drawing_frame" && <DrawingFrameTemplate title={title} />}
+
+      {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
+      {type === "activity_sheet" && (
+        <ActivitySheetTemplate name={initialName} title={title} steps={steps} materials={materials} />
+      )}
     </div>
   );
 }
