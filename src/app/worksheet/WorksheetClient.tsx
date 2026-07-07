@@ -208,14 +208,14 @@ export default function WorksheetClient({ type, initialName, title, steps = [], 
         </button>
       </div>
 
-      {/* ── Name-trace flow ─────────────────────────────────────────────── */}
-      {type === "name_trace" && (
+      {/* ── Name-trace + drawing-frame: multi-child names panel ────────── */}
+      {(type === "name_trace" || type === "drawing_frame") && (
         <>
           {/* Names panel — screen only */}
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
             <div className="mt-6 rounded-2xl border-2 border-dashed border-coral-light bg-coral-light/30 px-5 py-4">
               <p className="mb-3 text-sm font-semibold text-coral-dark">
-                ✏️ Children&apos;s names — one worksheet will print per child
+                ✏️ Children&apos;s names — one sheet will print per child
               </p>
 
               <div className="space-y-2">
@@ -260,7 +260,7 @@ export default function WorksheetClient({ type, initialName, title, steps = [], 
             </div>
           </div>
 
-          {/* One worksheet per child — separated by page breaks on print */}
+          {/* One sheet per child — separated by page breaks on print */}
           {names.map((n, i) => (
             <div
               key={i}
@@ -269,14 +269,12 @@ export default function WorksheetClient({ type, initialName, title, steps = [], 
               {i > 0 && (
                 <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
               )}
-              <NameTraceTemplate name={n} title={title} />
+              {type === "name_trace" && <NameTraceTemplate name={n} title={title} />}
+              {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} />}
             </div>
           ))}
         </>
       )}
-
-      {/* ── Drawing-frame flow ───────────────────────────────────────────── */}
-      {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={initialName || undefined} />}
 
       {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
       {type === "activity_sheet" && (
