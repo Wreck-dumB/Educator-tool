@@ -19,6 +19,36 @@ function pickFontSize(nameLength: number, maxWidth: number): number {
   return 24;
 }
 
+// ─── ImageDisplay ─────────────────────────────────────────────────────────────
+function ImageDisplay({
+  imageUrl, imageStyle, compact = false,
+}: {
+  imageUrl: string; imageStyle?: "outline" | "colour"; compact?: boolean;
+}) {
+  const isOutline = imageStyle === "outline";
+  const height = compact ? 160 : 440;
+  return (
+    <div className="flex flex-col items-center">
+      {isOutline && (
+        <p className="mb-2 text-xs font-bold uppercase tracking-widest text-ink/40">
+          ✂ Cut along the dotted line
+        </p>
+      )}
+      <div
+        className={`flex items-center justify-center overflow-hidden rounded-lg ${isOutline ? "border-4 border-dashed border-ink/40" : "border-2 border-ink/20"}`}
+        style={{ height: `${height}px`, width: "100%" }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={imageUrl}
+          alt="Activity image"
+          style={{ maxHeight: `${height - 8}px`, maxWidth: "100%", objectFit: "contain" }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ─── TraceRow ────────────────────────────────────────────────────────────────
 interface TraceRowProps {
   y: number;
@@ -65,7 +95,9 @@ function TraceRow({
 }
 
 // ─── Name Tracing Template (pure display — no inputs inside) ─────────────────
-function NameTraceTemplate({ name, title }: { name: string; title: string }) {
+function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
+  name: string; title: string; imageUrl?: string; imageStyle?: "outline" | "colour";
+}) {
   const displayName = name.trim() || "Name";
   const svgWidth = 760;
 
@@ -103,6 +135,12 @@ function NameTraceTemplate({ name, title }: { name: string; title: string }) {
         <TraceRow {...shared} y={row3Y} fill="transparent" showText={false} label="Your turn" />
       </svg>
 
+      {imageUrl && (
+        <div className="mt-4">
+          <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} compact />
+        </div>
+      )}
+
       <p className="mt-2 text-right text-xs text-ink/25">SparkPlay</p>
     </div>
   );
@@ -110,26 +148,21 @@ function NameTraceTemplate({ name, title }: { name: string; title: string }) {
 
 // ─── Activity Sheet Template — child-facing, no instruction steps ─────────────
 function ActivitySheetTemplate({
-  name, title, materials,
+  name, title, materials, imageUrl, imageStyle,
 }: {
   name: string; title: string; materials: string[];
+  imageUrl?: string; imageStyle?: "outline" | "colour";
 }) {
   return (
     <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
-      {/* Name banner */}
       <div className="mb-5 rounded-xl bg-coral-light px-5 py-5 text-center">
-        {name && (
-          <p className="font-display text-4xl font-bold text-coral-dark">{name}</p>
-        )}
+        {name && <p className="font-display text-4xl font-bold text-coral-dark">{name}</p>}
         <p className="mt-1 text-base font-semibold text-ink/70">{title}</p>
       </div>
 
-      {/* Materials tick-list */}
       {materials.length > 0 && (
         <div className="mb-5 rounded-xl border border-ink/10 px-5 py-4">
-          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">
-            You will need:
-          </p>
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">You will need:</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-2">
             {materials.map((m, i) => (
               <div key={i} className="flex items-center gap-2">
@@ -141,29 +174,23 @@ function ActivitySheetTemplate({
         </div>
       )}
 
-      {/* Large working space */}
-      <div
-        className="rounded-xl border-2 border-ink/20"
-        style={{ height: "380px" }}
-        aria-label="Working space"
-      />
+      {imageUrl ? (
+        <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} />
+      ) : (
+        <div className="rounded-xl border-2 border-ink/20" style={{ height: "380px" }} aria-label="Working space" />
+      )}
 
-      <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-widest text-ink/40">
-        What I made / what happened:
-      </p>
-      <div
-        className="rounded border border-dashed border-ink/20"
-        style={{ height: "60px" }}
-        aria-label="Writing space"
-      />
-
+      <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-widest text-ink/40">What I made / what happened:</p>
+      <div className="rounded border border-dashed border-ink/20" style={{ height: "60px" }} aria-label="Writing space" />
       <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
     </div>
   );
 }
 
 // ─── Writing Lines Template ───────────────────────────────────────────────────
-function WritingLinesTemplate({ name, title }: { name?: string; title: string }) {
+function WritingLinesTemplate({ name, title, imageUrl, imageStyle }: {
+  name?: string; title: string; imageUrl?: string; imageStyle?: "outline" | "colour";
+}) {
   const svgWidth = 760;
   const rows = 7;
   const capToBaseline = 50;
@@ -183,6 +210,12 @@ function WritingLinesTemplate({ name, title }: { name?: string; title: string })
         )}
         <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
       </div>
+
+      {imageUrl && (
+        <div className="mb-4">
+          <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} compact />
+        </div>
+      )}
 
       <svg
         viewBox={`0 0 ${svgWidth} ${svgHeight}`}
@@ -213,7 +246,9 @@ function WritingLinesTemplate({ name, title }: { name?: string; title: string })
 }
 
 // ─── Drawing Frame Template ───────────────────────────────────────────────────
-function DrawingFrameTemplate({ title, name }: { title: string; name?: string }) {
+function DrawingFrameTemplate({ title, name, imageUrl, imageStyle }: {
+  title: string; name?: string; imageUrl?: string; imageStyle?: "outline" | "colour";
+}) {
   return (
     <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
       <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
@@ -224,7 +259,11 @@ function DrawingFrameTemplate({ title, name }: { title: string; name?: string })
         )}
         <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
       </div>
-      <div className="rounded-lg border-2 border-ink/20" style={{ height: "460px" }} aria-label="Working space" />
+      {imageUrl ? (
+        <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} />
+      ) : (
+        <div className="rounded-lg border-2 border-ink/20" style={{ height: "460px" }} aria-label="Working space" />
+      )}
       <p className="mb-2 mt-6 text-sm text-ink/50">What I made / what happened:</p>
       <div className="rounded border border-dashed border-ink/20" style={{ height: "68px" }} aria-label="Writing space" />
       <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
@@ -235,6 +274,32 @@ function DrawingFrameTemplate({ title, name }: { title: string; name?: string })
 // ─── Root client component ────────────────────────────────────────────────────
 export default function WorksheetClient({ type, initialName, title, materials = [] }: Props) {
   const [names, setNames] = useState<string[]>([initialName]);
+
+  // Image generation state
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageStyle, setImageStyle] = useState<"outline" | "colour">("outline");
+  const [imagePrompt, setImagePrompt] = useState(title);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  async function generateImage() {
+    setImageLoading(true);
+    setImageError(null);
+    try {
+      const res = await fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: imagePrompt, style: imageStyle }),
+      });
+      const data = await res.json();
+      if (!res.ok) setImageError(data.error ?? "Image generation failed");
+      else setImageUrl(data.dataUrl);
+    } catch {
+      setImageError("Could not reach the server");
+    } finally {
+      setImageLoading(false);
+    }
+  }
 
   function update(i: number, v: string) {
     setNames((prev) => prev.map((n, idx) => (idx === i ? v : n)));
@@ -312,6 +377,70 @@ export default function WorksheetClient({ type, initialName, title, materials = 
             </div>
           </div>
 
+          {/* Image generation panel — screen only */}
+          <div className="mx-auto max-w-[820px] px-4 print:hidden">
+            <div className="mt-4 rounded-2xl border-2 border-dashed border-sage-light bg-sage-light/20 px-5 py-4">
+              <p className="mb-3 text-sm font-semibold text-sage-dark">🎨 Activity image (optional)</p>
+
+              <div className="mb-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImageStyle("outline")}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${imageStyle === "outline" ? "border-sage bg-sage text-white" : "border-sage-light text-sage-dark hover:bg-sage-light"}`}
+                >
+                  ✂️ Cut-out outline
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageStyle("colour")}
+                  className={`rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${imageStyle === "colour" ? "border-sage bg-sage text-white" : "border-sage-light text-sage-dark hover:bg-sage-light"}`}
+                >
+                  🎨 Colour image
+                </button>
+              </div>
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={imagePrompt}
+                  onChange={(e) => setImagePrompt(e.target.value)}
+                  placeholder="Describe what to generate…"
+                  className="flex-1 rounded-xl border border-sage-light bg-white px-3 py-2 text-sm focus:border-sage focus:outline-none focus:ring-1 focus:ring-sage"
+                />
+                <button
+                  type="button"
+                  onClick={generateImage}
+                  disabled={imageLoading || !imagePrompt.trim()}
+                  className="shrink-0 rounded-full bg-sage px-4 py-2 text-sm font-semibold text-white hover:bg-sage-dark disabled:opacity-50"
+                >
+                  {imageLoading ? "Generating…" : "Generate"}
+                </button>
+              </div>
+
+              {imageError && <p className="mt-2 text-sm text-coral-dark">{imageError}</p>}
+
+              {imageUrl && (
+                <div className="mt-3 flex items-center gap-3">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imageUrl} alt="Generated preview" className="h-16 w-16 rounded border border-sage-light object-contain bg-white" />
+                  <button
+                    type="button"
+                    onClick={() => setImageUrl(null)}
+                    className="text-xs text-ink/40 hover:text-ink"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              )}
+
+              <p className="mt-3 text-xs text-sage-dark/60">
+                {imageStyle === "outline"
+                  ? "Generates a black-and-white outline children can cut out or colour in."
+                  : "Generates a colour illustration for the worksheet."}
+              </p>
+            </div>
+          </div>
+
           {/* One sheet per child — separated by page breaks on print */}
           {names.map((n, i) => (
             <div
@@ -321,9 +450,9 @@ export default function WorksheetClient({ type, initialName, title, materials = 
               {i > 0 && (
                 <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
               )}
-              {type === "name_trace" && <NameTraceTemplate name={n} title={title} />}
-              {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} />}
-              {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} />}
+              {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
+              {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
+              {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
             </div>
           ))}
         </>
@@ -331,7 +460,7 @@ export default function WorksheetClient({ type, initialName, title, materials = 
 
       {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
       {type === "activity_sheet" && (
-        <ActivitySheetTemplate name={initialName} title={title} materials={materials} />
+        <ActivitySheetTemplate name={initialName} title={title} materials={materials} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />
       )}
     </div>
   );
