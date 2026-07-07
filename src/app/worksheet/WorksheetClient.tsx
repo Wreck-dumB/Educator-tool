@@ -10,7 +10,6 @@ interface Props {
   title: string;
 }
 
-// Arial Bold approximation: ~0.58× font size per character
 function pickFontSize(nameLength: number, maxWidth: number): number {
   for (const size of [90, 76, 64, 52, 42, 34, 28]) {
     if (nameLength * 0.58 * size <= maxWidth) return size;
@@ -18,7 +17,7 @@ function pickFontSize(nameLength: number, maxWidth: number): number {
   return 24;
 }
 
-// ─── TraceRow (defined outside render to avoid React's static-component rule)
+// ─── TraceRow ────────────────────────────────────────────────────────────────
 interface TraceRowProps {
   y: number;
   fill: string;
@@ -33,50 +32,29 @@ interface TraceRowProps {
 }
 
 function TraceRow({
-  y,
-  fill,
-  label,
-  showText = true,
-  name,
-  fontSize,
-  capHeight,
-  xHeight,
-  descender,
-  svgWidth,
+  y, fill, label, showText = true,
+  name, fontSize, capHeight, xHeight, descender, svgWidth,
 }: TraceRowProps) {
   const baseline = y + capHeight + 8;
-  const midLine = baseline - xHeight;
-  const topLine = baseline - capHeight;
-  const descLine = baseline + descender;
+  const midLine   = baseline - xHeight;
+  const topLine   = baseline - capHeight;
+  const descLine  = baseline + descender;
 
   return (
     <>
       {label && (
-        <text
-          x="0"
-          y={y - 2}
-          fontSize="10"
-          fill="#aaa"
-          fontFamily="Arial, Helvetica, sans-serif"
-          style={{ userSelect: "none" }}
-        >
+        <text x="0" y={y - 2} fontSize="10" fill="#aaa"
+          fontFamily="Arial, Helvetica, sans-serif" style={{ userSelect: "none" }}>
           {label}
         </text>
       )}
-      <line x1="0" y1={topLine} x2={svgWidth} y2={topLine} stroke="#d8d8d8" strokeWidth="0.8" strokeDasharray="4 3" />
-      <line x1="0" y1={midLine} x2={svgWidth} y2={midLine} stroke="#e2e2e2" strokeWidth="0.8" strokeDasharray="4 3" />
+      <line x1="0" y1={topLine}  x2={svgWidth} y2={topLine}  stroke="#d8d8d8" strokeWidth="0.8" strokeDasharray="4 3" />
+      <line x1="0" y1={midLine}  x2={svgWidth} y2={midLine}  stroke="#e2e2e2" strokeWidth="0.8" strokeDasharray="4 3" />
       <line x1="0" y1={baseline} x2={svgWidth} y2={baseline} stroke="#b0b0b0" strokeWidth="1" />
       <line x1="0" y1={descLine} x2={svgWidth} y2={descLine} stroke="#e8e8e8" strokeWidth="0.6" />
       {showText && (
-        <text
-          x="4"
-          y={baseline}
-          fontSize={fontSize}
-          fontWeight="bold"
-          fontFamily="Arial, Helvetica, sans-serif"
-          fill={fill}
-          style={{ userSelect: "none" }}
-        >
+        <text x="4" y={baseline} fontSize={fontSize} fontWeight="bold"
+          fontFamily="Arial, Helvetica, sans-serif" fill={fill} style={{ userSelect: "none" }}>
           {name}
         </text>
       )}
@@ -84,19 +62,19 @@ function TraceRow({
   );
 }
 
-// ─── Name Tracing Template
+// ─── Name Tracing Template (pure display — no inputs inside) ─────────────────
 function NameTraceTemplate({ name, title }: { name: string; title: string }) {
   const displayName = name.trim() || "Name";
   const svgWidth = 760;
 
   const fontSize = useMemo(
     () => pickFontSize(displayName.length, svgWidth - 20),
-    [displayName.length, svgWidth],
+    [displayName.length],
   );
 
-  const capHeight = fontSize * 0.72;
-  const xHeight = fontSize * 0.52;
-  const descender = fontSize * 0.22;
+  const capHeight  = fontSize * 0.72;
+  const xHeight    = fontSize * 0.52;
+  const descender  = fontSize * 0.22;
   const lineHeight = fontSize * 1.45;
   const rowSpacing = lineHeight + 24;
 
@@ -105,98 +83,142 @@ function NameTraceTemplate({ name, title }: { name: string; title: string }) {
   const row3Y = row2Y + rowSpacing;
   const svgHeight = row3Y + lineHeight + 40;
 
-  const sharedRowProps = { name: displayName, fontSize, capHeight, xHeight, descender, svgWidth };
+  const shared = { name: displayName, fontSize, capHeight, xHeight, descender, svgWidth };
 
   return (
-    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-0">
-      <div className="mb-6 border-b border-ink/10 pb-4 print:mb-4">
-        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-4 border-b border-ink/10 pb-3">
+        <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
         {name.trim() && (
-          <p className="mt-0.5 text-sm text-ink/50">
-            Name tracing worksheet &mdash; {name.trim()}
-          </p>
+          <p className="mt-0.5 text-sm text-ink/50">For <strong>{name.trim()}</strong></p>
         )}
       </div>
 
-      <svg
-        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
-        width="100%"
-        aria-label={`Name tracing worksheet for ${displayName}`}
-        style={{ display: "block" }}
-      >
-        <TraceRow {...sharedRowProps} y={row1Y} fill="#cccccc" label="Trace" />
-        <TraceRow {...sharedRowProps} y={row2Y} fill="#e0e0e0" label="Trace again" />
-        <TraceRow {...sharedRowProps} y={row3Y} fill="transparent" showText={false} label="Your turn" />
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%"
+        aria-label={`Name tracing worksheet for ${displayName}`} style={{ display: "block" }}>
+        <TraceRow {...shared} y={row1Y} fill="#cccccc" label="Trace" />
+        <TraceRow {...shared} y={row2Y} fill="#e0e0e0" label="Trace again" />
+        <TraceRow {...shared} y={row3Y} fill="transparent" showText={false} label="Your turn" />
       </svg>
 
-      <p className="mt-3 text-center text-xs text-ink/30 print:mt-2">
-        Generated by SparkPlay
-      </p>
+      <p className="mt-2 text-right text-xs text-ink/25">SparkPlay</p>
     </div>
   );
 }
 
-// ─── Drawing Frame Template
+// ─── Drawing Frame Template ───────────────────────────────────────────────────
 function DrawingFrameTemplate({ title }: { title: string }) {
   return (
     <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-0">
       <div className="mb-6 border-b border-ink/10 pb-4 print:mb-4">
         <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
       </div>
-
       <p className="mb-4 text-sm text-ink/60">Draw your picture in the space below.</p>
-
-      <div
-        className="rounded-lg border-2 border-ink/20"
-        style={{ height: "420px" }}
-        aria-label="Drawing space"
-      />
-
+      <div className="rounded-lg border-2 border-ink/20" style={{ height: "420px" }} aria-label="Drawing space" />
       <p className="mb-2 mt-8 text-sm text-ink/60">Tell us about your drawing:</p>
-      <div
-        className="rounded border border-dashed border-ink/20"
-        style={{ height: "68px" }}
-        aria-label="Writing space"
-      />
-
-      <p className="mt-4 text-center text-xs text-ink/30">Generated by SparkPlay</p>
+      <div className="rounded border border-dashed border-ink/20" style={{ height: "68px" }} aria-label="Writing space" />
+      <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
     </div>
   );
 }
 
-// ─── Root client component
+// ─── Root client component ────────────────────────────────────────────────────
 export default function WorksheetClient({ type, initialName, title }: Props) {
-  const [name, setName] = useState(initialName);
+  const [names, setNames] = useState<string[]>([initialName]);
+
+  function update(i: number, v: string) {
+    setNames((prev) => prev.map((n, idx) => (idx === i ? v : n)));
+  }
+  function add() {
+    setNames((prev) => [...prev, ""]);
+  }
+  function remove(i: number) {
+    setNames((prev) => prev.filter((_, idx) => idx !== i));
+  }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Controls bar — hidden when printing */}
-      <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-ink/10 bg-white px-4 py-3 shadow-sm print:hidden">
-        <span className="text-sm font-semibold text-ink/60">Worksheet</span>
-        {type === "name_trace" && (
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter name…"
-            className="rounded-lg border border-ink/20 px-3 py-1.5 text-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
-            style={{ minWidth: "180px" }}
-          />
-        )}
+      {/* Sticky bar — hidden on print */}
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/10 bg-white px-4 py-2 shadow-sm print:hidden">
+        <span className="text-sm font-medium text-ink/40">SparkPlay Worksheet</span>
         <button
           type="button"
           onClick={() => window.print()}
-          className="ml-auto rounded-full bg-coral px-4 py-1.5 text-sm font-semibold text-white hover:bg-coral-dark"
+          className="rounded-full bg-coral px-4 py-1.5 text-sm font-semibold text-white hover:bg-coral-dark"
         >
           🖨 Print
         </button>
       </div>
 
-      {type === "name_trace" ? (
-        <NameTraceTemplate name={name} title={title} />
-      ) : (
-        <DrawingFrameTemplate title={title} />
+      {/* ── Name-trace flow ─────────────────────────────────────────────── */}
+      {type === "name_trace" && (
+        <>
+          {/* Names panel — screen only */}
+          <div className="mx-auto max-w-[820px] px-4 print:hidden">
+            <div className="mt-6 rounded-2xl border-2 border-dashed border-coral-light bg-coral-light/30 px-5 py-4">
+              <p className="mb-3 text-sm font-semibold text-coral-dark">
+                ✏️ Children&apos;s names — one worksheet will print per child
+              </p>
+
+              <div className="space-y-2">
+                {names.map((n, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="w-5 shrink-0 text-center text-xs font-semibold text-coral-dark/50">
+                      {i + 1}.
+                    </span>
+                    <input
+                      type="text"
+                      value={n}
+                      onChange={(e) => update(i, e.target.value)}
+                      placeholder="Child's name"
+                      autoFocus={i === 0}
+                      className="flex-1 rounded-xl border-2 border-coral/40 bg-white px-4 py-2 text-xl font-bold text-ink focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
+                    />
+                    {names.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => remove(i)}
+                        className="shrink-0 rounded-full px-3 py-1.5 text-xs font-medium text-coral-dark hover:bg-coral-light"
+                        aria-label={`Remove ${n || "this child"}`}
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={add}
+                className="mt-3 flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-1.5 text-sm font-medium text-coral-dark hover:bg-coral-light"
+              >
+                + Add another child
+              </button>
+
+              <p className="mt-3 text-xs text-coral-dark/50">
+                Add as many names as you need, then click Print — each child gets their own page.
+              </p>
+            </div>
+          </div>
+
+          {/* One worksheet per child — separated by page breaks on print */}
+          {names.map((n, i) => (
+            <div
+              key={i}
+              style={{ pageBreakAfter: i < names.length - 1 ? "always" : "auto" }}
+            >
+              {i > 0 && (
+                <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
+              )}
+              <NameTraceTemplate name={n} title={title} />
+            </div>
+          ))}
+        </>
       )}
+
+      {/* ── Drawing-frame flow ───────────────────────────────────────────── */}
+      {type === "drawing_frame" && <DrawingFrameTemplate title={title} />}
     </div>
   );
 }
