@@ -11,9 +11,10 @@ interface Props {
   materials?: string[];
 }
 
+// Andika Bold average char width ≈ 0.62× font size (wider than Arial Bold 0.58×)
 function pickFontSize(nameLength: number, maxWidth: number): number {
   for (const size of [90, 76, 64, 52, 42, 34, 28]) {
-    if (nameLength * 0.58 * size <= maxWidth) return size;
+    if (nameLength * 0.62 * size <= maxWidth) return size;
   }
   return 24;
 }
@@ -45,7 +46,7 @@ function TraceRow({
     <>
       {label && (
         <text x="0" y={y - 2} fontSize="10" fill="#aaa"
-          fontFamily="Arial, Helvetica, sans-serif" style={{ userSelect: "none" }}>
+          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif" style={{ userSelect: "none" }}>
           {label}
         </text>
       )}
@@ -55,7 +56,7 @@ function TraceRow({
       <line x1="0" y1={descLine} x2={svgWidth} y2={descLine} stroke="#e8e8e8" strokeWidth="0.6" />
       {showText && (
         <text x="4" y={baseline} fontSize={fontSize} fontWeight="bold"
-          fontFamily="Arial, Helvetica, sans-serif" fill={fill} style={{ userSelect: "none" }}>
+          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif" fill={fill} style={{ userSelect: "none" }}>
           {name}
         </text>
       )}
