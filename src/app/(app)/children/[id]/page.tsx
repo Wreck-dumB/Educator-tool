@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { getChild, getChildInvites, getChildContacts } from "@/lib/supabase/children";
 import {
   updateChild,
@@ -56,7 +57,15 @@ export default async function ChildDetailPage({
     <div className="mx-auto max-w-2xl print:max-w-none">
       <div className="flex items-center justify-between gap-3 print:hidden">
         <h1 className="font-display text-3xl font-semibold text-coral-dark">🧒 {child.first_name}</h1>
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/children/${child.id}/portfolio`}
+            className="rounded-full border border-sage-light px-3 py-1.5 text-xs font-semibold text-sage-dark hover:bg-sage-light transition-colors"
+          >
+            Portfolio PDF →
+          </Link>
+          <PrintButton />
+        </div>
       </div>
 
       {error && <p className={errorBannerClass}>{error}</p>}

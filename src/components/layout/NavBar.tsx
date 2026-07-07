@@ -38,6 +38,7 @@ const NAV_GROUPS = [
   {
     label: "Daily Forms",
     items: [
+      { href: "/digest", label: "Daily Digest" },
       { href: "/incident-reports", label: "Incidents" },
       { href: "/permission-slips", label: "Permission Slips" },
       { href: "/forms", label: "Document Templates" },
@@ -82,6 +83,16 @@ export default function NavBar({ email }: { email: string }) {
           <span aria-hidden>✨</span> SparkPlay
         </Link>
       </div>
+
+      {/* Search */}
+      <form method="GET" action="/search" className="border-b border-coral-light px-3 py-2">
+        <input
+          type="search"
+          name="q"
+          placeholder="Search…"
+          className="w-full rounded-lg border border-coral-light bg-white/70 px-3 py-1.5 text-xs text-ink placeholder-ink/30 focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
+        />
+      </form>
 
       {/* Nav groups */}
       <nav className="flex-1 overflow-y-auto py-3">

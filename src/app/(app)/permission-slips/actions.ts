@@ -98,3 +98,21 @@ export async function reviseAndResendSlip(formData: FormData) {
   revalidatePath("/permission-slips");
   redirect("/permission-slips");
 }
+
+export async function closePermissionSlip(formData: FormData) {
+  const supabase = await createClient();
+  const slipId = formData.get("slip_id") as string;
+  if (!slipId) redirect("/permission-slips");
+  await supabase.from("permission_slips").update({ status: "closed" }).eq("id", slipId);
+  revalidatePath("/permission-slips");
+  redirect("/permission-slips?status=closed");
+}
+
+export async function reopenPermissionSlip(formData: FormData) {
+  const supabase = await createClient();
+  const slipId = formData.get("slip_id") as string;
+  if (!slipId) redirect("/permission-slips");
+  await supabase.from("permission_slips").update({ status: "sent" }).eq("id", slipId);
+  revalidatePath("/permission-slips");
+  redirect("/permission-slips");
+}
