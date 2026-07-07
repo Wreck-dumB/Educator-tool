@@ -268,6 +268,7 @@ export interface Database {
           child_id: string;
           activity_id: string | null;
           note_text: string;
+          photo_url: string | null;
           observed_at: string;
           created_at: string;
         };
@@ -277,6 +278,7 @@ export interface Database {
           child_id: string;
           activity_id?: string | null;
           note_text: string;
+          photo_url?: string | null;
           observed_at?: string;
           created_at?: string;
         };

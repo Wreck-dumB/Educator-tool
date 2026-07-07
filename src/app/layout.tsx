@@ -1,5 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito, Fredoka } from "next/font/google";
+import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -15,7 +16,20 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: "SparkPlay",
-  description: "EYLF-linked activity ideas for early childhood educators, generated from what you have on hand.",
+  description: "EYLF-linked activity ideas and daily care tools for early childhood educators.",
+  appleWebApp: {
+    capable: true,
+    title: "SparkPlay",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#e8825a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -28,7 +42,13 @@ export default function RootLayout({
       lang="en"
       className={`${nunito.variable} ${fredoka.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-cream text-ink">{children}</body>
+      <head>
+        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+      </head>
+      <body className="min-h-full flex flex-col bg-cream text-ink">
+        {children}
+        <PwaRegister />
+      </body>
     </html>
   );
 }

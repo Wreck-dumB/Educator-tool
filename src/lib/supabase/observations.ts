@@ -1,6 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Observation } from "@/lib/types/domain";
 
+export async function getSignedPhotoUrl(path: string): Promise<string | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.storage
+    .from("observation-photos")
+    .createSignedUrl(path, 3600);
+  return data?.signedUrl ?? null;
+}
+
 export interface ObservationWithDetails extends Observation {
   child_name: string;
   activity_title: string | null;

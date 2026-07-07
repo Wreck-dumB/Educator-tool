@@ -1055,3 +1055,81 @@ export async function personaliseActivity(
 
   return callTool<RawPersonalisedActivity>(system, lines.join("\n"), PERSONALISE_ACTIVITY_TOOL, 2048);
 }
+
+// =========================================
+// Follow-up activity generation
+// =========================================
+
+export interface FollowUpInput {
+  observationNote: string;
+  childName: string;
+  childInterests: string | null;
+  eylfCodes: string[];
+  previousActivityTitle?: string | null;
+}
+
+export async function generateFollowUpActivity(
+  input: FollowUpInput,
+  outcomes: EylfOutcome[],
+): Promise<RawActivitySuggestion> {
+  const taxonomy = outcomes
+    .map((o) => `${o.code} (Outcome ${o.outcome_number}) — ${o.sub_outcome_text}`)
+    .join("\n");
+
+  const system = `You are an expert early childhood educator using the Australian Early Years Learning Framework (EYLF V2.0).
+Your job is to read an observation made about a child and propose ONE specific follow-up activity that extends and deepens what was observed.
+
+EYLF V2.0 taxonomy:
+${taxonomy}
+
+Rules:
+- The follow-up must directly connect to the observation — extend an interest, deepen a skill, or revisit something the child is working through
+- Propose exactly ONE activity
+- Only use EYLF codes from the taxonomy above — never invent codes
+- Make it practical and doable in a typical early childhood setting`;
+
+  const lines = [
+    `Child: ${input.childName}`,
+    input.childInterests ? `Current interests: ${input.childInterests}` : "",
+    input.previousActivityTitle ? `This observation came from activity: "${input.previousActivityTitle}"` : "",
+    `Observation: "${input.observationNote}"`,
+    input.eylfCodes.length > 0 ? `EYLF outcomes already linked: ${input.eylfCodes.join(", ")}` : "",
+    "",
+    "Propose a single follow-up activity that extends this observation. Use the propose_activities tool with exactly one activity.",
+  ].filter(Boolean);
+
+  const suggestions = await generateActivitySuggestions(
+    {
+      mode: "interest",
+      childInterest: input.observationNote.slice(0, 500),
+      childName: input.childName,
+    },
+    outcomes,
+    1,
+  );
+
+  // Use direct call for more targeted result
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const client = new Anthropic({ apiKey });
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    system,
+    messages: [{ role: "user", content: lines.join("\n") }],
+    tools: [makeActivitiesTool(1)],
+    tool_choice: { type: "tool", name: "propose_activities" },
+  });
+
+  const toolUse = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Model did not return a tool call");
+
+  const result = toolUse.input as { activities?: RawActivitySuggestion[] };
+  const activity = result.activities?.[0];
+  if (!activity) throw new Error("No activity returned");
+  void suggestions;
+  return activity;
+}

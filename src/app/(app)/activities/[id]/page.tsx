@@ -1,14 +1,17 @@
 import { notFound } from "next/navigation";
 import { getActivity } from "@/lib/supabase/activities";
 import { getChildren } from "@/lib/supabase/children";
-import { getObservations } from "@/lib/supabase/observations";
+import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
+import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getRiskAssessments } from "@/lib/supabase/riskAssessments";
 import { logObservation } from "@/app/(app)/observations/actions";
 import { archiveActivity, unarchiveActivity } from "../actions";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
-import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
+import { cardClass, errorBannerClass } from "@/lib/ui";
 import RiskAssessmentPanel from "./RiskAssessmentPanel";
 import PersonalisePanel from "./PersonalisePanel";
+import ObservationForm from "@/components/ObservationForm";
+import ObservationList from "@/components/ObservationList";
 
 export default async function ActivityDetailPage({
   params,
@@ -22,10 +25,11 @@ export default async function ActivityDetailPage({
   const activity = await getActivity(id);
   if (!activity) notFound();
 
-  const [children, allObservations, riskAssessments] = await Promise.all([
+  const [children, allObservations, riskAssessments, outcomes] = await Promise.all([
     getChildren(),
     getObservations(),
     getRiskAssessments(activity.id),
+    getEylfOutcomes(),
   ]);
   const observations = allObservations.filter((o) => o.activity_id === activity.id);
 
@@ -134,61 +138,21 @@ export default async function ActivityDetailPage({
             Add a child profile first to log an observation against this activity.
           </p>
         ) : (
-          <form action={logObservation} className="mt-4 space-y-4">
-            <input type="hidden" name="activity_id" value={activity.id} />
-            <input type="hidden" name="return_to" value={`/activities/${activity.id}`} />
-            <div>
-              <label htmlFor="child_id" className="block text-sm font-medium text-ink/70">
-                Child
-              </label>
-              <select id="child_id" name="child_id" required className={inputClass}>
-                {children.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.first_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="note_text" className="block text-sm font-medium text-ink/70">
-                Observation note
-              </label>
-              <textarea id="note_text" name="note_text" required rows={4} className={inputClass} />
-            </div>
-            {activity.eylf_codes.length > 0 && (
-              <div>
-                <p className="text-sm font-medium text-ink/70">EYLF outcomes</p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  {activity.eylf_codes.map((code) => (
-                    <label key={code} className="flex items-center gap-1.5 text-sm text-ink/70">
-                      <input type="checkbox" name="eylf_codes" value={code} defaultChecked />
-                      {code}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            <button type="submit" className={`w-full ${primaryButtonClass}`}>
-              Log observation
-            </button>
-          </form>
+          <div className="mt-4">
+            <ObservationForm
+              action={logObservation}
+              children={children}
+              outcomes={outcomes}
+              activityId={activity.id}
+              defaultEylfCodes={activity.eylf_codes}
+              returnTo={`/activities/${activity.id}`}
+            />
+          </div>
         )}
       </div>
 
       {observations.length > 0 && (
-        <div className={`mt-6 ${cardClass}`}>
-          <div className="border-b border-coral-light px-4 py-3">
-            <h2 className="font-display text-sm font-semibold text-ink">Past observations from this activity</h2>
-          </div>
-          <ul className="divide-y divide-coral-light">
-            {observations.map((o) => (
-              <li key={o.id} className="px-4 py-3">
-                <p className="text-sm font-medium text-ink">{o.child_name}</p>
-                <p className="mt-0.5 text-sm text-ink/70">{o.note_text}</p>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <ObservationList observations={observations} />
       )}
     </div>
   );

@@ -8,6 +8,12 @@ import { useWhiteNoise } from "@/components/providers/WhiteNoiseProvider";
 
 const NAV_GROUPS = [
   {
+    label: "Today",
+    items: [
+      { href: "/dashboard", label: "Dashboard" },
+    ],
+  },
+  {
     label: "Educator Tools",
     items: [
       { href: "/generate", label: "Generate" },
@@ -69,7 +75,7 @@ export default function NavBar({ email }: { email: string }) {
       {/* Logo */}
       <div className="border-b border-coral-light px-4 py-4">
         <Link
-          href="/generate"
+          href="/dashboard"
           onClick={() => setOpen(false)}
           className="font-display flex items-center gap-1.5 text-xl font-semibold text-coral-dark"
         >
