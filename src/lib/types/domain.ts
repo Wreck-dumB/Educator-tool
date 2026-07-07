@@ -88,8 +88,8 @@ export interface ActivitySuggestion {
   energyLevel: GeneratedActivity["energy_level"];
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
-  /** Set when the activity warrants a printable worksheet: name tracing or drawing frame. */
-  suggestedTemplate: "name_trace" | "drawing_frame" | null;
+  /** Set when the activity warrants a printable worksheet. */
+  suggestedTemplate: "name_trace" | "drawing_frame" | "writing_lines" | null;
 }
 
 /** A candidate risk assessment returned by the generation engine, before it's saved. */

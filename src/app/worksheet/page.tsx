@@ -14,7 +14,7 @@ interface Props {
   }>;
 }
 
-const VALID_TYPES = new Set(["name_trace", "drawing_frame", "activity_sheet"]);
+const VALID_TYPES = new Set(["name_trace", "drawing_frame", "writing_lines", "activity_sheet"]);
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -26,7 +26,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
 
   const resolvedType =
     type && VALID_TYPES.has(type)
-      ? (type as "name_trace" | "drawing_frame" | "activity_sheet")
+      ? (type as "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet")
       : "name_trace";
   const resolvedName = typeof name === "string" ? name.trim().slice(0, 60) : "";
   const resolvedTitle =

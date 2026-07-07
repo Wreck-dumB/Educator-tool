@@ -37,7 +37,7 @@ export interface RawActivitySuggestion {
   energy_level?: "calm" | "moderate" | "high";
   group_size_fit?: "solo" | "small_group" | "whole_group";
   eylf_codes: string[];
-  suggested_template?: "name_trace" | "drawing_frame" | null;
+  suggested_template?: "name_trace" | "drawing_frame" | "writing_lines" | null;
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -75,8 +75,8 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             },
             suggested_template: {
               type: "string",
-              enum: ["name_trace", "drawing_frame"],
-              description: "Only set this when the activity genuinely calls for a printable worksheet: 'name_trace' for any activity where a child traces their own name or letters (e.g. name tracing, letter practice); 'drawing_frame' for activities that explicitly involve drawing or illustrating on paper. Leave absent for all other activities.",
+              enum: ["name_trace", "drawing_frame", "writing_lines"],
+              description: "Set this for activities where a printable template helps children engage: 'name_trace' — child traces their own name or letters (dotted SVG guide letters printed per child); 'drawing_frame' — activity involves drawing, illustrating, painting, or colouring on paper (blank bordered space printed per child); 'writing_lines' — activity involves handwriting practice, forming letters, writing words or sentences (ruled handwriting lines printed per child). Always set one of these three for any art, literacy, drawing, colouring, painting, or handwriting activity. Leave absent only for purely oral, physical, or construction activities with no paper component.",
             },
           },
         },

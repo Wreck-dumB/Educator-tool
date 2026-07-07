@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 
-type TemplateType = "name_trace" | "drawing_frame" | "activity_sheet";
+type TemplateType = "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet";
 
 interface Props {
   type: TemplateType;
@@ -162,6 +162,56 @@ function ActivitySheetTemplate({
   );
 }
 
+// ─── Writing Lines Template ───────────────────────────────────────────────────
+function WritingLinesTemplate({ name, title }: { name?: string; title: string }) {
+  const svgWidth = 760;
+  const rows = 7;
+  const capToBaseline = 50;
+  const midToBaseline = 26;
+  const descGap = 12;
+  const rowSpacing = capToBaseline + descGap + 16;
+  const startY = 16;
+  const svgHeight = startY + rows * rowSpacing + 16;
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        {name && (
+          <p className="text-xs font-bold uppercase tracking-widest text-coral-dark">
+            {name}&apos;s Activity
+          </p>
+        )}
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        width="100%"
+        aria-label="Handwriting lines"
+        style={{ display: "block" }}
+      >
+        {Array.from({ length: rows }, (_, i) => {
+          const y = startY + i * rowSpacing;
+          return (
+            <g key={i}>
+              {/* Cap line */}
+              <line x1="0" y1={y} x2={svgWidth} y2={y} stroke="#e2e2e2" strokeWidth="0.7" strokeDasharray="4 3" />
+              {/* Midline (x-height) */}
+              <line x1="0" y1={y + (capToBaseline - midToBaseline)} x2={svgWidth} y2={y + (capToBaseline - midToBaseline)} stroke="#d8d8d8" strokeWidth="0.7" strokeDasharray="4 3" />
+              {/* Baseline — solid, where letters sit */}
+              <line x1="0" y1={y + capToBaseline} x2={svgWidth} y2={y + capToBaseline} stroke="#b0b0b0" strokeWidth="1.1" />
+              {/* Descender line */}
+              <line x1="0" y1={y + capToBaseline + descGap} x2={svgWidth} y2={y + capToBaseline + descGap} stroke="#efefef" strokeWidth="0.5" />
+            </g>
+          );
+        })}
+      </svg>
+
+      <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
+    </div>
+  );
+}
+
 // ─── Drawing Frame Template ───────────────────────────────────────────────────
 function DrawingFrameTemplate({ title, name }: { title: string; name?: string }) {
   return (
@@ -210,8 +260,8 @@ export default function WorksheetClient({ type, initialName, title, materials = 
         </button>
       </div>
 
-      {/* ── Name-trace + drawing-frame: multi-child names panel ────────── */}
-      {(type === "name_trace" || type === "drawing_frame") && (
+      {/* ── Name-trace + drawing-frame + writing-lines: multi-child names ─ */}
+      {(type === "name_trace" || type === "drawing_frame" || type === "writing_lines") && (
         <>
           {/* Names panel — screen only */}
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
@@ -273,6 +323,7 @@ export default function WorksheetClient({ type, initialName, title, materials = 
               )}
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} />}
+              {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} />}
             </div>
           ))}
         </>
