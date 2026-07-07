@@ -128,6 +128,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
   }
 
+  const VALID_TEMPLATES = new Set(["name_trace", "drawing_frame"]);
   const suggestions: ActivitySuggestion[] = raw.map((activity) => ({
     title: activity.title,
     summary: activity.summary,
@@ -142,6 +143,10 @@ export async function POST(request: Request) {
     // taxonomy, rather than trusting it blindly — wrong framework links are a
     // real compliance/trust risk if this is ever relied on for documentation.
     eylfCodes: (activity.eylf_codes ?? []).filter((code) => validCodes.has(code)),
+    suggestedTemplate:
+      activity.suggested_template && VALID_TEMPLATES.has(activity.suggested_template)
+        ? (activity.suggested_template as "name_trace" | "drawing_frame")
+        : null,
   }));
 
   return NextResponse.json({ activities: suggestions, mode: input.mode });

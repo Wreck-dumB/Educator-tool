@@ -706,7 +706,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                 </div>
               )}
 
-              <div className="mt-4">
+              <div className="mt-4 flex flex-wrap items-center gap-3">
                 {saveStates[i] === "saved" ? (
                   <Link
                     href={`/activities/${savedIds[i]}`}
@@ -724,8 +724,26 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                     {saveStates[i] === "saving" ? "Saving…" : "Save to library"}
                   </button>
                 )}
+                {s.suggestedTemplate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const params = new URLSearchParams({
+                        type: s.suggestedTemplate!,
+                        title: s.title,
+                      });
+                      if (s.suggestedTemplate === "name_trace" && selectedChild?.first_name) {
+                        params.set("name", selectedChild.first_name);
+                      }
+                      window.open(`/worksheet?${params.toString()}`, "_blank");
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark transition-colors hover:bg-coral-light"
+                  >
+                    🖨 Print worksheet
+                  </button>
+                )}
                 {saveStates[i] === "error" && (
-                  <span className="ml-2 text-sm text-coral-dark">Could not save, try again.</span>
+                  <span className="text-sm text-coral-dark">Could not save, try again.</span>
                 )}
               </div>
             </div>

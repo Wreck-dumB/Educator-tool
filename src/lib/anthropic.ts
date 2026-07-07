@@ -37,6 +37,7 @@ export interface RawActivitySuggestion {
   energy_level?: "calm" | "moderate" | "high";
   group_size_fit?: "solo" | "small_group" | "whole_group";
   eylf_codes: string[];
+  suggested_template?: "name_trace" | "drawing_frame" | null;
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -71,6 +72,11 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
               type: "array",
               items: { type: "string" },
               description: "EYLF sub-outcome codes (e.g. '1.2') that this activity supports. Must only use codes from the provided taxonomy.",
+            },
+            suggested_template: {
+              type: "string",
+              enum: ["name_trace", "drawing_frame"],
+              description: "Only set this when the activity genuinely calls for a printable worksheet: 'name_trace' for any activity where a child traces their own name or letters (e.g. name tracing, letter practice); 'drawing_frame' for activities that explicitly involve drawing or illustrating on paper. Leave absent for all other activities.",
             },
           },
         },
