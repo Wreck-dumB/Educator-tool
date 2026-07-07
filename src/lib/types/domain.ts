@@ -31,6 +31,8 @@ export type Service = Database["public"]["Tables"]["services"]["Row"];
 export type StaffMembership = Database["public"]["Tables"]["staff_memberships"]["Row"];
 export type StaffInvite = Database["public"]["Tables"]["staff_invites"]["Row"];
 export type AttendanceRecord = Database["public"]["Tables"]["attendance_records"]["Row"];
+export type Room = Database["public"]["Tables"]["rooms"]["Row"];
+export type RoomStaffCount = Database["public"]["Tables"]["room_staff_counts"]["Row"];
 
 /** A candidate recipe returned by the generation engine, before it's saved. */
 export interface RecipeSuggestion {

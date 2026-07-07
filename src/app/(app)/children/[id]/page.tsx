@@ -10,6 +10,8 @@ import {
   deleteChildContact,
 } from "@/app/(app)/children/actions";
 import { getObservations } from "@/lib/supabase/observations";
+import { getRooms } from "@/lib/supabase/rooms";
+import { assignChildToRoom } from "@/app/(app)/rooms/actions";
 import { inputClass, cardClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
 
@@ -42,9 +44,12 @@ export default async function ChildDetailPage({
 
   if (!child) notFound();
 
-  const observations = await getObservations(id);
-  const invites = await getChildInvites(id);
-  const contacts = await getChildContacts(id);
+  const [observations, invites, contacts, rooms] = await Promise.all([
+    getObservations(id),
+    getChildInvites(id),
+    getChildContacts(id),
+    getRooms(),
+  ]);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   return (
@@ -84,6 +89,27 @@ export default async function ChildDetailPage({
               className={inputClass}
             />
           </div>
+          {rooms.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-ink/70">Room</label>
+              <form action={assignChildToRoom} className="mt-1 flex gap-2">
+                <input type="hidden" name="child_id" value={child.id} />
+                <select
+                  name="room_id"
+                  defaultValue={child.room_id ?? ""}
+                  className={`${inputClass} mt-0 flex-1`}
+                >
+                  <option value="">— Unassigned —</option>
+                  {rooms.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+                <button type="submit" className="mt-1 shrink-0 rounded-full bg-sage px-3 py-2 text-xs font-semibold text-white hover:bg-sage-dark">
+                  Save
+                </button>
+              </form>
+            </div>
+          )}
           <div>
             <label htmlFor="current_interests" className="block text-sm font-medium text-ink/70">
               Current interests

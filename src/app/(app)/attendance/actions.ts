@@ -113,3 +113,43 @@ export async function undoAttendance(formData: FormData) {
 
   revalidatePath("/attendance");
 }
+
+export async function updateRoomStaffCount(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const roomId = formData.get("room_id") as string;
+  const date = formData.get("date") as string;
+  const delta = parseInt(formData.get("delta") as string, 10);
+
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return;
+
+  // Read current count, clamp delta so it never goes below 0
+  const { data: existing } = await supabase
+    .from("room_staff_counts")
+    .select("staff_count")
+    .eq("owner_user_id", ownerUserId)
+    .eq("room_id", roomId)
+    .eq("date", date)
+    .maybeSingle();
+
+  const current = existing?.staff_count ?? 0;
+  const next = Math.max(0, current + delta);
+
+  await supabase.from("room_staff_counts").upsert(
+    {
+      owner_user_id: ownerUserId,
+      room_id: roomId,
+      date,
+      staff_count: next,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "owner_user_id,room_id,date" },
+  );
+
+  revalidatePath("/attendance");
+}

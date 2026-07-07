@@ -24,6 +24,7 @@ export type StaffInviteRole = "2ic" | "staff";
 export type StaffInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 
 export type AttendanceStatus = "absent" | "signed_in" | "signed_out";
+export type RatioTier = "under_2" | "2_to_3" | "3_to_6" | "school_age" | "unknown";
 
 export type PosterTheme = "coral" | "sage" | "amber" | "ink" | "plain";
 export type PosterImageSource = "upload" | "stock";
@@ -87,6 +88,7 @@ export interface Database {
           medical_management_plan: string | null;
           dietary_restrictions: string | null;
           immunisation_status: string | null;
+          room_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -105,9 +107,48 @@ export interface Database {
           medical_management_plan?: string | null;
           dietary_restrictions?: string | null;
           immunisation_status?: string | null;
+          room_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
+        Relationships: [];
+      };
+      rooms: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          name: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          name: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["rooms"]["Insert"]>;
+        Relationships: [];
+      };
+      room_staff_counts: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          room_id: string;
+          date: string;
+          staff_count: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          room_id: string;
+          date: string;
+          staff_count: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["room_staff_counts"]["Insert"]>;
         Relationships: [];
       };
       child_contacts: {

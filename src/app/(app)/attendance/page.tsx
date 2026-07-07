@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getChildren } from "@/lib/supabase/children";
 import { getAttendanceForDate } from "@/lib/supabase/attendance";
+import { getRooms, getRoomStaffCountsForDate } from "@/lib/supabase/rooms";
 import { cardClass } from "@/lib/ui";
 import AttendanceRegister from "./AttendanceRegister";
 
@@ -21,9 +22,11 @@ export default async function AttendancePage({ searchParams }: Props) {
   const { date: rawDate } = await searchParams;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate ?? "") ? rawDate! : todayLocal();
 
-  const [children, records] = await Promise.all([
+  const [children, records, rooms, staffCounts] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
+    getRooms(),
+    getRoomStaffCountsForDate(date),
   ]);
 
   const isToday = date === todayLocal();
@@ -88,7 +91,7 @@ export default async function AttendancePage({ searchParams }: Props) {
 
       {/* Register */}
       <div className="mt-4">
-        <AttendanceRegister children={children} records={records} date={date} />
+        <AttendanceRegister children={children} records={records} rooms={rooms} staffCounts={staffCounts} date={date} />
       </div>
 
       <p className="mt-6 text-xs text-ink/30 print:hidden">

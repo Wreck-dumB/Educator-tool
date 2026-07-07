@@ -24,7 +24,10 @@ const NAV_GROUPS = [
   },
   {
     label: "Enrolments",
-    items: [{ href: "/children", label: "Children" }],
+    items: [
+      { href: "/children", label: "Children" },
+      { href: "/rooms", label: "Rooms" },
+    ],
   },
   {
     label: "Daily Forms",
