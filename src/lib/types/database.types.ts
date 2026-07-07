@@ -23,6 +23,8 @@ export type StaffMembershipStatus = "active" | "removed";
 export type StaffInviteRole = "2ic" | "staff";
 export type StaffInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 
+export type AttendanceStatus = "absent" | "signed_in" | "signed_out";
+
 export type PosterTheme = "coral" | "sage" | "amber" | "ink" | "plain";
 export type PosterImageSource = "upload" | "stock";
 
@@ -886,6 +888,38 @@ export interface Database {
           accepted_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["staff_invites"]["Insert"]>;
+        Relationships: [];
+      };
+      attendance_records: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          status: AttendanceStatus;
+          signed_in_at: string | null;
+          signed_in_by: string | null;
+          signed_out_at: string | null;
+          signed_out_by: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          status: AttendanceStatus;
+          signed_in_at?: string | null;
+          signed_in_by?: string | null;
+          signed_out_at?: string | null;
+          signed_out_by?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["attendance_records"]["Insert"]>;
         Relationships: [];
       };
     };

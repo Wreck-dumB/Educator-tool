@@ -45,8 +45,7 @@ const NAV_GROUPS = [
   },
   {
     label: "Roll Call / Attendance",
-    items: [],
-    comingSoon: true,
+    items: [{ href: "/attendance", label: "Roll Call" }],
   },
   {
     label: "Administration",
@@ -80,27 +79,23 @@ export default function NavBar({ email }: { email: string }) {
               {group.label}
             </p>
 
-            {group.comingSoon ? (
-              <p className="px-4 py-1.5 text-xs text-ink/30 italic">Coming soon</p>
-            ) : (
-              group.items.map((item) => {
-                const active = pathname.startsWith(item.href);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={`flex items-center border-l-2 px-4 py-2 text-sm font-medium transition-colors ${
-                      active
-                        ? "border-coral bg-coral-light text-coral-dark"
-                        : "border-transparent text-ink/60 hover:bg-coral-light/50 hover:text-coral-dark"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })
-            )}
+            {group.items.map((item) => {
+              const active = pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`flex items-center border-l-2 px-4 py-2 text-sm font-medium transition-colors ${
+                    active
+                      ? "border-coral bg-coral-light text-coral-dark"
+                      : "border-transparent text-ink/60 hover:bg-coral-light/50 hover:text-coral-dark"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
         ))}
       </nav>
