@@ -56,3 +56,23 @@ export async function deleteFormTemplate(formData: FormData) {
 
   revalidatePath("/forms");
 }
+
+export async function finaliseFormTemplate(formData: FormData) {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+
+  await supabase.from("form_templates").update({ is_finalised: true }).eq("id", id);
+
+  revalidatePath(`/forms/${id}`);
+  revalidatePath("/forms");
+}
+
+export async function revertFormToDraft(formData: FormData) {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+
+  await supabase.from("form_templates").update({ is_finalised: false }).eq("id", id);
+
+  revalidatePath(`/forms/${id}`);
+  revalidatePath("/forms");
+}

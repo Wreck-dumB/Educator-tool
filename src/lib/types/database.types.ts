@@ -601,6 +601,7 @@ export interface Database {
           body_text: string | null;
           requires_signature: boolean;
           suggested_additions: string[];
+          is_finalised: boolean;
           created_at: string;
         };
         Insert: {
@@ -614,6 +615,7 @@ export interface Database {
           body_text?: string | null;
           requires_signature?: boolean;
           suggested_additions?: string[];
+          is_finalised?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["form_templates"]["Insert"]>;

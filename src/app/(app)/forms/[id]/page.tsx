@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFormTemplate } from "@/lib/supabase/forms";
 import PrintButton from "@/components/PrintButton";
-import { deleteFormTemplate } from "../actions";
+import { deleteFormTemplate, finaliseFormTemplate, revertFormToDraft } from "../actions";
 
 export default async function FormTemplateDetailPage({
   params,
@@ -24,15 +24,24 @@ export default async function FormTemplateDetailPage({
 
       <div className="mt-4 print:mt-0">
         <p className="text-xs font-medium uppercase tracking-wide text-sage-dark print:text-black">{template.category}</p>
-        <h1 className="font-display text-2xl font-semibold text-coral-dark print:text-black">{template.title}</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-display text-2xl font-semibold text-coral-dark print:text-black">{template.title}</h1>
+          {template.is_finalised && (
+            <span className="rounded-full bg-sage-light px-2.5 py-0.5 text-xs font-semibold text-sage-dark print:hidden">
+              Final
+            </span>
+          )}
+        </div>
         <p className="mt-1 text-sm text-ink/60 print:text-black">
           Drafted {new Date(template.created_at).toLocaleDateString()}
         </p>
 
-        <p className="mt-4 rounded-xl bg-amber-light p-3 text-xs text-amber-dark print:rounded-none print:border print:border-black print:bg-white print:text-black">
-          This is a <strong>starting draft</strong>. Review and customise before giving it to families
-          or staff.
-        </p>
+        {!template.is_finalised && (
+          <p className="mt-4 rounded-xl bg-amber-light p-3 text-xs text-amber-dark print:hidden">
+            This is a <strong>starting draft</strong>. Review and customise before giving it to families
+            or staff.
+          </p>
+        )}
 
         {template.purpose && (
           <>
@@ -78,12 +87,29 @@ export default async function FormTemplateDetailPage({
           </div>
         )}
 
-        <form action={deleteFormTemplate} className="mt-6 print:hidden">
-          <input type="hidden" name="id" value={template.id} />
-          <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
-            Delete this form
-          </button>
-        </form>
+        <div className="mt-6 flex flex-wrap items-center gap-5 print:hidden">
+          {template.is_finalised ? (
+            <form action={revertFormToDraft}>
+              <input type="hidden" name="id" value={template.id} />
+              <button type="submit" className="text-sm font-medium text-ink/50 hover:underline">
+                Revert to draft
+              </button>
+            </form>
+          ) : (
+            <form action={finaliseFormTemplate}>
+              <input type="hidden" name="id" value={template.id} />
+              <button type="submit" className="rounded-full bg-sage px-4 py-1.5 text-sm font-semibold text-white hover:bg-sage-dark">
+                Mark as final
+              </button>
+            </form>
+          )}
+          <form action={deleteFormTemplate}>
+            <input type="hidden" name="id" value={template.id} />
+            <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
+              Delete this form
+            </button>
+          </form>
+        </div>
 
         {/* Educator reflection notes — screen only, never printed */}
         {(template.suggested_additions.length > 0 || template.your_input) && (

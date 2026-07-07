@@ -26,9 +26,16 @@ export default async function FormsPage() {
           <Link key={t.id} href={`/forms/${t.id}`} className={`block p-4 ${cardClass} transition-colors hover:border-coral`}>
             <div className="flex items-center justify-between gap-2">
               <h2 className="font-display font-semibold text-ink">{t.title}</h2>
-              <span className="shrink-0 rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark">
-                {t.category}
-              </span>
+              <div className="flex shrink-0 items-center gap-1.5">
+                {!t.is_finalised && (
+                  <span className="rounded-full bg-amber-light px-2 py-0.5 text-xs font-medium text-amber-dark">
+                    Draft
+                  </span>
+                )}
+                <span className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark">
+                  {t.category}
+                </span>
+              </div>
             </div>
             <p className="mt-1 text-xs text-ink/40">{new Date(t.created_at).toLocaleDateString()}</p>
           </Link>
