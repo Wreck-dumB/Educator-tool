@@ -19,7 +19,8 @@ export async function globalSearch(query: string): Promise<SearchResults> {
   const [
     { data: children },
     { data: obsRaw },
-    { data: activities },
+    { data: activitiesByTitle },
+    { data: activitiesBySummary },
     { data: policies },
     { data: forms },
     { data: obsChildren },
@@ -31,16 +32,19 @@ export async function globalSearch(query: string): Promise<SearchResults> {
       .ilike("note_text", q)
       .order("observed_at", { ascending: false })
       .limit(10),
-    supabase
-      .from("generated_activities")
-      .select("id, title, summary")
-      .or(`title.ilike.${q},summary.ilike.${q}`)
-      .eq("is_archived", false)
-      .limit(8),
+    supabase.from("generated_activities").select("id, title, summary").ilike("title", q).eq("is_archived", false).limit(8),
+    supabase.from("generated_activities").select("id, title, summary").ilike("summary", q).eq("is_archived", false).limit(8),
     supabase.from("policies").select("id, title").ilike("title", q).limit(6),
     supabase.from("form_templates").select("id, title").ilike("title", q).limit(6),
     supabase.from("children").select("id, first_name"),
   ]);
+
+  const seenActivityIds = new Set<string>();
+  const activities = [...(activitiesByTitle ?? []), ...(activitiesBySummary ?? [])].filter((a) => {
+    if (seenActivityIds.has(a.id)) return false;
+    seenActivityIds.add(a.id);
+    return true;
+  }).slice(0, 8);
 
   const childNameById = new Map((obsChildren ?? []).map((c) => [c.id, c.first_name]));
 

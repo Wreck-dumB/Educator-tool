@@ -62,10 +62,16 @@ export default async function ChildDetailPage({
         <h1 className="font-display text-3xl font-semibold text-coral-dark">🧒 {child.first_name}</h1>
         <div className="flex items-center gap-2">
           <Link
+            href={`/children/${child.id}/support`}
+            className="rounded-full border border-coral-light px-3 py-1.5 text-xs font-semibold text-coral-dark hover:bg-coral-light transition-colors"
+          >
+            Support →
+          </Link>
+          <Link
             href={`/children/${child.id}/portfolio`}
             className="rounded-full border border-sage-light px-3 py-1.5 text-xs font-semibold text-sage-dark hover:bg-sage-light transition-colors"
           >
-            Portfolio PDF →
+            Portfolio →
           </Link>
           <PrintButton />
         </div>

@@ -30,6 +30,7 @@ export async function logObservation(formData: FormData) {
 
   // Upload photo first if provided
   let photoUrl: string | null = null;
+  let photoFailed = false;
   if (photo && photo.size > 0) {
     const ext = photo.type === "image/png" ? "png" : photo.type === "image/webp" ? "webp" : "jpg";
     const path = `${ownerUserId}/${Date.now()}.${ext}`;
@@ -38,13 +39,12 @@ export async function logObservation(formData: FormData) {
       .from("observation-photos")
       .upload(path, arrayBuffer, { contentType: photo.type, upsert: false });
 
-    if (!uploadError) {
-      const { data: urlData } = supabase.storage
-        .from("observation-photos")
-        .getPublicUrl(path);
+    if (uploadError) {
+      console.error("Observation photo upload failed:", uploadError);
+      photoFailed = true;
+    } else {
       // Bucket is private — store path and generate signed URLs at render time
       photoUrl = path;
-      void urlData;
     }
   }
 
@@ -80,5 +80,8 @@ export async function logObservation(formData: FormData) {
   revalidatePath("/observations");
   revalidatePath(`/children/${childId}`);
   if (activityId) revalidatePath(`/activities/${activityId}`);
+  if (photoFailed) {
+    redirect(`${returnTo}?error=${encodeURIComponent("Observation saved, but photo upload failed — try adding the photo again from the observations list")}`);
+  }
   redirect(returnTo);
 }

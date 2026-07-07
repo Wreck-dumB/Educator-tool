@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import type { IncidentRecordType } from "@/lib/types/database.types";
 
 function field(formData: FormData, name: string): string | null {
@@ -31,6 +32,17 @@ export async function createChildIncidentReport(formData: FormData) {
   const ownerUserId = await getMyServiceOwnerId();
   if (!ownerUserId) {
     redirect("/incident-reports?error=No active service membership");
+  }
+
+  // Verify child belongs to this service before inserting
+  const { data: childCheck } = await supabase
+    .from("children")
+    .select("id")
+    .eq("id", childId)
+    .eq("owner_user_id", ownerUserId)
+    .maybeSingle();
+  if (!childCheck) {
+    redirect("/incident-reports?error=Child not found in this service");
   }
 
   const { error } = await supabase.from("child_incident_reports").insert({
@@ -61,8 +73,19 @@ export async function createChildIncidentReport(formData: FormData) {
 
 export async function deleteChildIncidentReport(formData: FormData) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const myRole = await getMyStaffRole();
+  if (myRole !== "director") {
+    redirect("/incident-reports?error=Only the Director can delete incident records");
+  }
+
   const id = formData.get("id") as string;
-  await supabase.from("child_incident_reports").delete().eq("id", id);
+  const { error } = await supabase.from("child_incident_reports").delete().eq("id", id);
+  if (error) redirect(`/incident-reports?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/incident-reports");
 }
 
@@ -116,7 +139,18 @@ export async function createStaffIncidentReport(formData: FormData) {
 
 export async function deleteStaffIncidentReport(formData: FormData) {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const myRole = await getMyStaffRole();
+  if (myRole !== "director") {
+    redirect("/incident-reports?error=Only the Director can delete incident records");
+  }
+
   const id = formData.get("id") as string;
-  await supabase.from("staff_incident_reports").delete().eq("id", id);
+  const { error } = await supabase.from("staff_incident_reports").delete().eq("id", id);
+  if (error) redirect(`/incident-reports?error=${encodeURIComponent(error.message)}`);
   revalidatePath("/incident-reports");
 }

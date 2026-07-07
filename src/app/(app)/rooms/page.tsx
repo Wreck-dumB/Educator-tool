@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getRooms } from "@/lib/supabase/rooms";
 import { getChildren } from "@/lib/supabase/children";
+import { getChildIncidentReports } from "@/lib/supabase/incidents";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createRoom, renameRoom, deleteRoom, assignChildToRoom } from "./actions";
 
@@ -12,7 +14,15 @@ export default async function RoomsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const [rooms, children] = await Promise.all([getRooms(), getChildren()]);
+  const [rooms, children, allIncidents] = await Promise.all([getRooms(), getChildren(), getChildIncidentReports()]);
+
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const recentIncidentCountByChild = new Map<string, number>();
+  for (const inc of allIncidents) {
+    if (new Date(inc.occurred_at) >= thirtyDaysAgo) {
+      recentIncidentCountByChild.set(inc.child_id, (recentIncidentCountByChild.get(inc.child_id) ?? 0) + 1);
+    }
+  }
 
   const childrenByRoom = new Map<string | null, typeof children>();
   childrenByRoom.set(null, []);
@@ -94,18 +104,39 @@ export default async function RoomsPage({
                   {roomChildren.length === 0 && (
                     <li className="px-4 py-3 text-sm text-ink/40">No children assigned yet</li>
                   )}
-                  {roomChildren.map((child) => (
-                    <li key={child.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
-                      <span className="text-sm font-medium text-ink">{child.first_name}</span>
-                      <form action={assignChildToRoom}>
-                        <input type="hidden" name="child_id" value={child.id} />
-                        <input type="hidden" name="room_id" value="" />
-                        <button type="submit" className="text-xs text-ink/40 hover:text-coral-dark">
-                          Remove from room
-                        </button>
-                      </form>
-                    </li>
-                  ))}
+                  {roomChildren.map((child) => {
+                    const incCount = recentIncidentCountByChild.get(child.id) ?? 0;
+                    return (
+                      <li key={child.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <Link href={`/children/${child.id}`} className="text-sm font-medium text-ink hover:text-coral-dark">
+                            {child.first_name}
+                          </Link>
+                          {incCount > 0 && (
+                            <Link
+                              href={`/children/${child.id}/support`}
+                              className="rounded-full bg-coral-light px-2 py-0.5 text-xs font-semibold text-coral-dark hover:bg-coral hover:text-white transition-colors"
+                              title={`${incCount} incident${incCount === 1 ? "" : "s"} in last 30 days`}
+                            >
+                              {incCount} inc
+                            </Link>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Link href={`/children/${child.id}/support`} className="text-xs text-ink/40 hover:text-coral-dark">
+                            Support
+                          </Link>
+                          <form action={assignChildToRoom}>
+                            <input type="hidden" name="child_id" value={child.id} />
+                            <input type="hidden" name="room_id" value="" />
+                            <button type="submit" className="text-xs text-ink/40 hover:text-coral-dark">
+                              Remove
+                            </button>
+                          </form>
+                        </div>
+                      </li>
+                    );
+                  })}
                 </ul>
 
                 {/* Add child to room */}

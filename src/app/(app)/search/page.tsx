@@ -5,11 +5,6 @@ import { cardClass, inputClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Search · SparkPlay" };
 
-function highlight(text: string, query: string): string {
-  if (!query.trim()) return text;
-  return text;
-}
-
 function excerpt(text: string, query: string, max = 120): string {
   const lower = text.toLowerCase();
   const idx = lower.indexOf(query.toLowerCase().trim());

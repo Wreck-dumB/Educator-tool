@@ -18,3 +18,13 @@ export async function getStaffIncidentReports(): Promise<StaffIncidentReport[]> 
     .order("occurred_at", { ascending: false });
   return data ?? [];
 }
+
+export async function getChildIncidentReportsByChild(childId: string): Promise<ChildIncidentReport[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("child_incident_reports")
+    .select("*")
+    .eq("child_id", childId)
+    .order("occurred_at", { ascending: false });
+  return data ?? [];
+}
