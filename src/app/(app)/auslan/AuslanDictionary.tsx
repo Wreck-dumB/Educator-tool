@@ -10,6 +10,7 @@ import {
   type AuslanSign,
 } from "@/lib/auslan";
 import { inputClass, primaryButtonClass, secondaryButtonClass } from "@/lib/ui";
+import QrCode from "@/components/QrCode";
 
 type CardSize = "large" | "small";
 
@@ -171,11 +172,15 @@ export default function AuslanDictionary() {
               <p className={`mt-1 uppercase tracking-widest text-ink/40 ${cardSize === "large" ? "text-xs" : "text-[8px]"}`}>
                 We are learning this sign in Auslan
               </p>
-              {cardSize === "large" && (
-                <p className="mt-2 text-[10px] text-ink/40">
-                  Watch the sign: auslan.org.au — search &ldquo;{sign.word}&rdquo;
+              <div className={`flex items-center gap-2 ${cardSize === "large" ? "mt-3" : "mt-2"}`}>
+                <QrCode
+                  value={signbankSearchUrl(sign.word.replace(/\s*\(.*\)$/, ""))}
+                  sizePx={cardSize === "large" ? 76 : 48}
+                />
+                <p className={`text-left text-ink/50 ${cardSize === "large" ? "text-[10px] max-w-[9rem]" : "text-[7px] max-w-[5rem]"}`}>
+                  Scan with your phone to watch how to make this sign with your hands
                 </p>
-              )}
+              </div>
             </div>
           ))}
         </div>

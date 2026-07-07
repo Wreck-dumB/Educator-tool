@@ -7,7 +7,8 @@ export default function AuslanPage() {
         <h1 className="font-display text-3xl font-semibold text-coral-dark">Auslan Dictionary</h1>
         <p className="mt-1 text-sm text-ink/60">
           Search everyday early-childhood words, watch the real Auslan sign demonstrated on video, and
-          print picture cards as visual aids for your room.
+          print picture cards as visual aids for your room. Every printed card includes a QR code —
+          point a phone at the card on the wall and the sign&apos;s video demonstration opens.
         </p>
         <p className="mt-2 rounded-xl bg-sage-light px-3 py-2 text-xs text-sage-dark">
           Video demonstrations open on <span className="font-semibold">Auslan Signbank</span> (auslan.org.au), the

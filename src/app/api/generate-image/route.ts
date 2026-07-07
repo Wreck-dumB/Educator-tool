@@ -7,9 +7,9 @@ import { isRateLimited } from "@/lib/rateLimit";
 
 const PROMPTS = {
   outline:
-    "{subject}. Simple coloring book page. Bold thick black outlines only. Pure white background. No shading, no color fills, no gradients. Simple shapes children can cut out with scissors. Children's coloring book line art style.",
+    "One single {subject} centered on a completely white background. Only one isolated object, nothing else. Bold thick black outline with white interior. No shading, no color fills, no gradients, no background details, no other objects. Simple clean shape a child can cut out with scissors. Children's coloring book single-object line art.",
   colour:
-    "{subject}. Bright cheerful children's book illustration. Flat vector art, bold simple colors, friendly cartoon style. Pure white background. Suitable for early childhood ages 3 to 6.",
+    "One single {subject} centered on a pure white background. Only this one subject, nothing else in the image at all. Bright cheerful flat cartoon illustration with bold simple colors. No background scenery, no other objects, no decorations. Suitable for early childhood education ages 3 to 6.",
 };
 
 export async function POST(request: Request) {

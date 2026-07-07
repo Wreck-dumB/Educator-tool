@@ -469,7 +469,11 @@ export default function WorksheetClient({ type, initialName, title, materials = 
           {names.map((n, i) => (
             <div
               key={i}
-              style={{ pageBreakAfter: i < names.length - 1 ? "always" : "auto" }}
+              style={{
+                pageBreakAfter: i < names.length - 1 ? "always" : "auto",
+                breakAfter: i < names.length - 1 ? "page" : "auto",
+                overflow: "hidden",
+              }}
             >
               {i > 0 && (
                 <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
