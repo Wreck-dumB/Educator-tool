@@ -76,3 +76,40 @@ export async function revertFormToDraft(formData: FormData) {
   revalidatePath(`/forms/${id}`);
   revalidatePath("/forms");
 }
+
+export async function updateFormTemplate(
+  formData: FormData,
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+  const category = (formData.get("category") as string).trim();
+  const title = (formData.get("title") as string).trim();
+  const purpose = (formData.get("purpose") as string).trim() || null;
+  const bodyText = (formData.get("body_text") as string).trim() || null;
+  const requiresSignature = formData.get("requires_signature") === "true";
+  const fieldsRaw = (formData.get("fields_to_complete") as string)
+    .split("\n")
+    .map((f) => f.trim())
+    .filter(Boolean);
+
+  if (!category || !title) return { error: "Category and title are required." };
+
+  const { error } = await supabase
+    .from("form_templates")
+    .update({
+      category,
+      title,
+      purpose,
+      body_text: bodyText,
+      requires_signature: requiresSignature,
+      fields_to_complete: fieldsRaw,
+      is_finalised: false,
+    })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath(`/forms/${id}`);
+  revalidatePath("/forms");
+  return {};
+}

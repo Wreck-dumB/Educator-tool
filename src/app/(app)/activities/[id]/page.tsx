@@ -4,6 +4,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { getObservations } from "@/lib/supabase/observations";
 import { getRiskAssessments } from "@/lib/supabase/riskAssessments";
 import { logObservation } from "@/app/(app)/observations/actions";
+import { archiveActivity, unarchiveActivity } from "../actions";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import RiskAssessmentPanel from "./RiskAssessmentPanel";
@@ -30,7 +31,20 @@ export default async function ActivityDetailPage({
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="font-display text-3xl font-semibold text-coral-dark">{activity.title}</h1>
+      <div className="flex items-start justify-between gap-3">
+        <h1 className="font-display text-3xl font-semibold text-coral-dark">{activity.title}</h1>
+        <form action={activity.is_archived ? unarchiveActivity : archiveActivity} className="mt-1 shrink-0">
+          <input type="hidden" name="id" value={activity.id} />
+          <button type="submit" className="rounded-full border border-ink/20 px-3 py-1.5 text-sm text-ink/50 hover:text-ink/70">
+            {activity.is_archived ? "Unarchive" : "Archive"}
+          </button>
+        </form>
+      </div>
+      {activity.is_archived && (
+        <p className="mt-1 rounded-xl bg-ink/5 px-3 py-2 text-xs text-ink/50">
+          This activity is archived — it won&apos;t appear in your active library.
+        </p>
+      )}
       <p className="mt-2 text-ink/70">{activity.summary}</p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

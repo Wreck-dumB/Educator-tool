@@ -35,6 +35,9 @@ const NAV_GROUPS = [
       { href: "/incident-reports", label: "Incidents" },
       { href: "/permission-slips", label: "Permission Slips" },
       { href: "/forms", label: "Document Templates" },
+      { href: "/sleep", label: "Sleep Chart" },
+      { href: "/food", label: "Food Chart" },
+      { href: "/nappy", label: "Nappy Chart" },
     ],
   },
   {

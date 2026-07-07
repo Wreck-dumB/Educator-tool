@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFormTemplate } from "@/lib/supabase/forms";
 import PrintButton from "@/components/PrintButton";
+import EditFormPanel from "./EditFormPanel";
 import { deleteFormTemplate, finaliseFormTemplate, revertFormToDraft } from "../actions";
 
 export default async function FormTemplateDetailPage({
@@ -19,7 +20,18 @@ export default async function FormTemplateDetailPage({
         <Link href="/forms" className="text-sm text-coral-dark hover:underline">
           ← Back
         </Link>
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          <EditFormPanel
+            id={template.id}
+            category={template.category}
+            title={template.title}
+            purpose={template.purpose}
+            bodyText={template.body_text}
+            fieldsToComplete={template.fields_to_complete}
+            requiresSignature={template.requires_signature}
+          />
+          <PrintButton />
+        </div>
       </div>
 
       <div className="mt-4 print:mt-0">

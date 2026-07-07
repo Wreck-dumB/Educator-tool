@@ -227,6 +227,7 @@ export interface Database {
           energy_level: EnergyLevel | null;
           group_size_fit: GroupSizeFit | null;
           generation_mode: GenerationMode;
+          is_archived: boolean;
           created_at: string;
         };
         Insert: {
@@ -242,6 +243,7 @@ export interface Database {
           energy_level?: EnergyLevel | null;
           group_size_fit?: GroupSizeFit | null;
           generation_mode: GenerationMode;
+          is_archived?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["generated_activities"]["Insert"]>;
@@ -963,6 +965,80 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["attendance_records"]["Insert"]>;
+        Relationships: [];
+      };
+      daily_sleep: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          sleep_start: string;
+          sleep_end: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          sleep_start: string;
+          sleep_end?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["daily_sleep"]["Insert"]>;
+        Relationships: [];
+      };
+      daily_food: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          meal_type: "breakfast" | "morning_tea" | "lunch" | "afternoon_tea" | "late_snack" | "other";
+          food_offered: string;
+          amount_eaten: "all" | "most" | "half" | "little" | "none" | "na";
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          meal_type: "breakfast" | "morning_tea" | "lunch" | "afternoon_tea" | "late_snack" | "other";
+          food_offered: string;
+          amount_eaten?: "all" | "most" | "half" | "little" | "none" | "na";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["daily_food"]["Insert"]>;
+        Relationships: [];
+      };
+      daily_nappy: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          changed_at: string;
+          nappy_type: "wet" | "dirty" | "both" | "dry" | "na";
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          changed_at: string;
+          nappy_type: "wet" | "dirty" | "both" | "dry" | "na";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["daily_nappy"]["Insert"]>;
         Relationships: [];
       };
     };
