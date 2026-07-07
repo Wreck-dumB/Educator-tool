@@ -12,6 +12,7 @@ import {
 } from "@/app/(app)/children/actions";
 import { getObservations } from "@/lib/supabase/observations";
 import { getRooms } from "@/lib/supabase/rooms";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import { assignChildToRoom } from "@/app/(app)/rooms/actions";
 import { inputClass, cardClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
@@ -45,12 +46,14 @@ export default async function ChildDetailPage({
 
   if (!child) notFound();
 
-  const [observations, invites, contacts, rooms] = await Promise.all([
+  const [observations, invites, contacts, rooms, myRole] = await Promise.all([
     getObservations(id),
     getChildInvites(id),
     getChildContacts(id),
     getRooms(),
+    getMyStaffRole(),
   ]);
+  const canManage = myRole === "director" || myRole === "2ic";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
   return (
@@ -314,13 +317,15 @@ export default async function ChildDetailPage({
                       ))}
                   </div>
                 </div>
-                <form action={deleteChildContact} className="print:hidden">
-                  <input type="hidden" name="contact_id" value={contact.id} />
-                  <input type="hidden" name="child_id" value={child.id} />
-                  <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
-                    Remove
-                  </button>
-                </form>
+                {canManage && (
+                  <form action={deleteChildContact} className="print:hidden">
+                    <input type="hidden" name="contact_id" value={contact.id} />
+                    <input type="hidden" name="child_id" value={child.id} />
+                    <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
+                      Remove
+                    </button>
+                  </form>
+                )}
               </div>
             </li>
           ))}

@@ -1,4 +1,5 @@
 import { getOrCreateQip, getQipItems, getNqsStandards } from "@/lib/supabase/qip";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
 import QipGeneratorForm from "./QipGeneratorForm";
@@ -23,8 +24,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function QipPage() {
-  const qip = await getOrCreateQip();
+  const [qip, myRole] = await Promise.all([getOrCreateQip(), getMyStaffRole()]);
   if (!qip) return null;
+  const canManage = myRole === "director" || myRole === "2ic";
+  const isDirector = myRole === "director";
 
   const [items, standards] = await Promise.all([getQipItems(qip.id), getNqsStandards()]);
   const standardTitleByCode = new Map(standards.map((s) => [s.code, s.standard_title]));
@@ -48,31 +51,35 @@ export default async function QipPage() {
         <PrintButton />
       </div>
 
-      <div className={`mt-6 p-4 print:hidden ${cardClass}`}>
-        <form action={updateQipContextNotes}>
-          <input type="hidden" name="qip_id" value={qip.id} />
-          <label htmlFor="context_notes" className="block text-sm font-medium text-ink/70">
-            About our service (shown at the top of the printed plan)
-          </label>
-          <textarea
-            id="context_notes"
-            name="context_notes"
-            rows={2}
-            defaultValue={qip.context_notes ?? ""}
-            placeholder="e.g. service type, age groups, approval number, philosophy summary"
-            className="mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 text-sm shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
-          />
-          <button type="submit" className="mt-2 text-xs font-medium text-coral-dark hover:underline">
-            Save
-          </button>
-        </form>
-      </div>
+      {canManage && (
+        <div className={`mt-6 p-4 print:hidden ${cardClass}`}>
+          <form action={updateQipContextNotes}>
+            <input type="hidden" name="qip_id" value={qip.id} />
+            <label htmlFor="context_notes" className="block text-sm font-medium text-ink/70">
+              About our service (shown at the top of the printed plan)
+            </label>
+            <textarea
+              id="context_notes"
+              name="context_notes"
+              rows={2}
+              defaultValue={qip.context_notes ?? ""}
+              placeholder="e.g. service type, age groups, approval number, philosophy summary"
+              className="mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 text-sm shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
+            />
+            <button type="submit" className="mt-2 text-xs font-medium text-coral-dark hover:underline">
+              Save
+            </button>
+          </form>
+        </div>
+      )}
 
       {qip.context_notes && <p className="mt-4 hidden text-sm text-ink/70 print:block">{qip.context_notes}</p>}
 
-      <div className="mt-6 print:hidden">
-        <QipGeneratorForm qipId={qip.id} />
-      </div>
+      {canManage && (
+        <div className="mt-6 print:hidden">
+          <QipGeneratorForm qipId={qip.id} />
+        </div>
+      )}
 
       <div className="mt-6 space-y-5">
         {([1, 2, 3, 4, 5, 6, 7] as const).map((qa) => {
@@ -113,18 +120,26 @@ export default async function QipPage() {
                         </div>
                         <div className="flex shrink-0 flex-col items-end gap-1 print:hidden">
                           {item.item_type === "improvement" ? (
-                            <StatusSelect itemId={item.id} status={item.status} />
+                            canManage ? (
+                              <StatusSelect itemId={item.id} status={item.status} />
+                            ) : (
+                              <span className="rounded-full bg-coral-light px-2 py-0.5 text-xs font-medium text-coral-dark">
+                                {STATUS_LABELS[item.status]}
+                              </span>
+                            )
                           ) : (
                             <span className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark">
                               Strength
                             </span>
                           )}
-                          <form action={deleteQipItem}>
-                            <input type="hidden" name="item_id" value={item.id} />
-                            <button type="submit" className="text-xs text-coral-dark hover:underline">
-                              Remove
-                            </button>
-                          </form>
+                          {isDirector && (
+                            <form action={deleteQipItem}>
+                              <input type="hidden" name="item_id" value={item.id} />
+                              <button type="submit" className="text-xs text-coral-dark hover:underline">
+                                Remove
+                              </button>
+                            </form>
+                          )}
                         </div>
                         <p className="hidden shrink-0 text-xs font-medium print:block print:text-black">
                           {item.item_type === "improvement" ? STATUS_LABELS[item.status] : ""}

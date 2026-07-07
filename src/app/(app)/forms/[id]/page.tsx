@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getFormTemplate } from "@/lib/supabase/forms";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import PrintButton from "@/components/PrintButton";
 import EditFormPanel from "./EditFormPanel";
 import { deleteFormTemplate, finaliseFormTemplate, revertFormToDraft } from "../actions";
@@ -11,8 +12,9 @@ export default async function FormTemplateDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const template = await getFormTemplate(id);
+  const [template, myRole] = await Promise.all([getFormTemplate(id), getMyStaffRole()]);
   if (!template) notFound();
+  const canManage = myRole === "director" || myRole === "2ic";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 print:px-0 print:py-0">
@@ -21,15 +23,17 @@ export default async function FormTemplateDetailPage({
           ← Back
         </Link>
         <div className="flex items-center gap-2">
-          <EditFormPanel
-            id={template.id}
-            category={template.category}
-            title={template.title}
-            purpose={template.purpose}
-            bodyText={template.body_text}
-            fieldsToComplete={template.fields_to_complete}
-            requiresSignature={template.requires_signature}
-          />
+          {canManage && (
+            <EditFormPanel
+              id={template.id}
+              category={template.category}
+              title={template.title}
+              purpose={template.purpose}
+              bodyText={template.body_text}
+              fieldsToComplete={template.fields_to_complete}
+              requiresSignature={template.requires_signature}
+            />
+          )}
           <PrintButton />
         </div>
       </div>
@@ -99,29 +103,31 @@ export default async function FormTemplateDetailPage({
           </div>
         )}
 
-        <div className="mt-6 flex flex-wrap items-center gap-5 print:hidden">
-          {template.is_finalised ? (
-            <form action={revertFormToDraft}>
+        {canManage && (
+          <div className="mt-6 flex flex-wrap items-center gap-5 print:hidden">
+            {template.is_finalised ? (
+              <form action={revertFormToDraft}>
+                <input type="hidden" name="id" value={template.id} />
+                <button type="submit" className="text-sm font-medium text-ink/50 hover:underline">
+                  Revert to draft
+                </button>
+              </form>
+            ) : (
+              <form action={finaliseFormTemplate}>
+                <input type="hidden" name="id" value={template.id} />
+                <button type="submit" className="rounded-full bg-sage px-4 py-1.5 text-sm font-semibold text-white hover:bg-sage-dark">
+                  Mark as final
+                </button>
+              </form>
+            )}
+            <form action={deleteFormTemplate}>
               <input type="hidden" name="id" value={template.id} />
-              <button type="submit" className="text-sm font-medium text-ink/50 hover:underline">
-                Revert to draft
+              <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
+                Delete this form
               </button>
             </form>
-          ) : (
-            <form action={finaliseFormTemplate}>
-              <input type="hidden" name="id" value={template.id} />
-              <button type="submit" className="rounded-full bg-sage px-4 py-1.5 text-sm font-semibold text-white hover:bg-sage-dark">
-                Mark as final
-              </button>
-            </form>
-          )}
-          <form action={deleteFormTemplate}>
-            <input type="hidden" name="id" value={template.id} />
-            <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
-              Delete this form
-            </button>
-          </form>
-        </div>
+          </div>
+        )}
 
         {/* Educator reflection notes — screen only, never printed */}
         {(template.suggested_additions.length > 0 || template.your_input) && (

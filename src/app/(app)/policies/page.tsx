@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getPolicies } from "@/lib/supabase/policies";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass } from "@/lib/ui";
 import PolicyForm from "./PolicyForm";
 
 export default async function PoliciesPage() {
-  const policies = await getPolicies();
+  const [policies, myRole] = await Promise.all([getPolicies(), getMyStaffRole()]);
+  const canManage = myRole === "director" || myRole === "2ic";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -17,9 +19,11 @@ export default async function PoliciesPage() {
         supervisor before adoption.
       </p>
 
-      <div className="mt-6">
-        <PolicyForm />
-      </div>
+      {canManage && (
+        <div className="mt-6">
+          <PolicyForm />
+        </div>
+      )}
 
       <div className="mt-6 space-y-4">
         {policies.length === 0 && <p className="text-sm text-ink/50">No policies drafted yet.</p>}

@@ -7,6 +7,21 @@ export async function getMyService(): Promise<Service | null> {
   return data ?? null;
 }
 
+export async function getMyStaffRole(): Promise<"director" | "2ic" | "staff" | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from("staff_memberships")
+    .select("role")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .maybeSingle();
+  return (data?.role ?? null) as "director" | "2ic" | "staff" | null;
+}
+
 export interface StaffMemberWithName extends StaffMembership {
   displayName: string;
 }

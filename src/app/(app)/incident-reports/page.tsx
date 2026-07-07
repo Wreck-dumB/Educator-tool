@@ -1,5 +1,6 @@
 import { getChildIncidentReports, getStaffIncidentReports } from "@/lib/supabase/incidents";
 import { getChildren } from "@/lib/supabase/children";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import {
   createChildIncidentReport,
@@ -21,11 +22,13 @@ export default async function IncidentReportsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const [childReports, staffReports, children] = await Promise.all([
+  const [childReports, staffReports, children, myRole] = await Promise.all([
     getChildIncidentReports(),
     getStaffIncidentReports(),
     getChildren(),
+    getMyStaffRole(),
   ]);
+  const isDirector = myRole === "director";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -123,12 +126,14 @@ export default async function IncidentReportsPage({
                     <p className="text-xs text-ink/50">{new Date(r.occurred_at).toLocaleString()}</p>
                     <p className="mt-1 text-sm text-ink/80">{r.description}</p>
                   </div>
-                  <form action={deleteChildIncidentReport}>
-                    <input type="hidden" name="id" value={r.id} />
-                    <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
-                      Remove
-                    </button>
-                  </form>
+                  {isDirector && (
+                    <form action={deleteChildIncidentReport}>
+                      <input type="hidden" name="id" value={r.id} />
+                      <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
+                        Remove
+                      </button>
+                    </form>
+                  )}
                 </div>
               </li>
             );
@@ -197,12 +202,14 @@ export default async function IncidentReportsPage({
                   <p className="text-xs text-ink/50">{new Date(r.occurred_at).toLocaleString()}</p>
                   <p className="mt-1 text-sm text-ink/80">{r.description}</p>
                 </div>
-                <form action={deleteStaffIncidentReport}>
-                  <input type="hidden" name="id" value={r.id} />
-                  <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
-                    Remove
-                  </button>
-                </form>
+                {isDirector && (
+                  <form action={deleteStaffIncidentReport}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
+                      Remove
+                    </button>
+                  </form>
+                )}
               </div>
             </li>
           ))}

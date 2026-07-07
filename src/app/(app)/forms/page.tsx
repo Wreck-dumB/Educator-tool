@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { getFormTemplates } from "@/lib/supabase/forms";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass } from "@/lib/ui";
 import FormBuilderForm from "./FormBuilderForm";
 
 export default async function FormsPage() {
-  const templates = await getFormTemplates();
+  const [templates, myRole] = await Promise.all([getFormTemplates(), getMyStaffRole()]);
+  const canManage = myRole === "director" || myRole === "2ic";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -16,9 +18,11 @@ export default async function FormsPage() {
         specific mandatory fields under the National Regulations, not free-text drafting.
       </p>
 
-      <div className="mt-6">
-        <FormBuilderForm />
-      </div>
+      {canManage && (
+        <div className="mt-6">
+          <FormBuilderForm />
+        </div>
+      )}
 
       <div className="mt-6 space-y-3">
         {templates.length === 0 && <p className="text-sm text-ink/50">No forms drafted yet.</p>}
