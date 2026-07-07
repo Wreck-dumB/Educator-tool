@@ -10,7 +10,6 @@ interface Props {
     type?: string;
     name?: string;
     title?: string;
-    step?: string | string[];
     material?: string | string[];
   }>;
 }
@@ -23,20 +22,19 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, step, material } = await searchParams;
+  const { type, name, title, material } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
       ? (type as "name_trace" | "drawing_frame" | "activity_sheet")
-      : "drawing_frame";
+      : "name_trace";
   const resolvedName = typeof name === "string" ? name.trim().slice(0, 60) : "";
   const resolvedTitle =
     typeof title === "string" && title.trim()
       ? title.trim().slice(0, 120)
       : resolvedType === "name_trace"
         ? "Name Tracing Practice"
-        : "Drawing Activity";
-  const resolvedSteps = toArray(step).map((s) => s.slice(0, 300));
+        : "Activity";
   const resolvedMaterials = toArray(material).map((m) => m.slice(0, 80));
 
   return (
@@ -44,7 +42,6 @@ export default async function WorksheetPage({ searchParams }: Props) {
       type={resolvedType}
       initialName={resolvedName}
       title={resolvedTitle}
-      steps={resolvedSteps}
       materials={resolvedMaterials}
     />
   );

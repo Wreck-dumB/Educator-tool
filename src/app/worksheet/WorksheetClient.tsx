@@ -8,7 +8,6 @@ interface Props {
   type: TemplateType;
   initialName: string;
   title: string;
-  steps?: string[];
   materials?: string[];
 }
 
@@ -108,52 +107,54 @@ function NameTraceTemplate({ name, title }: { name: string; title: string }) {
   );
 }
 
-// ─── Activity Sheet Template ─────────────────────────────────────────────────
+// ─── Activity Sheet Template — child-facing, no instruction steps ─────────────
 function ActivitySheetTemplate({
-  name, title, steps, materials,
+  name, title, materials,
 }: {
-  name: string; title: string; steps: string[]; materials: string[];
+  name: string; title: string; materials: string[];
 }) {
   return (
     <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
-      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+      {/* Name banner */}
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-5 text-center">
         {name && (
-          <p className="text-xs font-bold uppercase tracking-widest text-coral-dark">
-            {name}&apos;s Activity
-          </p>
+          <p className="font-display text-4xl font-bold text-coral-dark">{name}</p>
         )}
-        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+        <p className="mt-1 text-base font-semibold text-ink/70">{title}</p>
       </div>
 
-      {steps.length > 0 && (
-        <div className="mt-2">
-          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink/50">
-            What we&apos;re doing today:
-          </p>
-          <ol className="space-y-4">
-            {steps.map((step, i) => (
-              <li key={i} className="flex items-start gap-3">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-coral text-sm font-bold text-white">
-                  {i + 1}
-                </span>
-                <p className="mt-1 text-base leading-relaxed text-ink">{step}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      )}
-
+      {/* Materials tick-list */}
       {materials.length > 0 && (
-        <div className="mt-6 rounded-xl border border-ink/10 px-4 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink/50">You&apos;ll need:</p>
-          <p className="mt-1 text-sm text-ink">{materials.join(", ")}</p>
+        <div className="mb-5 rounded-xl border border-ink/10 px-5 py-4">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">
+            You will need:
+          </p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {materials.map((m, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="h-5 w-5 shrink-0 rounded border-2 border-ink/30" aria-hidden />
+                <span className="text-sm text-ink">{m}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
-      <div className="mt-6">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink/50">My drawing / work:</p>
-        <div className="rounded-lg border-2 border-dashed border-ink/20" style={{ height: "280px" }} aria-label="Drawing space" />
-      </div>
+      {/* Large working space */}
+      <div
+        className="rounded-xl border-2 border-ink/20"
+        style={{ height: "380px" }}
+        aria-label="Working space"
+      />
+
+      <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-widest text-ink/40">
+        What I made / what happened:
+      </p>
+      <div
+        className="rounded border border-dashed border-ink/20"
+        style={{ height: "60px" }}
+        aria-label="Writing space"
+      />
 
       <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
     </div>
@@ -181,7 +182,7 @@ function DrawingFrameTemplate({ title, name }: { title: string; name?: string })
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialName, title, steps = [], materials = [] }: Props) {
+export default function WorksheetClient({ type, initialName, title, materials = [] }: Props) {
   const [names, setNames] = useState<string[]>([initialName]);
 
   function update(i: number, v: string) {
@@ -278,7 +279,7 @@ export default function WorksheetClient({ type, initialName, title, steps = [], 
 
       {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
       {type === "activity_sheet" && (
-        <ActivitySheetTemplate name={initialName} title={title} steps={steps} materials={materials} />
+        <ActivitySheetTemplate name={initialName} title={title} materials={materials} />
       )}
     </div>
   );

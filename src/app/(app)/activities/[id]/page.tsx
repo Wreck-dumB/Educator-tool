@@ -64,12 +64,12 @@ export default async function ActivityDetailPage({
       )}
 
       <a
-        href={`/worksheet?type=drawing_frame&title=${encodeURIComponent(activity.title)}`}
+        href={`/worksheet?type=name_trace&title=${encodeURIComponent(activity.title)}`}
         target="_blank"
         rel="noopener noreferrer"
         className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
       >
-        🖨 Print activity sheet
+        🖨 Print name stencils
       </a>
 
       {activity.steps.length > 0 && (
