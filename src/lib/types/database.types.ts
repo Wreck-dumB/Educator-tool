@@ -884,6 +884,7 @@ export interface Database {
           image_path: string | null;
           image_url: string | null;
           image_credit: string | null;
+          canvas_json: object | null;
           created_at: string;
         };
         Insert: {
@@ -898,6 +899,7 @@ export interface Database {
           image_path?: string | null;
           image_url?: string | null;
           image_credit?: string | null;
+          canvas_json?: object | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["posters"]["Insert"]>;

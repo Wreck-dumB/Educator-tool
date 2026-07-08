@@ -100,6 +100,53 @@ export async function savePoster(input: PosterInput): Promise<{ id: string } | {
   return { id: data.id };
 }
 
+export interface PosterCanvasInput {
+  title: string;
+  canvasJson: object;
+  existingId?: string;
+}
+
+export async function savePosterCanvas(
+  input: PosterCanvasInput
+): Promise<{ id: string } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return { error: "No active service membership" };
+
+  if (!input.title.trim()) return { error: "Poster needs a name" };
+
+  if (input.existingId) {
+    const { error } = await supabase
+      .from("posters")
+      .update({ title: input.title.trim(), canvas_json: input.canvasJson })
+      .eq("id", input.existingId)
+      .eq("owner_user_id", ownerUserId);
+    if (error) return { error: error.message };
+    revalidatePath("/posters");
+    return { id: input.existingId };
+  }
+
+  const { data, error } = await supabase
+    .from("posters")
+    .insert({
+      owner_user_id: ownerUserId,
+      title: input.title.trim(),
+      canvas_json: input.canvasJson,
+      theme: "plain" as PosterTheme,
+    })
+    .select("id")
+    .single();
+
+  if (error || !data) return { error: error?.message ?? "Could not save poster" };
+  revalidatePath("/posters");
+  return { id: data.id };
+}
+
 export async function deletePoster(formData: FormData) {
   const supabase = await createClient();
   const id = formData.get("id") as string;

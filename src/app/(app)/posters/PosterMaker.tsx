@@ -1,50 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, useCallback } from "react";
+import dynamic from "next/dynamic";
+import type { PosterCanvasHandle, SelectedInfo } from "./PosterCanvas";
+import { BG_PRESETS } from "./PosterCanvas";
+import ClipArtPanel from "./ClipArtPanel";
+import { savePosterCanvas, uploadPosterImage } from "./actions";
+import { errorBannerClass, successBannerClass } from "@/lib/ui";
 import Link from "next/link";
-import type { PosterTheme } from "@/lib/types/database.types";
 import type { PosterCopySuggestion } from "@/lib/types/domain";
-import type { StockImage } from "@/lib/imageSearch";
-import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass, successBannerClass } from "@/lib/ui";
-import PosterView, { POSTER_THEMES } from "./PosterView";
-import { savePoster, uploadPosterImage } from "./actions";
 
-type ImageTab = "none" | "upload" | "search";
+const PosterCanvas = dynamic(() => import("./PosterCanvas"), { ssr: false });
 
-interface ChosenImage {
-  source: "upload" | "stock";
-  /** Storage path for uploads, hotlink URL for stock. */
-  ref: string;
-  previewUrl: string;
-  credit: string | null;
+const FONT_SIZES = [14, 16, 18, 20, 24, 28, 32, 36, 42, 52, 64, 80];
+const TEXT_COLORS = [
+  "#e8430a", "#c0392b", "#2c3e50", "#ffffff", "#000000",
+  "#2ecc71", "#27ae60", "#3498db", "#9b59b6", "#f39c12",
+];
+
+interface Props {
+  initialJson?: object | null;
+  posterId?: string;
 }
 
-export default function PosterMaker() {
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
-  const [bodyText, setBodyText] = useState("");
-  const [footerText, setFooterText] = useState("");
-  const [theme, setTheme] = useState<PosterTheme>("coral");
-  const [image, setImage] = useState<ChosenImage | null>(null);
-
-  const [imageTab, setImageTab] = useState<ImageTab>("none");
-  const [imageQuery, setImageQuery] = useState("");
-  const [imageResults, setImageResults] = useState<StockImage[]>([]);
-  const [searching, setSearching] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
+export default function PosterMaker({ initialJson, posterId }: Props) {
+  const canvasRef = useRef<PosterCanvasHandle>(null);
+  const [posterName, setPosterName] = useState("My Poster");
+  const [selected, setSelected] = useState<SelectedInfo | null>(null);
   const [aiInput, setAiInput] = useState("");
   const [aiLoading, setAiLoading] = useState(false);
-
   const [saving, setSaving] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(posterId ?? null);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [showAI, setShowAI] = useState(true);
 
   async function handleGenerateCopy() {
-    if (!aiInput.trim()) {
-      setError("Describe the poster first — e.g. reminder for families to bring hats, summer term.");
-      return;
-    }
+    if (!aiInput.trim()) return;
     setAiLoading(true);
     setError(null);
     try {
@@ -54,19 +46,15 @@ export default function PosterMaker() {
         body: JSON.stringify({ userInput: aiInput }),
       });
       const data = await res.json();
-      if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
-        return;
-      }
+      if (!res.ok) { setError(data.error ?? "Generation failed"); return; }
       const copy: PosterCopySuggestion = data.copy;
-      setTitle(copy.title);
-      setSubtitle(copy.subtitle ?? "");
-      setBodyText(copy.bodyText ?? "");
-      setFooterText(copy.footerText ?? "");
-      if (copy.imageSearchSuggestion && !image) {
-        setImageTab("search");
-        setImageQuery(copy.imageSearchSuggestion);
-      }
+      setPosterName(copy.title);
+      canvasRef.current?.applyAICopy(
+        copy.title,
+        copy.subtitle ?? "",
+        copy.bodyText ?? "",
+        copy.footerText ?? ""
+      );
     } catch {
       setError("Could not reach the server");
     } finally {
@@ -74,23 +62,7 @@ export default function PosterMaker() {
     }
   }
 
-  async function handleImageSearch() {
-    if (!imageQuery.trim()) return;
-    setSearching(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/image-search?q=${encodeURIComponent(imageQuery)}`);
-      const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Image search failed");
-      else setImageResults(data.images);
-    } catch {
-      setError("Could not reach the server");
-    } finally {
-      setSearching(false);
-    }
-  }
-
-  async function handleUpload(file: File | undefined) {
+  async function handleUploadPhoto(file: File | undefined) {
     if (!file) return;
     setUploading(true);
     setError(null);
@@ -98,219 +70,233 @@ export default function PosterMaker() {
       const formData = new FormData();
       formData.set("file", file);
       const result = await uploadPosterImage(formData);
-      if ("error" in result) {
-        setError(result.error);
-      } else {
-        setImage({ source: "upload", ref: result.path, previewUrl: result.previewUrl, credit: null });
-      }
+      if ("error" in result) { setError(result.error); return; }
+      canvasRef.current?.addClipArt(result.previewUrl);
     } finally {
       setUploading(false);
     }
   }
 
-  async function handleSave() {
+  const handleSave = useCallback(async () => {
+    const json = canvasRef.current?.getJSON();
+    if (!json) return;
     setSaving(true);
     setError(null);
     try {
-      const result = await savePoster({
-        title,
-        subtitle: subtitle.trim() || null,
-        bodyText: bodyText.trim() || null,
-        footerText: footerText.trim() || null,
-        theme,
-        imageSource: image?.source ?? null,
-        imagePath: image?.source === "upload" ? image.ref : null,
-        imageUrl: image?.source === "stock" ? image.ref : null,
-        imageCredit: image?.credit ?? null,
-      });
+      const result = await savePosterCanvas({ title: posterName.trim() || "Untitled", canvasJson: json, existingId: savedId ?? undefined });
       if ("error" in result) setError(result.error);
       else setSavedId(result.id);
     } finally {
       setSaving(false);
     }
-  }
+  }, [posterName, savedId]);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-2">
-      {/* ============ Builder ============ */}
-      <div className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
-        {/* AI assist */}
-        <div className="rounded-xl bg-cream-dark/50 p-3">
-          <label className="block text-sm font-medium text-ink/70">✨ Write it for me (optional)</label>
-          <textarea
-            rows={2}
-            value={aiInput}
-            onChange={(e) => setAiInput(e.target.value)}
-            placeholder="e.g. Flier for our Bush Dance, Friday 24 July 3pm, families bring a plate to share"
-            className={inputClass}
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:gap-6">
+      {/* ===== LEFT PANEL ===== */}
+      <div className="flex flex-col gap-4 xl:w-72 xl:flex-shrink-0">
+
+        {/* Poster name */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-widest text-ink/40 mb-1">Poster name</label>
+          <input
+            value={posterName}
+            onChange={(e) => setPosterName(e.target.value)}
+            className="w-full rounded-xl border border-coral-light px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none"
           />
+        </div>
+
+        {/* AI generator */}
+        <div className="rounded-2xl border border-coral-light bg-white p-4">
           <button
             type="button"
-            onClick={handleGenerateCopy}
-            disabled={aiLoading}
-            className={`mt-2 ${secondaryButtonClass}`}
+            onClick={() => setShowAI(!showAI)}
+            className="flex w-full items-center justify-between text-sm font-semibold text-ink"
           >
-            {aiLoading ? "Writing…" : "Generate wording"}
+            <span>✨ Write it for me</span>
+            <span className="text-ink/40 text-xs">{showAI ? "▲" : "▼"}</span>
           </button>
-        </div>
-
-        <div className="mt-4">
-          <label className="block text-sm font-medium text-ink/70">Headline</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Bush Dance Friday!" className={inputClass} />
-        </div>
-        <div className="mt-3">
-          <label className="block text-sm font-medium text-ink/70">Subtitle (optional)</label>
-          <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="e.g. Friday 24 July · 3pm on the back lawn" className={inputClass} />
-        </div>
-        <div className="mt-3">
-          <label className="block text-sm font-medium text-ink/70">Main text (optional)</label>
-          <textarea rows={3} value={bodyText} onChange={(e) => setBodyText(e.target.value)} placeholder="A few short lines — posters are read from across the room." className={inputClass} />
-        </div>
-        <div className="mt-3">
-          <label className="block text-sm font-medium text-ink/70">Footer line (optional)</label>
-          <input value={footerText} onChange={(e) => setFooterText(e.target.value)} placeholder="e.g. RSVP at the front desk 💛" className={inputClass} />
-        </div>
-
-        {/* Theme */}
-        <div className="mt-4">
-          <p className="text-sm font-medium text-ink/70">Theme</p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {(Object.keys(POSTER_THEMES) as PosterTheme[]).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTheme(t)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  theme === t ? "bg-coral text-white" : "border border-coral-light/60 text-ink/60 hover:bg-coral-light/40"
-                }`}
-              >
-                {POSTER_THEMES[t].label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Image */}
-        <div className="mt-4">
-          <p className="text-sm font-medium text-ink/70">Picture</p>
-          <div className="mt-1 flex gap-1.5">
-            {(
-              [
-                ["none", "No picture"],
-                ["upload", "My own photo"],
-                ["search", "Find a free picture"],
-              ] as [ImageTab, string][]
-            ).map(([tab, label]) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => {
-                  setImageTab(tab);
-                  if (tab === "none") setImage(null);
-                }}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  imageTab === tab ? "bg-sage text-white" : "border border-sage-light text-sage-dark hover:bg-sage-light"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {imageTab === "upload" && (
-            <div className="mt-2">
-              <input
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                onChange={(e) => handleUpload(e.target.files?.[0])}
-                className="block w-full text-sm text-ink/60 file:mr-3 file:rounded-full file:border-0 file:bg-coral-light file:px-4 file:py-1.5 file:text-sm file:font-medium file:text-coral-dark hover:file:bg-coral-light/70"
+          {showAI && (
+            <div className="mt-3">
+              <textarea
+                rows={3}
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                placeholder="e.g. Flier for Bush Dance, Friday 24 July 3pm — families bring a plate to share"
+                className="w-full rounded-xl border border-coral-light px-3 py-2 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none resize-none"
               />
-              {uploading && <p className="mt-1 text-xs text-ink/50">Uploading…</p>}
-              <p className="mt-1 text-xs text-ink/40">
-                JPEG/PNG/WebP up to 5 MB. If children appear in the photo, check their photo/media consent first.
-              </p>
-            </div>
-          )}
-
-          {imageTab === "search" && (
-            <div className="mt-2">
-              <div className="flex gap-2">
-                <input
-                  value={imageQuery}
-                  onChange={(e) => setImageQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleImageSearch()}
-                  placeholder="e.g. children gardening"
-                  className={`${inputClass} mt-0`}
-                />
-                <button type="button" onClick={handleImageSearch} disabled={searching} className={secondaryButtonClass}>
-                  {searching ? "…" : "Search"}
-                </button>
-              </div>
-              <p className="mt-1 text-xs text-ink/40">
-                Results are copyright-safe stock photos, free to use on your posters.
-              </p>
-              {imageResults.length > 0 && (
-                <div className="mt-2 grid max-h-64 grid-cols-3 gap-2 overflow-y-auto">
-                  {imageResults.map((img) => (
-                    <button
-                      key={img.id}
-                      type="button"
-                      onClick={() =>
-                        setImage({
-                          source: "stock",
-                          ref: img.fullUrl,
-                          previewUrl: img.thumbUrl,
-                          credit: img.requiresAttribution ? img.credit : null,
-                        })
-                      }
-                      className={`overflow-hidden rounded-lg border-2 transition-colors ${
-                        image?.ref === img.fullUrl ? "border-sage" : "border-transparent hover:border-coral-light"
-                      }`}
-                      title={img.credit}
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img.thumbUrl} alt={img.credit} className="h-20 w-full object-cover" />
-                    </button>
-                  ))}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={handleGenerateCopy}
+                disabled={aiLoading || !aiInput.trim()}
+                className="mt-2 w-full rounded-full bg-coral px-4 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
+              >
+                {aiLoading ? "Writing…" : "Generate wording"}
+              </button>
             </div>
           )}
         </div>
 
+        {/* Add text */}
+        <div className="rounded-2xl border border-coral-light bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-2">Add text</p>
+          <div className="flex flex-col gap-1.5">
+            <button type="button" onClick={() => canvasRef.current?.addText("heading")}
+              className="rounded-xl border border-coral-light px-3 py-2 text-left text-sm font-bold text-ink/70 hover:bg-coral-light/40 transition-colors">
+              + Big Heading
+            </button>
+            <button type="button" onClick={() => canvasRef.current?.addText("subtitle")}
+              className="rounded-xl border border-coral-light px-3 py-2 text-left text-sm font-semibold text-ink/70 hover:bg-coral-light/40 transition-colors">
+              + Subtitle
+            </button>
+            <button type="button" onClick={() => canvasRef.current?.addText("body")}
+              className="rounded-xl border border-coral-light px-3 py-2 text-left text-sm text-ink/70 hover:bg-coral-light/40 transition-colors">
+              + Body text
+            </button>
+          </div>
+        </div>
+
+        {/* Text formatting (shown when text selected) */}
+        {selected?.type === "text" && (
+          <div className="rounded-2xl border border-sage-light bg-sage-light/30 p-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-sage-dark mb-2">Text style</p>
+            <div className="flex gap-2 mb-2">
+              <button
+                type="button"
+                onClick={() => canvasRef.current?.boldSelected()}
+                className={`flex-1 rounded-xl border py-1.5 text-sm font-bold transition-colors ${selected.bold ? "border-sage bg-sage text-white" : "border-sage-light text-ink/60 hover:bg-sage-light"}`}
+              >B</button>
+              <button
+                type="button"
+                onClick={() => canvasRef.current?.italicSelected()}
+                className={`flex-1 rounded-xl border py-1.5 text-sm italic transition-colors ${selected.italic ? "border-sage bg-sage text-white" : "border-sage-light text-ink/60 hover:bg-sage-light"}`}
+              >I</button>
+            </div>
+            <label className="block text-xs text-ink/50 mb-1">Size</label>
+            <select
+              value={selected.fontSize ?? 24}
+              onChange={(e) => canvasRef.current?.setSelectedFontSize(Number(e.target.value))}
+              className="w-full rounded-xl border border-sage-light bg-white px-2 py-1.5 text-sm focus:border-sage focus:outline-none mb-2"
+            >
+              {FONT_SIZES.map((s) => <option key={s} value={s}>{s}px</option>)}
+            </select>
+            <label className="block text-xs text-ink/50 mb-1">Colour</label>
+            <div className="flex flex-wrap gap-1.5">
+              {TEXT_COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => canvasRef.current?.setSelectedColor(c)}
+                  style={{ backgroundColor: c }}
+                  className={`h-7 w-7 rounded-full border-2 transition-transform hover:scale-110 ${selected.fill === c ? "border-coral scale-110" : "border-white/60"}`}
+                  title={c}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Layer controls (shown when anything selected) */}
+        {selected && (
+          <div className="rounded-2xl border border-coral-light bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-2">Arrange</p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => canvasRef.current?.bringForward()}
+                className="flex-1 rounded-xl border border-coral-light py-1.5 text-xs text-ink/60 hover:bg-coral-light/40 transition-colors">
+                ↑ Forward
+              </button>
+              <button type="button" onClick={() => canvasRef.current?.sendBackward()}
+                className="flex-1 rounded-xl border border-coral-light py-1.5 text-xs text-ink/60 hover:bg-coral-light/40 transition-colors">
+                ↓ Backward
+              </button>
+              <button type="button" onClick={() => canvasRef.current?.deleteSelected()}
+                className="rounded-xl border border-coral-light px-3 py-1.5 text-xs text-coral-dark hover:bg-coral-light/40 transition-colors">
+                Delete
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Background colour */}
+        <div className="rounded-2xl border border-coral-light bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-2">Background</p>
+          <div className="flex flex-wrap gap-1.5">
+            {BG_PRESETS.map((bg) => (
+              <button
+                key={bg.value}
+                type="button"
+                title={bg.label}
+                onClick={() => canvasRef.current?.setBackground(bg.value)}
+                style={{ backgroundColor: bg.value }}
+                className="h-8 w-8 rounded-full border-2 border-white shadow-sm hover:scale-110 transition-transform"
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Clip art */}
+        <div className="rounded-2xl border border-coral-light bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-2">Clip art</p>
+          <ClipArtPanel onSelect={(src) => canvasRef.current?.addClipArt(src)} />
+        </div>
+
+        {/* Photo upload */}
+        <div className="rounded-2xl border border-coral-light bg-white p-4">
+          <p className="text-xs font-semibold uppercase tracking-widest text-ink/40 mb-2">Add your own photo</p>
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={(e) => handleUploadPhoto(e.target.files?.[0])}
+            className="block w-full text-xs text-ink/60 file:mr-3 file:rounded-full file:border-0 file:bg-coral-light file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-coral-dark hover:file:bg-coral-light/70"
+          />
+          {uploading && <p className="mt-1 text-xs text-ink/50">Uploading…</p>}
+          <p className="mt-1 text-[11px] text-ink/40">Check photo/media consent before uploading photos of children.</p>
+        </div>
+
+        {/* Errors / success */}
         {error && <p className={errorBannerClass}>{error}</p>}
-        {savedId && (
+        {savedId && !error && (
           <p className={successBannerClass}>
-            Poster saved!{" "}
+            Saved!{" "}
             <Link href={`/posters/${savedId}`} className="font-semibold underline">
-              Open the print view →
+              Open edit / download →
             </Link>
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving || !title.trim()}
-          className={`mt-4 ${primaryButtonClass}`}
-        >
-          {saving ? "Saving…" : "Save poster"}
-        </button>
+        {/* Save + download */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex-1 rounded-full bg-coral px-4 py-2.5 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
+          >
+            {saving ? "Saving…" : "Save poster"}
+          </button>
+          <button
+            type="button"
+            onClick={() => canvasRef.current?.downloadPNG()}
+            className="rounded-full border border-sage px-4 py-2.5 text-sm font-semibold text-sage-dark hover:bg-sage-light transition-colors"
+          >
+            ↓ PNG
+          </button>
+        </div>
+
+        <p className="text-[11px] text-ink/40 text-center">
+          Download as a high-res PNG — print it or share it digitally.
+        </p>
       </div>
 
-      {/* ============ Live preview ============ */}
-      <div>
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink/40">Preview</p>
-        <PosterView
-          poster={{
-            title,
-            subtitle: subtitle.trim() || null,
-            bodyText: bodyText.trim() || null,
-            footerText: footerText.trim() || null,
-            theme,
-            imageUrl: image?.previewUrl ?? null,
-            imageCredit: image?.credit ?? null,
-          }}
+      {/* ===== CANVAS ===== */}
+      <div className="flex-1 overflow-x-auto">
+        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-ink/40">
+          Canvas — click to select, drag to move, corner handles to resize
+        </p>
+        <PosterCanvas
+          ref={canvasRef}
+          initialJson={initialJson}
+          onSelectionChange={setSelected}
         />
       </div>
     </div>

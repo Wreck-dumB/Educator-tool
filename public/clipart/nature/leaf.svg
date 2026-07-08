@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <path d="M50 88 C28 72 8 50 14 24 C19 4 44 4 50 15 C56 4 81 4 86 24 C92 50 72 72 50 88Z" fill="#E74C3C"/>
+  <path d="M50 88 C32 70 14 50 20 26 C24 10 44 8 50 20 C56 8 76 10 80 26 C86 50 68 70 50 88Z" fill="#FF6B35"/>
+  <line x1="50" y1="88" x2="50" y2="20" stroke="#C0392B" stroke-width="2.5"/>
+  <line x1="50" y1="56" x2="31" y2="40" stroke="#C0392B" stroke-width="1.5"/>
+  <line x1="50" y1="56" x2="69" y2="40" stroke="#C0392B" stroke-width="1.5"/>
+  <line x1="50" y1="70" x2="34" y2="57" stroke="#C0392B" stroke-width="1.5"/>
+  <line x1="50" y1="70" x2="66" y2="57" stroke="#C0392B" stroke-width="1.5"/>
+</svg>
