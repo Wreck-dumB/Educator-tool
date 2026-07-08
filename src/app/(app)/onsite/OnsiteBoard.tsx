@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { VisitorSignInRow } from "@/lib/supabase/signinBoard";
-import { signOutVisitor } from "../signin/actions";
+import { signOutVisitor } from "../../(kiosk)/signin/actions";
 
 // Australian NQF ratio tiers
 const RATIO_TIERS = [
