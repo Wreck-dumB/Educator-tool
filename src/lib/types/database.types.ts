@@ -113,6 +113,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
         Relationships: [];
       };
+      conversations: {
+        Row: {
+          id: string;
+          parent_child_link_id: string;
+          educator_user_id: string;
+          parent_user_id: string;
+          child_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          parent_child_link_id: string;
+          educator_user_id: string;
+          parent_user_id: string;
+          child_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["conversations"]["Insert"]>;
+        Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          conversation_id: string;
+          sender_user_id: string;
+          body: string;
+          created_at: string;
+          read_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          conversation_id: string;
+          sender_user_id: string;
+          body: string;
+          created_at?: string;
+          read_at?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["messages"]["Insert"]>;
+        Relationships: [];
+      };
       rooms: {
         Row: {
           id: string;
@@ -1105,4 +1145,23 @@ export interface Database {
       };
     };
   };
+}
+
+// Supplemental types for tables not in auto-generated schema
+export interface ConversationRow {
+  id: string;
+  parent_child_link_id: string;
+  educator_user_id: string;
+  parent_user_id: string;
+  child_id: string;
+  created_at: string;
+}
+
+export interface MessageRow {
+  id: string;
+  conversation_id: string;
+  sender_user_id: string;
+  body: string;
+  created_at: string;
+  read_at: string | null;
 }

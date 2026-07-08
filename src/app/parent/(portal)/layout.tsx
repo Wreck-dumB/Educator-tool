@@ -36,6 +36,9 @@ export default async function ParentPortalLayout({
             <Link href="/parent/observations" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
               Observations
             </Link>
+            <Link href="/parent/messages" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
+              Messages
+            </Link>
             <Link href="/parent/permission-slips" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
               Permission Slips
             </Link>

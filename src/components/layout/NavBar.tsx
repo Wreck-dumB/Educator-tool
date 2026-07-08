@@ -62,6 +62,10 @@ const NAV_GROUPS = [
     items: [{ href: "/attendance", label: "Roll Call" }],
   },
   {
+    label: "Family",
+    items: [{ href: "/messages", label: "Messages" }],
+  },
+  {
     label: "Administration",
     items: [{ href: "/staff", label: "Staff" }],
   },
