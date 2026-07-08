@@ -85,6 +85,12 @@ export default async function RoomsPage({
                       Save
                     </button>
                   </form>
+                  <Link
+                    href={`/rooms/${room.id}/daily-report`}
+                    className="text-xs font-medium text-sage-dark hover:underline"
+                  >
+                    Daily report
+                  </Link>
                   <form action={deleteRoom}>
                     <input type="hidden" name="id" value={room.id} />
                     <button

@@ -4,6 +4,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { getAttendanceForDate } from "@/lib/supabase/attendance";
 import { getRooms, getRoomStaffCountsForDate } from "@/lib/supabase/rooms";
 import { getObservations } from "@/lib/supabase/observations";
+import { getIncidentAlerts } from "@/lib/supabase/incidents";
 import { cardClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
@@ -45,12 +46,13 @@ function greeting() {
 
 export default async function DashboardPage() {
   const date = todayLocal();
-  const [children, records, rooms, staffCounts, recentObs] = await Promise.all([
+  const [children, records, rooms, staffCounts, recentObs, incidentAlerts] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
     getRooms(),
     getRoomStaffCountsForDate(date),
     getObservations(),
+    getIncidentAlerts(),
   ]);
 
   const signedIn = records.filter((r) => r.status === "signed_in");
@@ -128,6 +130,39 @@ export default async function DashboardPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* Behaviour pattern alerts */}
+      {incidentAlerts.length > 0 && (
+        <div className={`mt-4 border-l-4 border-coral bg-coral-light/40 p-4 rounded-2xl`}>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-display text-sm font-semibold text-coral-dark">Behaviour frequency alert</h2>
+            <Link href="/incident-reports" className="text-xs text-coral-dark hover:underline">View incidents →</Link>
+          </div>
+          <p className="text-xs text-ink/60 mb-3">
+            These children have had an elevated number of incidents recently. Visit their support page for tailored strategies.
+          </p>
+          <div className="space-y-2">
+            {incidentAlerts.map((alert) => (
+              <div key={alert.childId} className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-ink">{alert.childName}</span>
+                  <span className="text-xs text-ink/50">
+                    {alert.count7d > 0 && `${alert.count7d} in 7d`}
+                    {alert.count7d > 0 && alert.count30d > alert.count7d && " · "}
+                    {alert.count30d > alert.count7d && `${alert.count30d} in 30d`}
+                  </span>
+                </div>
+                <Link
+                  href={`/children/${alert.childId}/support`}
+                  className="shrink-0 rounded-full bg-coral px-3 py-1 text-xs font-semibold text-white hover:bg-coral-dark transition-colors"
+                >
+                  Support →
+                </Link>
+              </div>
+            ))}
           </div>
         </div>
       )}
