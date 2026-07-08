@@ -63,7 +63,10 @@ const NAV_GROUPS = [
   },
   {
     label: "Family",
-    items: [{ href: "/messages", label: "Messages" }],
+    items: [
+      { href: "/messages", label: "Messages" },
+      { href: "/wall", label: "Community Wall" },
+    ],
   },
   {
     label: "Administration",

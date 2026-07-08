@@ -113,6 +113,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
         Relationships: [];
       };
+      wall_posts: {
+        Row: {
+          id: string;
+          educator_user_id: string;
+          author_user_id: string;
+          author_role: "educator" | "parent";
+          body: string;
+          status: "pending" | "approved" | "rejected";
+          moderated_by: string | null;
+          moderated_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          educator_user_id: string;
+          author_user_id: string;
+          author_role: "educator" | "parent";
+          body: string;
+          status?: "pending" | "approved" | "rejected";
+          moderated_by?: string | null;
+          moderated_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["wall_posts"]["Insert"]>;
+        Relationships: [];
+      };
       conversations: {
         Row: {
           id: string;
