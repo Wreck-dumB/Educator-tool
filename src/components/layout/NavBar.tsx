@@ -41,6 +41,8 @@ const NAV_GROUPS = [
       { href: "/digest", label: "Daily Digest" },
       { href: "/incident-reports", label: "Incidents" },
       { href: "/permission-slips", label: "Permission Slips" },
+      { href: "/excursions", label: "Excursions" },
+      { href: "/health-plans", label: "Health Plans" },
       { href: "/forms", label: "Document Templates" },
       { href: "/sleep", label: "Sleep Chart" },
       { href: "/food", label: "Food Chart" },

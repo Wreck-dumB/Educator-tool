@@ -5,6 +5,7 @@ import { getAttendanceForDate } from "@/lib/supabase/attendance";
 import { getRooms, getRoomStaffCountsForDate } from "@/lib/supabase/rooms";
 import { getObservations } from "@/lib/supabase/observations";
 import { getIncidentAlerts } from "@/lib/supabase/incidents";
+import { getExpiringHealthPlans } from "@/lib/supabase/healthPlans";
 import { cardClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
@@ -46,13 +47,14 @@ function greeting() {
 
 export default async function DashboardPage() {
   const date = todayLocal();
-  const [children, records, rooms, staffCounts, recentObs, incidentAlerts] = await Promise.all([
+  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
     getRooms(),
     getRoomStaffCountsForDate(date),
     getObservations(),
     getIncidentAlerts(),
+    getExpiringHealthPlans(30),
   ]);
 
   const signedIn = records.filter((r) => r.status === "signed_in");
@@ -131,6 +133,30 @@ export default async function DashboardPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* Health plan expiry alerts */}
+      {expiringPlans.length > 0 && (
+        <div className={`mt-4 border-l-4 border-amber bg-amber-light/40 p-4 rounded-2xl`}>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-display text-sm font-semibold text-amber-dark">Health plans need review</h2>
+            <Link href="/health-plans" className="text-xs text-amber-dark hover:underline">View all →</Link>
+          </div>
+          <ul className="space-y-1">
+            {expiringPlans.map((p) => {
+              const days = Math.ceil((new Date(p.review_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              return (
+                <li key={p.id} className="flex items-center gap-2 text-sm">
+                  <span className="font-medium text-ink">{p.child_first_name}</span>
+                  <span className="text-ink/60">— {p.plan_name}</span>
+                  <span className={`ml-auto rounded-full px-2 py-0.5 text-xs font-semibold ${days < 0 ? "bg-coral text-white" : "bg-amber-light text-amber-dark"}`}>
+                    {days < 0 ? `Expired ${Math.abs(days)}d ago` : days === 0 ? "Due today" : `${days}d`}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
         </div>
       )}
 

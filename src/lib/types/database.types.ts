@@ -1091,6 +1091,86 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["daily_food"]["Insert"]>;
         Relationships: [];
       };
+      child_health_plans: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          plan_type: "asthma" | "anaphylaxis" | "diabetes" | "allergies" | "epilepsy" | "other";
+          plan_name: string;
+          triggers: string | null;
+          signs_and_symptoms: string | null;
+          emergency_steps: string;
+          emergency_medication: string | null;
+          review_date: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          plan_type: "asthma" | "anaphylaxis" | "diabetes" | "allergies" | "epilepsy" | "other";
+          plan_name: string;
+          triggers?: string | null;
+          signs_and_symptoms?: string | null;
+          emergency_steps: string;
+          emergency_medication?: string | null;
+          review_date?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_health_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      excursions: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          destination: string;
+          excursion_date: string;
+          departure_time: string | null;
+          return_time: string | null;
+          transport_method: string | null;
+          supervisor_ratio: string | null;
+          notes: string | null;
+          linked_risk_assessment_id: string | null;
+          linked_permission_slip_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title: string;
+          destination: string;
+          excursion_date: string;
+          departure_time?: string | null;
+          return_time?: string | null;
+          transport_method?: string | null;
+          supervisor_ratio?: string | null;
+          notes?: string | null;
+          linked_risk_assessment_id?: string | null;
+          linked_permission_slip_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["excursions"]["Insert"]>;
+        Relationships: [];
+      };
+      excursion_attendees: {
+        Row: {
+          excursion_id: string;
+          child_id: string;
+        };
+        Insert: {
+          excursion_id: string;
+          child_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["excursion_attendees"]["Insert"]>;
+        Relationships: [];
+      };
       staff_reflections: {
         Row: {
           id: string;
