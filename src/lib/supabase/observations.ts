@@ -15,6 +15,22 @@ export interface ObservationWithDetails extends Observation {
   eylf_codes: string[];
 }
 
+export interface SharedObservation {
+  id: string;
+  note_text: string;
+  observed_at: string;
+  photo_url: string | null;
+  activity_title: string | null;
+  eylf_codes: string[];
+  shared_at: string;
+}
+
+export async function getSharedObservationsForParent(childId: string): Promise<SharedObservation[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("get_shared_observations", { _child_id: childId });
+  return (data ?? []) as SharedObservation[];
+}
+
 export async function getObservations(childId?: string): Promise<ObservationWithDetails[]> {
   const supabase = await createClient();
   let query = supabase.from("observations").select("*").order("observed_at", { ascending: false });

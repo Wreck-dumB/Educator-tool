@@ -271,6 +271,8 @@ export interface Database {
           photo_url: string | null;
           observed_at: string;
           created_at: string;
+          shared_with_parent_at: string | null;
+          shared_by: string | null;
         };
         Insert: {
           id?: string;
@@ -281,6 +283,8 @@ export interface Database {
           photo_url?: string | null;
           observed_at?: string;
           created_at?: string;
+          shared_with_parent_at?: string | null;
+          shared_by?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["observations"]["Insert"]>;
         Relationships: [];
@@ -1086,6 +1090,18 @@ export interface Database {
       accept_staff_invite: {
         Args: { _token: string };
         Returns: string;
+      };
+      get_shared_observations: {
+        Args: { _child_id: string };
+        Returns: {
+          id: string;
+          note_text: string;
+          observed_at: string;
+          photo_url: string | null;
+          activity_title: string | null;
+          eylf_codes: string[];
+          shared_at: string;
+        }[];
       };
     };
   };

@@ -85,3 +85,41 @@ export async function logObservation(formData: FormData) {
   }
   redirect(returnTo);
 }
+
+export async function shareObservation(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const id = formData.get("id") as string;
+  if (!id) redirect("/observations");
+
+  await supabase
+    .from("observations")
+    .update({ shared_with_parent_at: new Date().toISOString(), shared_by: user.id })
+    .eq("id", id);
+
+  revalidatePath("/observations");
+  redirect("/observations");
+}
+
+export async function unshareObservation(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const id = formData.get("id") as string;
+  if (!id) redirect("/observations");
+
+  await supabase
+    .from("observations")
+    .update({ shared_with_parent_at: null, shared_by: null })
+    .eq("id", id);
+
+  revalidatePath("/observations");
+  redirect("/observations");
+}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
 import { getChildren } from "@/lib/supabase/children";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
-import { logObservation } from "@/app/(app)/observations/actions";
+import { logObservation, shareObservation, unshareObservation } from "@/app/(app)/observations/actions";
 import { cardClass, errorBannerClass } from "@/lib/ui";
 import ObservationForm from "@/components/ObservationForm";
 
@@ -116,6 +116,26 @@ export default async function ObservationsPage({
                       ))}
                     </div>
                   )}
+                  <div className="mt-3 flex items-center gap-3 border-t border-coral-light/50 pt-2">
+                    {o.shared_with_parent_at ? (
+                      <>
+                        <span className="text-xs text-sage-dark">Shared with parent</span>
+                        <form action={unshareObservation}>
+                          <input type="hidden" name="id" value={o.id} />
+                          <button type="submit" className="text-xs text-ink/40 hover:text-coral-dark">
+                            Unshare
+                          </button>
+                        </form>
+                      </>
+                    ) : (
+                      <form action={shareObservation}>
+                        <input type="hidden" name="id" value={o.id} />
+                        <button type="submit" className="text-xs text-ink/40 hover:text-sage-dark">
+                          Share with parent
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
