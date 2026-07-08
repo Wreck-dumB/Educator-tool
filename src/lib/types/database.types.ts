@@ -1091,6 +1091,32 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["daily_food"]["Insert"]>;
         Relationships: [];
       };
+      staff_reflections: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          author_user_id: string;
+          reflection_type: "post_incident" | "end_of_day" | "general";
+          context_text: string;
+          ai_questions: string[];
+          responses: string[];
+          key_learning: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          author_user_id: string;
+          reflection_type: "post_incident" | "end_of_day" | "general";
+          context_text: string;
+          ai_questions?: string[];
+          responses?: string[];
+          key_learning?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_reflections"]["Insert"]>;
+        Relationships: [];
+      };
       daily_nappy: {
         Row: {
           id: string;

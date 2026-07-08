@@ -69,6 +69,10 @@ const NAV_GROUPS = [
     ],
   },
   {
+    label: "Professional Development",
+    items: [{ href: "/reflections", label: "Reflections" }],
+  },
+  {
     label: "Administration",
     items: [{ href: "/staff", label: "Staff" }],
   },
