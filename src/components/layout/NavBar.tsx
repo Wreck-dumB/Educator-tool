@@ -8,15 +8,24 @@ import { useWhiteNoise } from "@/components/providers/WhiteNoiseProvider";
 
 const NAV_GROUPS = [
   {
+    label: "Front Desk",
+    items: [
+      { href: "/signin", label: "Sign In / Out" },
+      { href: "/onsite", label: "On Site Board" },
+      { href: "/attendance", label: "Roll Call" },
+    ],
+  },
+  {
     label: "Today",
     items: [
       { href: "/dashboard", label: "Dashboard" },
+      { href: "/digest", label: "Daily Digest" },
     ],
   },
   {
     label: "Educator Tools",
     items: [
-      { href: "/generate", label: "Generate" },
+      { href: "/generate", label: "Generate Activity" },
       { href: "/activities", label: "Activities" },
       { href: "/observations", label: "Observations" },
       { href: "/programs", label: "Programs" },
@@ -38,7 +47,6 @@ const NAV_GROUPS = [
   {
     label: "Daily Forms",
     items: [
-      { href: "/digest", label: "Daily Digest" },
       { href: "/incident-reports", label: "Incidents" },
       { href: "/permission-slips", label: "Permission Slips" },
       { href: "/excursions", label: "Excursions" },
@@ -58,10 +66,6 @@ const NAV_GROUPS = [
       { href: "/risk-assessments", label: "Risk Assessments" },
       { href: "/import", label: "Import & Review" },
     ],
-  },
-  {
-    label: "Roll Call / Attendance",
-    items: [{ href: "/attendance", label: "Roll Call" }],
   },
   {
     label: "Family",

@@ -905,6 +905,56 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["posters"]["Insert"]>;
         Relationships: [];
       };
+      staff_attendance: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          user_id: string;
+          date: string;
+          signed_in_at: string;
+          signed_out_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          user_id: string;
+          date?: string;
+          signed_in_at?: string;
+          signed_out_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_attendance"]["Insert"]>;
+        Relationships: [];
+      };
+      visitors: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          name: string;
+          company: string | null;
+          reason: string;
+          signed_in_at: string;
+          signed_out_at: string | null;
+          signed_in_by: string | null;
+          date: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          name: string;
+          company?: string | null;
+          reason: string;
+          signed_in_at?: string;
+          signed_out_at?: string | null;
+          signed_in_by?: string | null;
+          date?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["visitors"]["Insert"]>;
+        Relationships: [];
+      };
       recipes: {
         Row: {
           id: string;
@@ -1300,4 +1350,27 @@ export interface MessageRow {
   body: string;
   created_at: string;
   read_at: string | null;
+}
+
+export interface StaffAttendanceRow {
+  id: string;
+  owner_user_id: string;
+  user_id: string;
+  date: string;
+  signed_in_at: string;
+  signed_out_at: string | null;
+  created_at: string;
+}
+
+export interface VisitorRow {
+  id: string;
+  owner_user_id: string;
+  name: string;
+  company: string | null;
+  reason: string;
+  signed_in_at: string;
+  signed_out_at: string | null;
+  signed_in_by: string | null;
+  date: string;
+  created_at: string;
 }
