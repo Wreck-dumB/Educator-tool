@@ -996,12 +996,16 @@ export interface Database {
           id: string;
           director_user_id: string;
           name: string;
+          display_name: string | null;
+          logo_path: string | null;
           created_at: string;
         };
         Insert: {
           id?: string;
           director_user_id: string;
           name?: string;
+          display_name?: string | null;
+          logo_path?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;

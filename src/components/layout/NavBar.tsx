@@ -80,7 +80,10 @@ const NAV_GROUPS = [
   },
   {
     label: "Administration",
-    items: [{ href: "/staff", label: "Staff" }],
+    items: [
+      { href: "/staff", label: "Staff" },
+      { href: "/settings", label: "Service Settings" },
+    ],
   },
 ];
 

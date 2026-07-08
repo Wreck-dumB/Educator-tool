@@ -1,0 +1,120 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+
+const ALLOWED_TYPES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+};
+const MAX_BYTES = 2 * 1024 * 1024; // 2 MB
+
+export async function uploadServiceLogo(
+  formData: FormData
+): Promise<{ logoPath: string } | { error: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update service branding" };
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first" };
+  if (file.size > MAX_BYTES) return { error: "Image must be under 2 MB" };
+  const ext = ALLOWED_TYPES[file.type];
+  if (!ext) return { error: "Use a JPEG, PNG, or WebP image" };
+
+  const path = `${user.id}/logo.${ext}`;
+
+  // Remove any existing logo files for this service before uploading
+  const { data: existing } = await supabase.storage
+    .from("service-logos")
+    .list(user.id);
+  if (existing && existing.length > 0) {
+    await supabase.storage
+      .from("service-logos")
+      .remove(existing.map((f) => `${user.id}/${f.name}`));
+  }
+
+  const { error: uploadError } = await supabase.storage
+    .from("service-logos")
+    .upload(path, file, { contentType: file.type, upsert: true });
+  if (uploadError) return { error: uploadError.message };
+
+  const { error: updateError } = await supabase
+    .from("services")
+    .update({ logo_path: path })
+    .eq("id", service.id);
+  if (updateError) return { error: updateError.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/signin");
+  return { logoPath: path };
+}
+
+export async function removeServiceLogo(): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, logo_path, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update service branding" };
+
+  if (service.logo_path) {
+    await supabase.storage.from("service-logos").remove([service.logo_path]);
+  }
+
+  await supabase
+    .from("services")
+    .update({ logo_path: null })
+    .eq("id", service.id);
+
+  revalidatePath("/settings");
+  revalidatePath("/signin");
+  return {};
+}
+
+export async function updateServiceName(
+  formData: FormData
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const name = (formData.get("name") as string | null)?.trim() ?? "";
+  if (!name) return { error: "Centre name cannot be empty" };
+  if (name.length > 200) return { error: "Name is too long" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update service settings" };
+
+  const { error } = await supabase
+    .from("services")
+    .update({ display_name: name })
+    .eq("id", service.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/signin");
+  return {};
+}
