@@ -71,10 +71,31 @@ export async function reviseAndResendSlip(formData: FormData) {
     redirect("/permission-slips?error=Body text and at least one child are required");
   }
 
-  const { data: slip } = await supabase.from("permission_slips").select("current_version, slip_type").eq("id", slipId).single();
+  const { data: slip } = await supabase
+    .from("permission_slips")
+    .select("current_version, slip_type")
+    .eq("id", slipId)
+    .single();
   if (!slip) redirect("/permission-slips?error=Not authorized");
 
-  const newVersionNumber = slip.current_version + 1;
+  // Atomically increment version using optimistic locking — if another request
+  // already bumped current_version since we read it, this update matches 0 rows
+  // and we surface a friendly retry message rather than a raw DB constraint error.
+  const { data: locked } = await supabase
+    .from("permission_slips")
+    .update({ current_version: slip.current_version + 1 })
+    .eq("id", slipId)
+    .eq("current_version", slip.current_version)
+    .select("current_version")
+    .maybeSingle();
+
+  if (!locked) {
+    redirect(
+      `/permission-slips?error=${encodeURIComponent("Another revision was saved at the same time — please refresh and try again")}`,
+    );
+  }
+
+  const newVersionNumber = locked.current_version;
 
   const { error: versionError } = await supabase.from("permission_slip_versions").insert({
     slip_id: slipId,
@@ -86,8 +107,6 @@ export async function reviseAndResendSlip(formData: FormData) {
   if (versionError) {
     redirect(`/permission-slips?error=${encodeURIComponent(versionError.message)}`);
   }
-
-  await supabase.from("permission_slips").update({ current_version: newVersionNumber }).eq("id", slipId);
 
   for (const childId of childIds) {
     await supabase
