@@ -54,6 +54,7 @@ const NAV_GROUPS = [
       { href: "/safe-work-procedures", label: "Safe Work" },
       { href: "/qip", label: "QIP" },
       { href: "/risk-assessments", label: "Risk Assessments" },
+      { href: "/import", label: "Import & Review" },
     ],
   },
   {
