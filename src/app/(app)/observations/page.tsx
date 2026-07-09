@@ -2,9 +2,20 @@ import Link from "next/link";
 import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
 import { getChildren } from "@/lib/supabase/children";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
+import { getServiceObservationTypes } from "@/lib/supabase/services";
 import { logObservation, shareObservation, unshareObservation } from "@/app/(app)/observations/actions";
 import { cardClass, errorBannerClass } from "@/lib/ui";
-import ObservationForm from "@/components/ObservationForm";
+import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
+
+const OBS_TYPE_LABELS: Record<string, string> = {
+  anecdotal: "Anecdotal",
+  learning_story: "Learning story",
+  running_record: "Running record",
+  jotting: "Jotting",
+  work_sample: "Work sample",
+  photo_caption: "Photo caption",
+  developmental_note: "Dev note",
+};
 
 export default async function ObservationsPage({
   searchParams,
@@ -12,10 +23,11 @@ export default async function ObservationsPage({
   searchParams: Promise<{ child?: string; error?: string }>;
 }) {
   const { child: childFilter, error } = await searchParams;
-  const [observations, children, outcomes] = await Promise.all([
+  const [observations, children, outcomes, enabledObsTypes] = await Promise.all([
     getObservations(childFilter),
     getChildren(),
     getEylfOutcomes(),
+    getServiceObservationTypes(),
   ]);
 
   // Resolve signed photo URLs for observations that have photos
@@ -73,6 +85,7 @@ export default async function ObservationsPage({
               children={children}
               outcomes={outcomes}
               returnTo="/observations"
+              enabledTypes={enabledObsTypes as ObservationTypeName[]}
             />
           </div>
         </div>
@@ -97,10 +110,23 @@ export default async function ObservationsPage({
                 )}
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-medium text-ink">{o.child_name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-ink">{o.child_name}</p>
+                      {o.observation_type && o.observation_type !== "anecdotal" && (
+                        <span className="rounded-full bg-sage-light px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage-dark">
+                          {OBS_TYPE_LABELS[o.observation_type] ?? o.observation_type}
+                        </span>
+                      )}
+                    </div>
                     <p className="shrink-0 text-xs text-ink/40">{new Date(o.observed_at).toLocaleDateString()}</p>
                   </div>
+                  {o.observation_title && (
+                    <p className="mt-0.5 text-xs font-semibold text-ink/60">{o.observation_title}</p>
+                  )}
                   <p className="mt-1 text-sm text-ink/80">{o.note_text}</p>
+                  {o.observation_context && (
+                    <p className="mt-1 border-l-2 border-sage-light pl-2 text-xs text-ink/60 italic">{o.observation_context}</p>
+                  )}
                   {o.activity_title && (
                     <p className="mt-1 text-xs text-ink/50">From: {o.activity_title}</p>
                   )}

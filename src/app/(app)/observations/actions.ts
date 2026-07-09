@@ -19,6 +19,9 @@ export async function logObservation(formData: FormData) {
   const eylfCodes = formData.getAll("eylf_codes") as string[];
   const returnTo = (formData.get("return_to") as string) || "/observations";
   const photo = formData.get("photo") as File | null;
+  const observationType = (formData.get("observation_type") as string) || "anecdotal";
+  const observationTitle = (formData.get("observation_title") as string)?.trim() || null;
+  const observationContext = (formData.get("observation_context") as string)?.trim() || null;
 
   if (childIds.length === 0 || !noteText) {
     redirect(`${returnTo}?error=${encodeURIComponent("Please choose at least one child and write a note")}`);
@@ -68,6 +71,9 @@ export async function logObservation(formData: FormData) {
         activity_id: activityId,
         note_text: noteText,
         photo_url: photoUrl,
+        observation_type: observationType,
+        observation_title: observationTitle,
+        observation_context: observationContext,
       })),
     )
     .select("id, child_id");

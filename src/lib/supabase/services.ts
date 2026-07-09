@@ -16,3 +16,16 @@ export async function getMyServiceOwnerId(): Promise<string | null> {
   const { data } = await supabase.rpc("my_service_owner_id");
   return data ?? null;
 }
+
+/**
+ * Returns the preferred_observation_types for the current user's service.
+ * Falls back to the default three types if no service row is found.
+ */
+export async function getServiceObservationTypes(): Promise<string[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("services")
+    .select("preferred_observation_types")
+    .maybeSingle();
+  return data?.preferred_observation_types ?? ["anecdotal", "learning_story", "jotting"];
+}

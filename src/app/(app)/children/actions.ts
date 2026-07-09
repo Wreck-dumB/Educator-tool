@@ -161,6 +161,25 @@ export async function updateChildEnrolment(formData: FormData) {
   redirect(`/children/${id}`);
 }
 
+export async function updateEnrolmentEndDate(formData: FormData) {
+  const supabase = await createClient();
+  const id = formData.get("id") as string;
+  const raw = (formData.get("enrolment_ended_at") as string)?.trim();
+  const enrolmentEndedAt = raw ? new Date(raw).toISOString() : null;
+
+  const { error } = await supabase
+    .from("children")
+    .update({ enrolment_ended_at: enrolmentEndedAt })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`/children/${id}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/children/${id}`);
+  redirect(`/children/${id}`);
+}
+
 export async function createChildContact(formData: FormData) {
   const supabase = await createClient();
   const {

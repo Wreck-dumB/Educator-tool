@@ -108,6 +108,7 @@ export interface Database {
           dietary_restrictions: string | null;
           immunisation_status: string | null;
           room_id: string | null;
+          enrolment_ended_at: string | null;
           created_at: string;
         };
         Insert: {
@@ -127,6 +128,7 @@ export interface Database {
           dietary_restrictions?: string | null;
           immunisation_status?: string | null;
           room_id?: string | null;
+          enrolment_ended_at?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
@@ -366,6 +368,9 @@ export interface Database {
           created_at: string;
           shared_with_parent_at: string | null;
           shared_by: string | null;
+          observation_type: string;
+          observation_title: string | null;
+          observation_context: string | null;
         };
         Insert: {
           id?: string;
@@ -378,6 +383,9 @@ export interface Database {
           created_at?: string;
           shared_with_parent_at?: string | null;
           shared_by?: string | null;
+          observation_type?: string;
+          observation_title?: string | null;
+          observation_context?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["observations"]["Insert"]>;
         Relationships: [];
@@ -740,6 +748,10 @@ export interface Database {
           completed_by_name: string;
           completed_by_role: string | null;
           created_by_user_id: string | null;
+          possible_harm_indicator: boolean;
+          mandatory_report_made: boolean | null;
+          mandatory_report_at: string | null;
+          mandatory_report_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -759,6 +771,10 @@ export interface Database {
           completed_by_name: string;
           completed_by_role?: string | null;
           created_by_user_id?: string | null;
+          possible_harm_indicator?: boolean;
+          mandatory_report_made?: boolean | null;
+          mandatory_report_at?: string | null;
+          mandatory_report_by?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["child_incident_reports"]["Insert"]>;
@@ -1023,6 +1039,10 @@ export interface Database {
           name: string;
           display_name: string | null;
           logo_path: string | null;
+          preferred_observation_types: string[];
+          privacy_policy_url: string | null;
+          ai_data_notice_accepted_at: string | null;
+          ai_data_notice_accepted_by: string | null;
           created_at: string;
         };
         Insert: {
@@ -1031,6 +1051,10 @@ export interface Database {
           name?: string;
           display_name?: string | null;
           logo_path?: string | null;
+          preferred_observation_types?: string[];
+          privacy_policy_url?: string | null;
+          ai_data_notice_accepted_at?: string | null;
+          ai_data_notice_accepted_by?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;

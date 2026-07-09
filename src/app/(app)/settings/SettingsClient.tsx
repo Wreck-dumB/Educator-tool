@@ -2,14 +2,26 @@
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { uploadServiceLogo, removeServiceLogo, updateServiceName } from "./actions";
+import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice } from "./actions";
 import { errorBannerClass, successBannerClass } from "@/lib/ui";
+
+const ALL_OBS_TYPES: { key: string; label: string; short: string }[] = [
+  { key: "anecdotal", label: "Anecdotal record", short: "Anecdotal" },
+  { key: "learning_story", label: "Learning story", short: "Learning story" },
+  { key: "running_record", label: "Running record", short: "Running record" },
+  { key: "jotting", label: "Jotting", short: "Jotting" },
+  { key: "work_sample", label: "Work sample", short: "Work sample" },
+  { key: "photo_caption", label: "Photo with caption", short: "Photo caption" },
+  { key: "developmental_note", label: "Developmental note", short: "Dev note" },
+];
 
 interface Props {
   isDirector: boolean;
   currentLogoUrl: string | null;
   currentDisplayName: string | null;
   serviceName: string;
+  preferredObservationTypes: string[];
+  aiDataNoticeAcceptedAt: string | null;
 }
 
 export default function SettingsClient({
@@ -17,6 +29,8 @@ export default function SettingsClient({
   currentLogoUrl,
   currentDisplayName,
   serviceName,
+  preferredObservationTypes,
+  aiDataNoticeAcceptedAt,
 }: Props) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [preview, setPreview] = useState<string | null>(null);
@@ -28,6 +42,13 @@ export default function SettingsClient({
   const [nameError, setNameError] = useState<string | null>(null);
   const [nameSuccess, setNameSuccess] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [selectedObs, setSelectedObs] = useState<Set<string>>(() => new Set(preferredObservationTypes));
+  const [obsPending, startObsTransition] = useTransition();
+  const [obsError, setObsError] = useState<string | null>(null);
+  const [obsSuccess, setObsSuccess] = useState(false);
+  const [aiNoticePending, startAiTransition] = useTransition();
+  const [aiNoticeAccepted, setAiNoticeAccepted] = useState<string | null>(aiDataNoticeAcceptedAt);
+  const [aiNoticeError, setAiNoticeError] = useState<string | null>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -84,6 +105,33 @@ export default function SettingsClient({
         setNameError(result.error);
       } else {
         setNameSuccess(true);
+      }
+    });
+  }
+
+  function handleObsSave() {
+    setObsError(null);
+    setObsSuccess(false);
+    const fd = new FormData();
+    selectedObs.forEach((t) => fd.set(t, "1"));
+    startObsTransition(async () => {
+      const result = await updateObservationPreferences(fd);
+      if (result.error) {
+        setObsError(result.error);
+      } else {
+        setObsSuccess(true);
+      }
+    });
+  }
+
+  function handleAiNoticeAccept() {
+    setAiNoticeError(null);
+    startAiTransition(async () => {
+      const result = await acceptAiDataNotice();
+      if (result.error) {
+        setAiNoticeError(result.error);
+      } else {
+        setAiNoticeAccepted(new Date().toISOString());
       }
     });
   }
@@ -203,6 +251,97 @@ export default function SettingsClient({
           Changes appear immediately — no restart needed.
         </p>
       </div>
+
+      {/* Observation type preferences */}
+      <section className="rounded-2xl border border-coral-light bg-white p-5">
+        <h2 className="font-display text-base font-semibold text-ink mb-1">Observation formats</h2>
+        <p className="text-sm text-ink/50 mb-4">
+          Choose which observation formats educators can use at your centre. Selected formats appear
+          in the observation form. Under NQS QA1, using a variety of methods is expected.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {ALL_OBS_TYPES.map((t) => {
+            const checked = selectedObs.has(t.key);
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => {
+                  setSelectedObs((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(t.key)) next.delete(t.key);
+                    else next.add(t.key);
+                    return next;
+                  });
+                  setObsSuccess(false);
+                }}
+                disabled={!isDirector || obsPending}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  checked
+                    ? "border-coral bg-coral text-white"
+                    : "border-coral-light text-ink/60 hover:border-coral"
+                } disabled:opacity-50`}
+              >
+                {t.short}
+              </button>
+            );
+          })}
+        </div>
+        {obsError && <p className={`mt-2 ${errorBannerClass}`}>{obsError}</p>}
+        {obsSuccess && <p className={`mt-2 ${successBannerClass}`}>Observation preferences saved.</p>}
+        {!isDirector && (
+          <p className="mt-2 text-xs text-ink/40">Only the Director can change observation preferences.</p>
+        )}
+        {isDirector && (
+          <button
+            type="button"
+            onClick={handleObsSave}
+            disabled={obsPending}
+            className="mt-4 rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
+          >
+            {obsPending ? "Saving…" : "Save preferences"}
+          </button>
+        )}
+      </section>
+
+      {/* AI data processing notice (Australian Privacy Act APP 3 disclosure) */}
+      <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5">
+        <h2 className="font-display text-base font-semibold text-amber-900 mb-1">AI data processing notice</h2>
+        <p className="text-sm text-amber-800 mb-3">
+          SparkPlay uses the Anthropic Claude API to generate activity ideas and routines. When you use
+          these AI features, de-identified information (activity parameters, materials, age ranges — never
+          child names, dates of birth, or any other personal identifiers) is sent to Anthropic&apos;s
+          servers for processing.
+        </p>
+        <p className="text-sm text-amber-800 mb-3">
+          Under the Australian Privacy Act 1988 (APP 3), you must inform individuals about how their
+          information may be used and disclosed before or at the time of collection. This notice satisfies
+          that obligation for your staff. You should also include a reference to AI-assisted tools in your
+          service&apos;s privacy policy.
+        </p>
+        {aiNoticeAccepted ? (
+          <p className={successBannerClass}>
+            Acknowledged on {new Date(aiNoticeAccepted).toLocaleDateString("en-AU")} — this notice is
+            on record.
+          </p>
+        ) : (
+          <>
+            {aiNoticeError && <p className={errorBannerClass}>{aiNoticeError}</p>}
+            {isDirector ? (
+              <button
+                type="button"
+                onClick={handleAiNoticeAccept}
+                disabled={aiNoticePending}
+                className="rounded-full bg-amber-500 px-5 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-50 transition-colors"
+              >
+                {aiNoticePending ? "Saving…" : "I acknowledge this notice"}
+              </button>
+            ) : (
+              <p className="text-xs text-amber-700">The Director must acknowledge this notice.</p>
+            )}
+          </>
+        )}
+      </section>
     </div>
   );
 }

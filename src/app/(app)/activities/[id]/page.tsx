@@ -10,9 +10,10 @@ import { getPrograms } from "@/lib/supabase/programs";
 import { archiveActivity, unarchiveActivity } from "../actions";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
 import { cardClass, errorBannerClass } from "@/lib/ui";
+import { getServiceObservationTypes } from "@/lib/supabase/services";
 import RiskAssessmentPanel from "./RiskAssessmentPanel";
 import PersonalisePanel from "./PersonalisePanel";
-import ObservationForm from "@/components/ObservationForm";
+import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
 import ObservationList from "@/components/ObservationList";
 
 export default async function ActivityDetailPage({
@@ -27,12 +28,13 @@ export default async function ActivityDetailPage({
   const activity = await getActivity(id);
   if (!activity) notFound();
 
-  const [children, allObservations, riskAssessments, outcomes, programs] = await Promise.all([
+  const [children, allObservations, riskAssessments, outcomes, programs, enabledObsTypes] = await Promise.all([
     getChildren(),
     getObservations(),
     getRiskAssessments(activity.id),
     getEylfOutcomes(),
     getPrograms(),
+    getServiceObservationTypes(),
   ]);
   const observations = allObservations.filter((o) => o.activity_id === activity.id);
 
@@ -149,6 +151,7 @@ export default async function ActivityDetailPage({
               activityId={activity.id}
               defaultEylfCodes={activity.eylf_codes}
               returnTo={`/activities/${activity.id}`}
+              enabledTypes={enabledObsTypes as ObservationTypeName[]}
             />
           </div>
         )}

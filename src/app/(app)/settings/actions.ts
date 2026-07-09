@@ -118,3 +118,69 @@ export async function updateServiceName(
   revalidatePath("/signin");
   return {};
 }
+
+const ALL_OBS_TYPES = [
+  "anecdotal",
+  "learning_story",
+  "running_record",
+  "jotting",
+  "work_sample",
+  "photo_caption",
+  "developmental_note",
+] as const;
+
+export async function updateObservationPreferences(
+  formData: FormData
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update observation preferences" };
+
+  const selected = ALL_OBS_TYPES.filter((t) => formData.get(t) === "1");
+  if (selected.length === 0) return { error: "At least one observation type must be enabled" };
+
+  const { error } = await supabase
+    .from("services")
+    .update({ preferred_observation_types: selected })
+    .eq("id", service.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  return {};
+}
+
+export async function acceptAiDataNotice(): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can acknowledge the AI data notice" };
+
+  const { error } = await supabase
+    .from("services")
+    .update({
+      ai_data_notice_accepted_at: new Date().toISOString(),
+      ai_data_notice_accepted_by: user.id,
+    })
+    .eq("id", service.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  return {};
+}

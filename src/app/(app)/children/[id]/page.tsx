@@ -7,6 +7,7 @@ import {
   createChildInvite,
   revokeChildInvite,
   updateChildEnrolment,
+  updateEnrolmentEndDate,
   createChildContact,
   deleteChildContact,
   setAttendanceDays,
@@ -368,6 +369,52 @@ export default async function ChildDetailPage({
           </form>
         </details>
       </div>
+
+      {/* Enrolment status / end date */}
+      {canManage && (
+        <div className={`mt-6 print:hidden ${cardClass}`}>
+          <div className="border-b border-coral-light px-4 py-3">
+            <h2 className="font-display text-sm font-semibold text-ink">Enrolment status</h2>
+            <p className="mt-0.5 text-xs text-ink/50">
+              Record when {child.first_name} left the service. Under Australian Privacy Act APP 12
+              and Reg 175, enrolment records must be kept for at least 3 years after enrolment ends.
+              After that period expires, consider de-identifying or archiving this child&apos;s data.
+            </p>
+          </div>
+          <form action={updateEnrolmentEndDate} className="px-4 py-4">
+            <input type="hidden" name="id" value={child.id} />
+            <div>
+              <label className="block text-sm font-medium text-ink/70">
+                Enrolment ended (leave blank if currently enrolled)
+              </label>
+              <input
+                type="date"
+                name="enrolment_ended_at"
+                defaultValue={child.enrolment_ended_at ? child.enrolment_ended_at.substring(0, 10) : ""}
+                max={new Date().toISOString().substring(0, 10)}
+                className={`${inputClass} mt-1 w-auto`}
+              />
+            </div>
+            {child.enrolment_ended_at && (() => {
+              const endDate = new Date(child.enrolment_ended_at);
+              const retentionDate = new Date(endDate);
+              retentionDate.setFullYear(retentionDate.getFullYear() + 3);
+              const now = new Date();
+              const pastRetention = now > retentionDate;
+              return (
+                <p className={`mt-2 text-xs ${pastRetention ? "font-semibold text-coral-dark" : "text-ink/50"}`}>
+                  {pastRetention
+                    ? `Retention period expired ${retentionDate.toLocaleDateString("en-AU")} — data may now be de-identified or archived.`
+                    : `Minimum retention until: ${retentionDate.toLocaleDateString("en-AU")}`}
+                </p>
+              );
+            })()}
+            <button type="submit" className="mt-3 rounded-full bg-coral-light px-4 py-1.5 text-xs font-semibold text-coral-dark hover:bg-coral/20">
+              Save enrolment status
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Enrolled days */}
       <div className={`mt-6 print:hidden ${cardClass}`}>

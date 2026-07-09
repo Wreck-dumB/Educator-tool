@@ -45,6 +45,10 @@ export async function createChildIncidentReport(formData: FormData) {
     redirect("/incident-reports?error=Child not found in this service");
   }
 
+  const possibleHarm = formData.get("possible_harm_indicator") === "1";
+  const reportMade = formData.get("mandatory_report_made") === "1";
+  const reportAt = formData.get("mandatory_report_at") as string;
+
   const { error } = await supabase.from("child_incident_reports").insert({
     owner_user_id: ownerUserId,
     created_by_user_id: user.id,
@@ -61,6 +65,10 @@ export async function createChildIncidentReport(formData: FormData) {
     witness_name: field(formData, "witness_name"),
     completed_by_name: completedByName,
     completed_by_role: field(formData, "completed_by_role"),
+    possible_harm_indicator: possibleHarm,
+    mandatory_report_made: reportMade ? true : null,
+    mandatory_report_at: reportMade && reportAt ? new Date(reportAt).toISOString() : null,
+    mandatory_report_by: reportMade ? user.id : null,
   });
 
   if (error) {

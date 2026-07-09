@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   const { data: service } = await supabase
     .from("services")
-    .select("name, display_name, logo_path")
+    .select("name, display_name, logo_path, preferred_observation_types, ai_data_notice_accepted_at")
     .maybeSingle();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -34,6 +34,8 @@ export default async function SettingsPage() {
         currentLogoUrl={logoUrl}
         currentDisplayName={service?.display_name ?? null}
         serviceName={service?.name ?? "My Service"}
+        preferredObservationTypes={service?.preferred_observation_types ?? ["anecdotal", "learning_story", "jotting"]}
+        aiDataNoticeAcceptedAt={service?.ai_data_notice_accepted_at ?? null}
       />
     </div>
   );
