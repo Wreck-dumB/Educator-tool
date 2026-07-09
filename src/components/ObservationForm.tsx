@@ -35,6 +35,17 @@ export default function ObservationForm({
 }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(defaultChildId ? [defaultChildId] : []),
+  );
+
+  function toggleChild(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -54,22 +65,49 @@ export default function ObservationForm({
       <input type="hidden" name="return_to" value={returnTo} />
 
       <div>
-        <label htmlFor="obs_child_id" className="block text-sm font-medium text-ink/70">
-          Child
-        </label>
-        <select
-          id="obs_child_id"
-          name="child_id"
-          required
-          defaultValue={defaultChildId ?? ""}
-          className={inputClass}
-        >
-          {children.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.first_name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center justify-between mb-1.5">
+          <p className="text-sm font-medium text-ink/70">
+            Children{selectedIds.size > 1 ? ` (${selectedIds.size} selected — group observation)` : ""}
+          </p>
+          {children.length > 1 && selectedIds.size < children.length && (
+            <button type="button" onClick={() => setSelectedIds(new Set(children.map((c) => c.id)))} className="text-xs text-coral-dark hover:underline">
+              Select all
+            </button>
+          )}
+          {selectedIds.size > 1 && (
+            <button type="button" onClick={() => setSelectedIds(new Set(defaultChildId ? [defaultChildId] : []))} className="text-xs text-ink/40 hover:text-coral-dark">
+              Clear
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {children.map((c) => {
+            const checked = selectedIds.has(c.id);
+            return (
+              <label
+                key={c.id}
+                className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
+                  checked
+                    ? "border-coral bg-coral text-white"
+                    : "border-coral-light bg-white text-ink/70 hover:border-coral hover:text-ink"
+                }`}
+              >
+                <input
+                  type="checkbox"
+                  name="child_id"
+                  value={c.id}
+                  checked={checked}
+                  onChange={() => toggleChild(c.id)}
+                  className="sr-only"
+                />
+                {c.first_name}
+              </label>
+            );
+          })}
+        </div>
+        {selectedIds.size === 0 && (
+          <p className="mt-1 text-xs text-coral-dark">Select at least one child</p>
+        )}
       </div>
 
       <div>
@@ -142,8 +180,8 @@ export default function ObservationForm({
         </div>
       )}
 
-      <button type="submit" className={`w-full ${primaryButtonClass}`}>
-        Log observation
+      <button type="submit" disabled={selectedIds.size === 0} className={`w-full ${primaryButtonClass} disabled:opacity-40`}>
+        {selectedIds.size > 1 ? `Log observation for ${selectedIds.size} children` : "Log observation"}
       </button>
     </form>
   );

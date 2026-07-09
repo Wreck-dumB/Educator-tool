@@ -13,6 +13,7 @@ const NAV_GROUPS = [
       { href: "/signin", label: "Sign In / Out" },
       { href: "/onsite", label: "On Site Board" },
       { href: "/attendance", label: "Roll Call" },
+      { href: "/casual-days", label: "Casual Days" },
     ],
   },
   {
@@ -42,6 +43,8 @@ const NAV_GROUPS = [
     items: [
       { href: "/children", label: "Children" },
       { href: "/rooms", label: "Rooms" },
+      { href: "/occupancy", label: "Occupancy" },
+      { href: "/waiting-list", label: "Waiting List" },
     ],
   },
   {
@@ -82,6 +85,8 @@ const NAV_GROUPS = [
     label: "Administration",
     items: [
       { href: "/staff", label: "Staff" },
+      { href: "/compliance", label: "Compliance Tracker" },
+      { href: "/invoices", label: "Invoices" },
       { href: "/settings", label: "Service Settings" },
     ],
   },

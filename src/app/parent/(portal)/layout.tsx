@@ -24,33 +24,49 @@ export default async function ParentPortalLayout({
     redirect("/generate");
   }
 
+  const { count: unreadCount } = await supabase
+    .from("parent_notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("recipient_user_id", user.id)
+    .is("read_at", null);
+
+  const unread = unreadCount ?? 0;
+
+  const NAV_LINKS = [
+    { href: "/parent", label: "Home" },
+    { href: "/parent/observations", label: "Observations" },
+    { href: "/parent/diary", label: "Diary" },
+    { href: "/parent/messages", label: "Messages" },
+    { href: "/parent/wall", label: "Wall" },
+    { href: "/parent/permission-slips", label: "Permission Slips" },
+    { href: "/parent/absences", label: "Absences" },
+    { href: "/parent/casual-days", label: "Casual Days" },
+  ];
+
   return (
     <div className="min-h-screen bg-cream">
       <header className="border-b border-coral-light bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-6">
-            <span className="font-display text-lg font-semibold text-coral-dark">SparkPlay for families</span>
-            <Link href="/parent" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
-              Children
-            </Link>
-            <Link href="/parent/observations" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
-              Observations
-            </Link>
-            <Link href="/parent/messages" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
-              Messages
-            </Link>
-            <Link href="/parent/wall" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
-              Wall
-            </Link>
-            <Link href="/parent/permission-slips" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
-              Permission Slips
-            </Link>
+        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4">
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="font-display text-base font-semibold text-coral-dark mr-3">SparkPlay</span>
+            {NAV_LINKS.map((l) => (
+              <Link key={l.href} href={l.href} className="rounded-full px-3 py-1 text-sm font-medium text-ink/60 hover:bg-coral-light hover:text-coral-dark transition-colors">
+                {l.label}
+              </Link>
+            ))}
           </div>
-          <form action={logout}>
-            <button type="submit" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
-              Log out
-            </button>
-          </form>
+          <div className="flex items-center gap-3 shrink-0">
+            {unread > 0 && (
+              <span className="rounded-full bg-coral px-2.5 py-0.5 text-xs font-bold text-white">
+                {unread} new
+              </span>
+            )}
+            <form action={logout}>
+              <button type="submit" className="text-sm font-medium text-ink/60 hover:text-coral-dark">
+                Log out
+              </button>
+            </form>
+          </div>
         </div>
       </header>
       <main className="mx-auto max-w-3xl px-4 py-6">{children}</main>

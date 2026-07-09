@@ -169,7 +169,7 @@ export async function getOnsiteData(date: string, ownerUserId: string) {
 
   const { data: children } = await supabase
     .from("children")
-    .select("id, first_name, date_of_birth, room_id")
+    .select("id, first_name, date_of_birth, room_id, is_anaphylaxis_risk, medical_conditions, dietary_restrictions, additional_needs")
     .in("id", [...signedInChildIds]);
 
   const { data: rooms } = await supabase.from("rooms").select("id, name");

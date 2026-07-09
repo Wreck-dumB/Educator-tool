@@ -187,6 +187,9 @@ export interface Database {
           owner_user_id: string;
           name: string;
           sort_order: number;
+          capacity: number | null;
+          min_age_months: number | null;
+          max_age_months: number | null;
           created_at: string;
         };
         Insert: {
@@ -194,6 +197,9 @@ export interface Database {
           owner_user_id: string;
           name: string;
           sort_order?: number;
+          capacity?: number | null;
+          min_age_months?: number | null;
+          max_age_months?: number | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["rooms"]["Insert"]>;
@@ -1253,6 +1259,118 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["staff_reflections"]["Insert"]>;
         Relationships: [];
       };
+      parent_absence_notifications: {
+        Row: {
+          id: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          absence_date: string;
+          reason: string | null;
+          created_at: string;
+          acknowledged_at: string | null;
+          acknowledged_by: string | null;
+        };
+        Insert: {
+          id?: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          absence_date: string;
+          reason?: string | null;
+          created_at?: string;
+          acknowledged_at?: string | null;
+          acknowledged_by?: string | null;
+        };
+        Update: Partial<Database["public"]["Tables"]["parent_absence_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      staff_compliance: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          compliance_type: "wwcc" | "first_aid" | "anaphylaxis" | "asthma" | "child_protection" | "fire_safety" | "food_safety" | "other";
+          label: string;
+          reference_number: string | null;
+          issued_date: string | null;
+          expiry_date: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          compliance_type: "wwcc" | "first_aid" | "anaphylaxis" | "asthma" | "child_protection" | "fire_safety" | "food_safety" | "other";
+          label: string;
+          reference_number?: string | null;
+          issued_date?: string | null;
+          expiry_date?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_compliance"]["Insert"]>;
+        Relationships: [];
+      };
+      parent_notifications: {
+        Row: {
+          id: string;
+          recipient_user_id: string;
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged";
+          title: string;
+          body: string | null;
+          href: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_user_id: string;
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged";
+          title: string;
+          body?: string | null;
+          href?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["parent_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      casual_day_requests: {
+        Row: {
+          id: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          requested_date: string;
+          session_type: "full_day" | "morning" | "afternoon";
+          notes: string | null;
+          status: "pending" | "approved" | "declined";
+          responded_by: string | null;
+          responded_at: string | null;
+          response_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          requested_date: string;
+          session_type?: "full_day" | "morning" | "afternoon";
+          notes?: string | null;
+          status?: "pending" | "approved" | "declined";
+          responded_by?: string | null;
+          responded_at?: string | null;
+          response_note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["casual_day_requests"]["Insert"]>;
+        Relationships: [];
+      };
       daily_nappy: {
         Row: {
           id: string;
@@ -1332,6 +1450,23 @@ export interface Database {
           eylf_codes: string[];
           shared_at: string;
         }[];
+      };
+      submit_absence_notification: {
+        Args: {
+          _child_id: string;
+          _absence_date: string;
+          _reason?: string | null;
+        };
+        Returns: string;
+      };
+      submit_casual_day_request: {
+        Args: {
+          _child_id: string;
+          _requested_date: string;
+          _session_type?: string;
+          _notes?: string | null;
+        };
+        Returns: string;
       };
     };
   };

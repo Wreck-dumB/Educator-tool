@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { getChildren } from "@/lib/supabase/children";
 import { getAttendanceForDate } from "@/lib/supabase/attendance";
 import { getRooms, getRoomStaffCountsForDate } from "@/lib/supabase/rooms";
 import { getObservations } from "@/lib/supabase/observations";
 import { getIncidentAlerts } from "@/lib/supabase/incidents";
 import { getExpiringHealthPlans } from "@/lib/supabase/healthPlans";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { cardClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
@@ -47,7 +49,10 @@ function greeting() {
 
 export default async function DashboardPage() {
   const date = todayLocal();
-  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans] = await Promise.all([
+  const supabase = await createClient();
+  const ownerUserId = await getMyServiceOwnerId();
+
+  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans, absenceRes] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
     getRooms(),
@@ -55,7 +60,19 @@ export default async function DashboardPage() {
     getObservations(),
     getIncidentAlerts(),
     getExpiringHealthPlans(30),
+    ownerUserId
+      ? supabase
+          .from("parent_absence_notifications")
+          .select("id, child_id, absence_date, reason, acknowledged_at")
+          .eq("educator_user_id", ownerUserId)
+          .gte("absence_date", date)
+          .order("absence_date")
+          .limit(20)
+      : Promise.resolve({ data: [] }),
   ]);
+
+  const absences = (absenceRes as { data: { id: string; child_id: string; absence_date: string; reason: string | null; acknowledged_at: string | null }[] | null }).data ?? [];
+  const childNameById = new Map(children.map((c) => [c.id, c.first_name]));
 
   const signedIn = records.filter((r) => r.status === "signed_in");
   const signedInIds = new Set(signedIn.map((r) => r.child_id));
@@ -156,6 +173,46 @@ export default async function DashboardPage() {
                 </li>
               );
             })}
+          </ul>
+        </div>
+      )}
+
+      {/* Parent absence notifications */}
+      {absences.length > 0 && (
+        <div className={`mt-4 border-l-4 border-sage bg-sage-light/40 p-4 rounded-2xl`}>
+          <h2 className="font-display text-sm font-semibold text-sage-dark mb-2">
+            Parent absence notifications ({absences.filter((a) => !a.acknowledged_at).length} unread)
+          </h2>
+          <ul className="space-y-1.5">
+            {absences.map((a) => (
+              <li key={a.id} className="flex items-center justify-between gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  {!a.acknowledged_at && (
+                    <span className="h-2 w-2 rounded-full bg-sage shrink-0" />
+                  )}
+                  <span className={`font-medium ${a.acknowledged_at ? "text-ink/50" : "text-ink"}`}>
+                    {childNameById.get(a.child_id) ?? "Unknown child"}
+                  </span>
+                  <span className="text-ink/50">
+                    {new Date(a.absence_date + "T00:00:00").toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" })}
+                  </span>
+                  {a.reason && <span className="text-ink/40">· {a.reason}</span>}
+                </div>
+                {!a.acknowledged_at && (
+                  <form action={async () => {
+                    "use server";
+                    const s = await (await import("@/lib/supabase/server")).createClient();
+                    await s.from("parent_absence_notifications").update({ acknowledged_at: new Date().toISOString(), acknowledged_by: (await s.auth.getUser()).data.user?.id }).eq("id", a.id);
+                    const { revalidatePath } = await import("next/cache");
+                    revalidatePath("/dashboard");
+                  }}>
+                    <button type="submit" className="shrink-0 rounded-full bg-sage/20 px-2.5 py-0.5 text-xs font-semibold text-sage-dark hover:bg-sage/40">
+                      Ack
+                    </button>
+                  </form>
+                )}
+              </li>
+            ))}
           </ul>
         </div>
       )}

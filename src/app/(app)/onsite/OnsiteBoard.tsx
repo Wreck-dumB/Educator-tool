@@ -54,6 +54,10 @@ interface ChildOnsite {
   room_id: string | null;
   room_name: string | null;
   signed_in_at: string;
+  is_anaphylaxis_risk: boolean | null;
+  medical_conditions: string | null;
+  dietary_restrictions: string | null;
+  additional_needs: string | null;
 }
 
 interface StaffOnsite {
@@ -92,6 +96,10 @@ type DetailModal = {
   room: string | null;
   signedIn: string;
   dob: string | null;
+  isAnaphylaxisRisk: boolean | null;
+  medicalConditions: string | null;
+  dietaryRestrictions: string | null;
+  additionalNeeds: string | null;
 } | {
   type: "staff";
   name: string;
@@ -187,6 +195,48 @@ export default function OnsiteBoard({
         </div>
       </div>
 
+      {/* Medical alerts — children currently on site with health flags */}
+      {(() => {
+        const alerts = children.filter(
+          (c) => c.is_anaphylaxis_risk || c.medical_conditions || c.dietary_restrictions || c.additional_needs,
+        );
+        if (alerts.length === 0) return null;
+        return (
+          <div className="rounded-2xl border-2 border-coral bg-coral-light/40 px-4 py-4">
+            <p className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-coral-dark">
+              <span aria-hidden>⚠️</span> Medical / Dietary Alerts — {alerts.length} child{alerts.length !== 1 ? "ren" : ""} on site
+            </p>
+            <div className="flex flex-col gap-3">
+              {alerts.map((c) => (
+                <div key={c.id} className="rounded-xl bg-white px-4 py-3">
+                  <p className="font-display font-semibold text-ink">{c.first_name}</p>
+                  {c.is_anaphylaxis_risk && (
+                    <p className="mt-1 rounded-lg bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-700">
+                      ANAPHYLAXIS RISK — EpiPen protocol applies
+                    </p>
+                  )}
+                  {c.medical_conditions && (
+                    <p className="mt-1 text-sm text-ink/80">
+                      <span className="font-semibold text-coral-dark">Medical: </span>{c.medical_conditions}
+                    </p>
+                  )}
+                  {c.dietary_restrictions && (
+                    <p className="mt-1 text-sm text-ink/80">
+                      <span className="font-semibold text-coral-dark">Dietary: </span>{c.dietary_restrictions}
+                    </p>
+                  )}
+                  {c.additional_needs && (
+                    <p className="mt-1 text-sm text-ink/80">
+                      <span className="font-semibold text-ink/60">Notes: </span>{c.additional_needs}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Person cards — 3 columns */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
 
@@ -210,12 +260,22 @@ export default function OnsiteBoard({
                     room: c.room_name,
                     signedIn: c.signed_in_at,
                     dob: c.date_of_birth,
+                    isAnaphylaxisRisk: c.is_anaphylaxis_risk,
+                    medicalConditions: c.medical_conditions,
+                    dietaryRestrictions: c.dietary_restrictions,
+                    additionalNeeds: c.additional_needs,
                   })
                 }
-                className="flex items-center justify-between rounded-xl border border-coral-light bg-white px-3 py-2.5 text-left hover:bg-coral-light/30 transition-colors"
+                className={`flex items-center justify-between rounded-xl border bg-white px-3 py-2.5 text-left hover:bg-coral-light/30 transition-colors ${c.is_anaphylaxis_risk ? "border-red-300" : "border-coral-light"}`}
               >
                 <div>
-                  <p className="text-sm font-semibold text-ink">{c.first_name}</p>
+                  <p className="flex items-center gap-1.5 text-sm font-semibold text-ink">
+                    {c.first_name}
+                    {c.is_anaphylaxis_risk && <span className="text-red-600 text-xs font-bold">EPI</span>}
+                    {!c.is_anaphylaxis_risk && (c.medical_conditions || c.dietary_restrictions) && (
+                      <span className="text-amber-600 text-xs">⚠</span>
+                    )}
+                  </p>
                   {c.room_name && (
                     <p className="text-xs text-ink/40">{c.room_name}</p>
                   )}
@@ -435,7 +495,34 @@ export default function OnsiteBoard({
                     DOB: {new Date(modal.dob).toLocaleDateString("en-AU")} ({ageInMonths(modal.dob)} months)
                   </p>
                 )}
-                <p className="mt-2 text-sm text-ink/60">Signed in at {formatTime(modal.signedIn)}</p>
+                <p className="mt-1 text-sm text-ink/60">Signed in at {formatTime(modal.signedIn)}</p>
+                {(modal.isAnaphylaxisRisk || modal.medicalConditions || modal.dietaryRestrictions || modal.additionalNeeds) && (
+                  <div className="mt-3 flex flex-col gap-1.5">
+                    {modal.isAnaphylaxisRisk && (
+                      <p className="rounded-lg bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">
+                        ANAPHYLAXIS RISK — EpiPen protocol applies
+                      </p>
+                    )}
+                    {modal.medicalConditions && (
+                      <div className="rounded-lg bg-coral-light/40 px-3 py-2">
+                        <p className="text-xs font-semibold text-coral-dark">Medical conditions</p>
+                        <p className="text-sm text-ink">{modal.medicalConditions}</p>
+                      </div>
+                    )}
+                    {modal.dietaryRestrictions && (
+                      <div className="rounded-lg bg-amber-50 px-3 py-2">
+                        <p className="text-xs font-semibold text-amber-700">Dietary restrictions</p>
+                        <p className="text-sm text-ink">{modal.dietaryRestrictions}</p>
+                      </div>
+                    )}
+                    {modal.additionalNeeds && (
+                      <div className="rounded-lg bg-ink/5 px-3 py-2">
+                        <p className="text-xs font-semibold text-ink/60">Additional needs / notes</p>
+                        <p className="text-sm text-ink">{modal.additionalNeeds}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             )}
             {modal.type === "staff" && (
