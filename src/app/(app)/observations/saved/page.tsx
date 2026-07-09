@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { shareObservation } from "@/app/(app)/observations/actions";
 import { updateChildInterests } from "@/app/(app)/children/actions";
 import { addActivityToProgram } from "@/app/(app)/programs/actions";
+import { addFollowUp } from "@/app/(app)/follow-ups/actions";
 import { cardClass, errorBannerClass, inputClass } from "@/lib/ui";
 
 export default async function ObservationSavedPage({
@@ -195,6 +196,31 @@ export default async function ObservationSavedPage({
                     </p>
                   </div>
                 )}
+
+                {/* Note a follow-up */}
+                <details className="group px-4 py-3">
+                  <summary className="cursor-pointer list-none text-sm font-medium text-ink">
+                    Note a follow-up for {child.first_name}
+                    <span className="ml-2 text-xs text-ink/40 group-open:hidden">What to explore next</span>
+                  </summary>
+                  <form action={addFollowUp} className="mt-3">
+                    <input type="hidden" name="child_id" value={child.id} />
+                    <input type="hidden" name="observation_id" value={obs.id} />
+                    <input type="hidden" name="return_to" value={savedUrl} />
+                    <textarea
+                      name="note"
+                      rows={2}
+                      placeholder="e.g. Wants to try mixing colours with water — explore colour theory experiments"
+                      className={`${inputClass} resize-none`}
+                    />
+                    <button
+                      type="submit"
+                      className="mt-2 rounded-full bg-coral-light px-4 py-1.5 text-xs font-semibold text-coral-dark hover:bg-coral/20 transition-colors"
+                    >
+                      Save follow-up
+                    </button>
+                  </form>
+                </details>
               </div>
             </div>
           );

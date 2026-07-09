@@ -1438,6 +1438,34 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["waiting_list_enquiries"]["Insert"]>;
         Relationships: [];
       };
+      child_follow_ups: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          observation_id: string | null;
+          note: string;
+          status: "open" | "done";
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          observation_id?: string | null;
+          note: string;
+          status?: "open" | "done";
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          note?: string;
+          status?: "open" | "done";
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
       casual_day_requests: {
         Row: {
           id: string;

@@ -1114,3 +1114,56 @@ Rules:
   if (!activity) throw new Error("No activity returned");
   return activity;
 }
+
+// =========================================
+// Group activity generation from follow-ups
+// =========================================
+
+export async function generateGroupActivity(
+  followUpNotes: string[],
+  outcomes: EylfOutcome[],
+): Promise<RawActivitySuggestion> {
+  const taxonomy = outcomes
+    .map((o) => `${o.code} (Outcome ${o.outcome_number}) — ${o.sub_outcome_text}`)
+    .join("\n");
+
+  const system = `You are an expert early childhood educator using the Australian Early Years Learning Framework (EYLF V2.0).
+You are given a list of follow-up intentions for different children — things educators want to explore next with each child.
+Your job is to propose ONE group activity that addresses as many of these interests and learning threads as possible, suitable for a whole group or small group setting.
+
+EYLF V2.0 taxonomy:
+${taxonomy}
+
+Rules:
+- Propose exactly ONE group activity
+- The activity must meaningfully connect to ALL or most of the listed follow-up intentions
+- Choose EYLF outcomes that are genuinely covered by the activity — only from the taxonomy above
+- Make it practical, inclusive, and doable in a typical early childhood centre
+PRIVACY: Never include or repeat any child's name, date of birth, or any personal identifier in your response.`;
+
+  const noteList = followUpNotes.map((n, i) => `${i + 1}. ${n}`).join("\n");
+  const userMsg = `Here are the follow-up intentions for different children in the group:\n\n${noteList}\n\nPropose one group activity that addresses as many of these threads as possible. Use the propose_activities tool with exactly one activity.`;
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const client = new Anthropic({ apiKey });
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    system,
+    messages: [{ role: "user", content: userMsg }],
+    tools: [makeActivitiesTool(1)],
+    tool_choice: { type: "tool", name: "propose_activities" },
+  });
+
+  const toolUse = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Model did not return a tool call");
+
+  const result = toolUse.input as { activities?: RawActivitySuggestion[] };
+  const activity = result.activities?.[0];
+  if (!activity) throw new Error("No activity returned");
+  return activity;
+}

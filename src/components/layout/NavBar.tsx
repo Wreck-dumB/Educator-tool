@@ -21,6 +21,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/dashboard", label: "Dashboard" },
       { href: "/digest", label: "Daily Digest" },
+      { href: "/follow-ups", label: "Follow-ups" },
     ],
   },
   {
