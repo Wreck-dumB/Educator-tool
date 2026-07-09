@@ -1,11 +1,15 @@
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { getOrCreateQip, getQipItems, getNqsStandards } from "@/lib/supabase/qip";
 import { getMyStaffRole } from "@/lib/supabase/staff";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { cardClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
 import QipGeneratorForm from "./QipGeneratorForm";
 import StatusSelect from "./StatusSelect";
 import { deleteQipItem, updateQipContextNotes } from "./actions";
 import type { QipItem } from "@/lib/types/domain";
+import type { QipCheckinResponse } from "@/lib/types/database.types";
 
 const QUALITY_AREA_TITLES: Record<number, string> = {
   1: "Educational program and practice",
@@ -24,12 +28,34 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default async function QipPage() {
-  const [qip, myRole] = await Promise.all([getOrCreateQip(), getMyStaffRole()]);
+  const [qip, myRole, ownerUserId] = await Promise.all([
+    getOrCreateQip(),
+    getMyStaffRole(),
+    getMyServiceOwnerId(),
+  ]);
   if (!qip) return null;
   const canManage = myRole === "director" || myRole === "2ic";
   const isDirector = myRole === "director";
 
-  const [items, standards] = await Promise.all([getQipItems(qip.id), getNqsStandards()]);
+  const today = new Date().toISOString().slice(0, 10);
+  const supabase = await createClient();
+
+  const [items, standards, { data: todayCheckin }, { data: recentCheckins }] = await Promise.all([
+    getQipItems(qip.id),
+    getNqsStandards(),
+    supabase
+      .from("qip_daily_checkins")
+      .select("checkin_date, flagged_areas, responses")
+      .eq("owner_user_id", ownerUserId ?? "")
+      .eq("checkin_date", today)
+      .maybeSingle(),
+    supabase
+      .from("qip_daily_checkins")
+      .select("checkin_date, flagged_areas")
+      .eq("owner_user_id", ownerUserId ?? "")
+      .order("checkin_date", { ascending: false })
+      .limit(7),
+  ]);
   const standardTitleByCode = new Map(standards.map((s) => [s.code, s.standard_title]));
 
   const itemsByArea = items.reduce<Record<number, QipItem[]>>((acc, item) => {
@@ -49,6 +75,67 @@ export default async function QipPage() {
           </p>
         </div>
         <PrintButton />
+      </div>
+
+      {/* Daily check-in strip */}
+      <div className="mt-5 print:hidden">
+        {todayCheckin ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sage-light bg-sage-light/40 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sage-dark">✓</span>
+              <span className="text-sm font-medium text-sage-dark">
+                Today&apos;s QIP check-in complete
+              </span>
+              {(todayCheckin.flagged_areas as number[]).length > 0 && (
+                <span className="rounded-full bg-coral-light px-2 py-0.5 text-xs font-semibold text-coral-dark">
+                  ⚑ QA{(todayCheckin.flagged_areas as number[]).join(", ")} flagged
+                </span>
+              )}
+            </div>
+            <Link
+              href={`/qip/checkin?date=${today}`}
+              className="text-xs font-semibold text-sage-dark hover:underline"
+            >
+              View / edit →
+            </Link>
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Today&apos;s QIP check-in not done yet</p>
+              <p className="text-xs text-amber-700">
+                NSW regulations require QIP evidence producible within 24&nbsp;hours — takes under 2&nbsp;minutes.
+              </p>
+            </div>
+            <Link
+              href="/qip/checkin"
+              className="shrink-0 rounded-full bg-amber-400 px-4 py-2 text-xs font-bold text-white hover:bg-amber-500"
+            >
+              Start check-in →
+            </Link>
+          </div>
+        )}
+
+        {/* Last 7 days mini strip */}
+        {recentCheckins && recentCheckins.length > 0 && (
+          <div className="mt-2 flex items-center gap-1.5 px-1">
+            <span className="text-[10px] text-ink/40">Last 7 days:</span>
+            {recentCheckins.map((r) => {
+              const flagged = r.flagged_areas as number[];
+              return (
+                <Link
+                  key={r.checkin_date}
+                  href={`/qip/checkin?date=${r.checkin_date}`}
+                  title={new Date(r.checkin_date + "T12:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "short" }) + (flagged.length > 0 ? ` — QA${flagged.join(",")} flagged` : " — all good")}
+                  className={`h-3 w-3 rounded-full transition-transform hover:scale-125 ${flagged.length > 0 ? "bg-coral" : "bg-sage"}`}
+                />
+              );
+            })}
+            <Link href="/qip/checkin" className="ml-1 text-[10px] text-coral-dark hover:underline">
+              Full history →
+            </Link>
+          </div>
+        )}
       </div>
 
       {canManage && (

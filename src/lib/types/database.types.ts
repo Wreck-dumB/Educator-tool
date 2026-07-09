@@ -28,6 +28,13 @@ export interface RoutineBlock {
   activity_id?: string | null;
   type: "routine" | "activity" | "meal" | "rest" | "outdoor" | "transition";
 }
+export interface QipCheckinResponse {
+  qa: number;
+  question: string;
+  answer: "yes" | "mostly" | "no";
+  notes: string;
+}
+
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 export type SessionPreference = "full_day" | "morning" | "afternoon" | "flexible";
 export type StaffRole = "director" | "2ic" | "staff";
@@ -1529,6 +1536,38 @@ export interface Database {
           note?: string;
           status?: "open" | "done";
           resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
+      qip_daily_checkins: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          checkin_date: string;
+          responses: QipCheckinResponse[];
+          overall_notes: string | null;
+          submitted_by: string;
+          flagged_areas: number[];
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          checkin_date: string;
+          responses?: QipCheckinResponse[];
+          overall_notes?: string | null;
+          submitted_by: string;
+          flagged_areas?: number[];
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          responses?: QipCheckinResponse[];
+          overall_notes?: string | null;
+          submitted_by?: string;
+          flagged_areas?: number[];
+          updated_at?: string;
         };
         Relationships: [];
       };
