@@ -3,6 +3,7 @@ import { getMyService, getStaffMembers, getStaffInvites } from "@/lib/supabase/s
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createStaffInvite, revokeStaffInvite, setStaffMemberStatus } from "./actions";
 import RoleSelect from "./RoleSelect";
+import AttendanceExport from "./AttendanceExport";
 
 const ROLE_LABELS: Record<string, string> = {
   director: "Director",
@@ -76,6 +77,16 @@ export default async function StaffPage({
           ))}
         </ul>
       </div>
+
+      {canManage && (
+        <div className={`mt-6 p-4 ${cardClass}`}>
+          <h2 className="font-display text-sm font-semibold text-ink">Attendance export</h2>
+          <p className="mt-1 text-xs text-ink/50">
+            Download staff sign-in/out records as a CSV for payroll or compliance. Times are AEST.
+          </p>
+          <AttendanceExport />
+        </div>
+      )}
 
       {canManage && (
         <div className={`mt-6 p-4 ${cardClass}`}>

@@ -11,6 +11,7 @@ import {
   deleteChildContact,
 } from "@/app/(app)/children/actions";
 import { getObservations } from "@/lib/supabase/observations";
+import ObservationList from "@/components/ObservationList";
 import { getRooms } from "@/lib/supabase/rooms";
 import { getMyStaffRole } from "@/lib/supabase/staff";
 import { assignChildToRoom } from "@/app/(app)/rooms/actions";
@@ -420,40 +421,20 @@ export default async function ChildDetailPage({
         </div>
       </div>
 
-      <div className={`mt-6 print:hidden ${cardClass}`}>
-        <div className="border-b border-coral-light px-4 py-3">
-          <h2 className="font-display text-sm font-semibold text-ink">Observations</h2>
-        </div>
+      <div className="mt-6 print:hidden">
         {observations.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-ink/50">
-            Logged observations for {child.first_name} will appear here once you start saving
-            them from generated activities.
-          </p>
+          <div className={`p-5 ${cardClass}`}>
+            <p className="text-sm text-ink/50">
+              Logged observations for {child.first_name} will appear here once you start saving
+              them from generated activities.
+            </p>
+          </div>
         ) : (
-          <ul className="divide-y divide-coral-light">
-            {observations.map((o) => (
-              <li key={o.id} className="px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-ink/80">{o.note_text}</p>
-                  <p className="ml-3 shrink-0 text-xs text-ink/40">
-                    {new Date(o.observed_at).toLocaleDateString()}
-                  </p>
-                </div>
-                {o.eylf_codes.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {o.eylf_codes.map((code) => (
-                      <span
-                        key={code}
-                        className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark"
-                      >
-                        {code}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
+          <ObservationList
+            observations={observations}
+            title="Observations"
+            childContextMap={new Map([[child.id, { id: child.id, interests: child.current_interests }]])}
+          />
         )}
       </div>
 

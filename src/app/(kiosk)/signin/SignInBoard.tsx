@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useCallback, useEffect } from "react";
+import { useState, useTransition, useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import type { ChildSignInRow, StaffSignInRow, VisitorSignInRow } from "@/lib/supabase/signinBoard";
 import {
@@ -14,6 +14,28 @@ import {
 
 type Tab = "children" | "staff" | "visitors";
 
+type OfflineAction =
+  | { type: "signInChild"; childId: string; ts: number }
+  | { type: "signOutChild"; childId: string; ts: number }
+  | { type: "signInStaff"; ts: number }
+  | { type: "signOutStaff"; staffUserId: string; ts: number }
+  | { type: "addVisitor"; name: string; company: string; reason: string; ts: number }
+  | { type: "signOutVisitor"; visitorId: string; ts: number };
+
+const QUEUE_KEY = "sparkplay-kiosk-queue";
+
+function loadQueue(): OfflineAction[] {
+  try {
+    return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveQueue(q: OfflineAction[]) {
+  localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+}
+
 function formatTime(ts: string | null): string {
   if (!ts) return "";
   return new Date(ts).toLocaleTimeString("en-AU", {
@@ -23,18 +45,42 @@ function formatTime(ts: string | null): string {
   });
 }
 
-interface ChildCardProps {
-  child: ChildSignInRow;
-  currentUserId: string;
+function nowIso() {
+  return new Date().toISOString();
 }
 
-function ChildCard({ child }: ChildCardProps) {
+// ──────────────────────────────────────────────────────────────────────────────
+// ChildCard
+// ──────────────────────────────────────────────────────────────────────────────
+
+interface ChildCardProps {
+  child: ChildSignInRow;
+  optimisticStatus: ChildSignInRow["attendance_status"] | undefined;
+  isOnline: boolean;
+  onQueueAction: (a: OfflineAction) => void;
+  onOptimistic: (id: string, status: ChildSignInRow["attendance_status"]) => void;
+}
+
+function ChildCard({ child, optimisticStatus, isOnline, onQueueAction, onOptimistic }: ChildCardProps) {
   const [pending, startTransition] = useTransition();
-  const signedIn = child.attendance_status === "signed_in";
+  const effectiveStatus = optimisticStatus ?? child.attendance_status;
+  const signedIn = effectiveStatus === "signed_in";
   const absent = child.attendance_status === "absent";
 
   function handleTap() {
-    if (absent) return;
+    if (absent || pending) return;
+    const nextStatus = signedIn ? "signed_out" : "signed_in";
+    onOptimistic(child.id, nextStatus);
+
+    if (!isOnline) {
+      onQueueAction(
+        signedIn
+          ? { type: "signOutChild", childId: child.id, ts: Date.now() }
+          : { type: "signInChild", childId: child.id, ts: Date.now() },
+      );
+      return;
+    }
+
     startTransition(async () => {
       if (signedIn) {
         await signOutChild(child.id);
@@ -43,6 +89,8 @@ function ChildCard({ child }: ChildCardProps) {
       }
     });
   }
+
+  const queued = optimisticStatus !== undefined;
 
   return (
     <button
@@ -59,18 +107,19 @@ function ChildCard({ child }: ChildCardProps) {
     >
       <span className="font-display text-base font-semibold text-ink leading-tight">
         {child.first_name}
+        {queued && !isOnline && (
+          <span className="ml-1.5 text-[10px] font-normal text-amber-600">(queued)</span>
+        )}
       </span>
       {signedIn && (
         <span className="mt-1 text-xs font-medium text-sage-dark">
           IN {formatTime(child.signed_in_at)}
         </span>
       )}
-      {child.attendance_status === "signed_out" && (
-        <span className="mt-1 text-xs text-ink/40">
-          Was here · tap to re-sign in
-        </span>
+      {effectiveStatus === "signed_out" && (
+        <span className="mt-1 text-xs text-ink/40">Was here · tap to re-sign in</span>
       )}
-      {!child.attendance_status && !absent && (
+      {!effectiveStatus && !absent && (
         <span className="mt-1 text-xs text-ink/40">Tap to sign in</span>
       )}
       {absent && <span className="mt-1 text-xs text-ink/40">Marked absent</span>}
@@ -89,20 +138,43 @@ function ChildCard({ child }: ChildCardProps) {
   );
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// StaffCard
+// ──────────────────────────────────────────────────────────────────────────────
+
 interface StaffCardProps {
   staff: StaffSignInRow;
   currentUserId: string;
+  isOnline: boolean;
+  onQueueAction: (a: OfflineAction) => void;
+  optimisticSignedIn: boolean | undefined;
+  onOptimistic: (userId: string, signedIn: boolean) => void;
 }
 
-function StaffCard({ staff, currentUserId }: StaffCardProps) {
+function StaffCard({ staff, currentUserId, isOnline, onQueueAction, optimisticSignedIn, onOptimistic }: StaffCardProps) {
   const [pending, startTransition] = useTransition();
-  const signedIn = !!staff.signed_in_at && !staff.signed_out_at;
-  const signedOut = !!staff.signed_out_at;
+  const effectiveSignedIn = optimisticSignedIn ?? (!!staff.signed_in_at && !staff.signed_out_at);
+  const signedOut = optimisticSignedIn === false || (optimisticSignedIn === undefined && !!staff.signed_out_at);
   const isMe = staff.user_id === currentUserId;
+  const canTap = isMe || effectiveSignedIn;
+  const queued = optimisticSignedIn !== undefined;
 
   function handleTap() {
+    if (!canTap || pending) return;
+    const next = !effectiveSignedIn;
+    onOptimistic(staff.user_id, next);
+
+    if (!isOnline) {
+      onQueueAction(
+        effectiveSignedIn
+          ? { type: "signOutStaff", staffUserId: staff.user_id, ts: Date.now() }
+          : { type: "signInStaff", ts: Date.now() },
+      );
+      return;
+    }
+
     startTransition(async () => {
-      if (signedIn) {
+      if (effectiveSignedIn) {
         await signOutStaff(staff.user_id);
       } else {
         await signInStaff();
@@ -110,15 +182,13 @@ function StaffCard({ staff, currentUserId }: StaffCardProps) {
     });
   }
 
-  const canTap = isMe || signedIn;
-
   return (
     <button
       type="button"
       onClick={handleTap}
       disabled={pending || !canTap}
       className={`flex min-h-[88px] w-full flex-col items-start justify-between rounded-2xl border-2 px-4 py-3 text-left transition-all active:scale-95 disabled:opacity-40 ${
-        signedIn
+        effectiveSignedIn
           ? "border-sage bg-sage-light hover:bg-sage-light/70"
           : signedOut
           ? "border-ink/10 bg-ink/5"
@@ -128,45 +198,52 @@ function StaffCard({ staff, currentUserId }: StaffCardProps) {
       <div className="flex w-full items-start justify-between gap-2">
         <span className="font-display text-base font-semibold text-ink leading-tight">
           {staff.display_name}
+          {queued && !isOnline && (
+            <span className="ml-1.5 text-[10px] font-normal text-amber-600">(queued)</span>
+          )}
         </span>
         <span className="shrink-0 rounded-full bg-ink/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-ink/40">
           {staff.role}
         </span>
       </div>
-      {signedIn && (
+      {effectiveSignedIn && (
         <span className="mt-1 text-xs font-medium text-sage-dark">
           IN {formatTime(staff.signed_in_at)}
         </span>
       )}
-      {signedOut && (
-        <span className="mt-1 text-xs text-ink/40">
-          Left {formatTime(staff.signed_out_at)}
-        </span>
+      {signedOut && !effectiveSignedIn && (
+        <span className="mt-1 text-xs text-ink/40">Left {formatTime(staff.signed_out_at)}</span>
       )}
-      {!signedIn && !signedOut && isMe && (
+      {!effectiveSignedIn && !signedOut && isMe && (
         <span className="mt-1 text-xs text-ink/40">Tap to sign yourself in</span>
       )}
-      {!signedIn && !signedOut && !isMe && (
+      {!effectiveSignedIn && !signedOut && !isMe && (
         <span className="mt-1 text-xs text-ink/40">Not signed in</span>
       )}
       {canTap && (
         <span
           className={`mt-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest ${
-            signedIn ? "bg-sage text-white" : "bg-coral-light text-coral-dark"
+            effectiveSignedIn ? "bg-sage text-white" : "bg-coral-light text-coral-dark"
           }`}
         >
-          {signedIn ? "Sign Out" : "Sign In"}
+          {effectiveSignedIn ? "Sign Out" : "Sign In"}
         </span>
       )}
     </button>
   );
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// VisitorForm
+// ──────────────────────────────────────────────────────────────────────────────
+
 interface VisitorFormProps {
   onDone: () => void;
+  isOnline: boolean;
+  onQueueAction: (a: OfflineAction) => void;
 }
 
-function VisitorForm({ onDone }: VisitorFormProps) {
+function VisitorForm({ onDone, isOnline, onQueueAction }: VisitorFormProps) {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [reason, setReason] = useState("");
@@ -176,55 +253,34 @@ function VisitorForm({ onDone }: VisitorFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
+    if (!isOnline) {
+      onQueueAction({ type: "addVisitor", name: name.trim(), company: company.trim(), reason: reason.trim(), ts: Date.now() });
+      setName(""); setCompany(""); setReason("");
+      onDone();
+      return;
+    }
+
     startTransition(async () => {
       const result = await addVisitor(name, company, reason);
       if (result.error) {
         setError(result.error);
       } else {
-        setName("");
-        setCompany("");
-        setReason("");
+        setName(""); setCompany(""); setReason("");
         onDone();
       }
     });
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-2xl border border-coral-light bg-white p-4 mb-4"
-    >
+    <form onSubmit={handleSubmit} className="rounded-2xl border border-coral-light bg-white p-4 mb-4">
       <p className="mb-3 text-sm font-semibold text-ink">Sign in a visitor</p>
       <div className="flex flex-col gap-2">
-        <input
-          type="text"
-          placeholder="Full name *"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-          className="rounded-xl border border-coral-light px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none"
-        />
-        <input
-          type="text"
-          placeholder="Company / organisation (optional)"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          className="rounded-xl border border-coral-light px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none"
-        />
-        <input
-          type="text"
-          placeholder="Reason for visit *"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          required
-          className="rounded-xl border border-coral-light px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none"
-        />
+        <input type="text" placeholder="Full name *" value={name} onChange={(e) => setName(e.target.value)} required className="rounded-xl border border-coral-light px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none" />
+        <input type="text" placeholder="Company / organisation (optional)" value={company} onChange={(e) => setCompany(e.target.value)} className="rounded-xl border border-coral-light px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none" />
+        <input type="text" placeholder="Reason for visit *" value={reason} onChange={(e) => setReason(e.target.value)} required className="rounded-xl border border-coral-light px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none" />
         {error && <p className="text-xs text-coral-dark">{error}</p>}
-        <button
-          type="submit"
-          disabled={pending || !name.trim() || !reason.trim()}
-          className="rounded-full bg-coral py-2.5 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
-        >
+        <button type="submit" disabled={pending || !name.trim() || !reason.trim()} className="rounded-full bg-coral py-2.5 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors">
           {pending ? "Signing in…" : "Sign In Visitor"}
         </button>
       </div>
@@ -232,46 +288,42 @@ function VisitorForm({ onDone }: VisitorFormProps) {
   );
 }
 
+// ──────────────────────────────────────────────────────────────────────────────
+// VisitorCard
+// ──────────────────────────────────────────────────────────────────────────────
+
 interface VisitorCardProps {
   visitor: VisitorSignInRow;
+  isOnline: boolean;
+  onQueueAction: (a: OfflineAction) => void;
 }
 
-function VisitorCard({ visitor }: VisitorCardProps) {
+function VisitorCard({ visitor, isOnline, onQueueAction }: VisitorCardProps) {
   const [pending, startTransition] = useTransition();
   const [showDetail, setShowDetail] = useState(false);
-  const signedOut = !!visitor.signed_out_at;
+  const [optimisticOut, setOptimisticOut] = useState(false);
+  const signedOut = optimisticOut || !!visitor.signed_out_at;
 
   function handleSignOut() {
+    setOptimisticOut(true);
+    if (!isOnline) {
+      onQueueAction({ type: "signOutVisitor", visitorId: visitor.id, ts: Date.now() });
+      return;
+    }
     startTransition(async () => {
       await signOutVisitor(visitor.id);
     });
   }
 
   return (
-    <div
-      className={`rounded-2xl border-2 px-4 py-3 transition-all ${
-        signedOut
-          ? "border-ink/10 bg-ink/5 opacity-60"
-          : "border-amber-200 bg-amber-50"
-      }`}
-    >
+    <div className={`rounded-2xl border-2 px-4 py-3 transition-all ${signedOut ? "border-ink/10 bg-ink/5 opacity-60" : "border-amber-200 bg-amber-50"}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <button
-            type="button"
-            onClick={() => setShowDetail(!showDetail)}
-            className="font-display text-base font-semibold text-ink text-left leading-tight hover:text-coral-dark"
-          >
+          <button type="button" onClick={() => setShowDetail(!showDetail)} className="font-display text-base font-semibold text-ink text-left leading-tight hover:text-coral-dark">
             {visitor.name}
           </button>
-          {visitor.company && (
-            <p className="text-xs text-ink/50 mt-0.5">{visitor.company}</p>
-          )}
-          {showDetail && (
-            <p className="mt-1 text-sm text-ink/70 bg-white/70 rounded-lg px-2 py-1">
-              {visitor.reason}
-            </p>
-          )}
+          {visitor.company && <p className="text-xs text-ink/50 mt-0.5">{visitor.company}</p>}
+          {showDetail && <p className="mt-1 text-sm text-ink/70 bg-white/70 rounded-lg px-2 py-1">{visitor.reason}</p>}
           <p className="mt-1 text-xs text-ink/50">
             {signedOut
               ? `In ${formatTime(visitor.signed_in_at)} · Out ${formatTime(visitor.signed_out_at)}`
@@ -279,12 +331,7 @@ function VisitorCard({ visitor }: VisitorCardProps) {
           </p>
         </div>
         {!signedOut && (
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={pending}
-            className="shrink-0 rounded-full bg-ink/10 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-coral-light hover:text-coral-dark disabled:opacity-50 transition-colors"
-          >
+          <button type="button" onClick={handleSignOut} disabled={pending} className="shrink-0 rounded-full bg-ink/10 px-3 py-1.5 text-xs font-semibold text-ink hover:bg-coral-light hover:text-coral-dark disabled:opacity-50 transition-colors">
             {pending ? "…" : "Sign Out"}
           </button>
         )}
@@ -292,6 +339,10 @@ function VisitorCard({ visitor }: VisitorCardProps) {
     </div>
   );
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Main SignInBoard
+// ──────────────────────────────────────────────────────────────────────────────
 
 interface Props {
   children: ChildSignInRow[];
@@ -304,43 +355,106 @@ interface Props {
 export default function SignInBoard({ children, staff, visitors, currentUserId, today }: Props) {
   const [tab, setTab] = useState<Tab>("children");
   const router = useRouter();
+  const [isOnline, setIsOnline] = useState(() =>
+    typeof navigator !== "undefined" ? navigator.onLine : true,
+  );
+  const [offlineQueue, setOfflineQueue] = useState<OfflineAction[]>(() => loadQueue());
+  const [replaying, setReplaying] = useState(false);
+  // Optimistic overrides: child/staff IDs → expected state
+  const [childOptimistic, setChildOptimistic] = useState<Map<string, ChildSignInRow["attendance_status"]>>(new Map());
+  const [staffOptimistic, setStaffOptimistic] = useState<Map<string, boolean>>(new Map());
+  const replayedRef = useRef(false);
 
   const refresh = useCallback(() => router.refresh(), [router]);
 
+  // 30-second auto-refresh
   useEffect(() => {
     const interval = setInterval(refresh, 30_000);
     return () => clearInterval(interval);
   }, [refresh]);
 
-  const signedInCount = children.filter((c) => c.attendance_status === "signed_in").length;
-  const staffInCount = staff.filter((s) => !!s.signed_in_at && !s.signed_out_at).length;
+  // Online/offline events
+  useEffect(() => {
+    function handleOnline() {
+      setIsOnline(true);
+    }
+    function handleOffline() {
+      setIsOnline(false);
+    }
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
+
+  // Replay queue when we come back online
+  useEffect(() => {
+    if (!isOnline || replaying) return;
+    const queue = loadQueue();
+    if (queue.length === 0) return;
+    if (replayedRef.current) return;
+    replayedRef.current = true;
+
+    (async () => {
+      setReplaying(true);
+      for (const action of queue) {
+        try {
+          switch (action.type) {
+            case "signInChild": await signInChild(action.childId); break;
+            case "signOutChild": await signOutChild(action.childId); break;
+            case "signInStaff": await signInStaff(); break;
+            case "signOutStaff": await signOutStaff(action.staffUserId); break;
+            case "addVisitor": await addVisitor(action.name, action.company, action.reason); break;
+            case "signOutVisitor": await signOutVisitor(action.visitorId); break;
+          }
+        } catch {
+          // Best-effort — skip failures (e.g. duplicate sign-in is fine)
+        }
+      }
+      localStorage.removeItem(QUEUE_KEY);
+      setOfflineQueue([]);
+      setChildOptimistic(new Map());
+      setStaffOptimistic(new Map());
+      setReplaying(false);
+      replayedRef.current = false;
+      router.refresh();
+    })();
+  }, [isOnline, replaying, router]);
+
+  function queueAction(action: OfflineAction) {
+    const next = [...offlineQueue, action];
+    setOfflineQueue(next);
+    saveQueue(next);
+  }
+
+  function handleChildOptimistic(id: string, status: ChildSignInRow["attendance_status"]) {
+    setChildOptimistic((prev) => new Map(prev).set(id, status));
+  }
+
+  function handleStaffOptimistic(userId: string, signedIn: boolean) {
+    setStaffOptimistic((prev) => new Map(prev).set(userId, signedIn));
+  }
+
+  const signedInCount = children.filter((c) => (childOptimistic.get(c.id) ?? c.attendance_status) === "signed_in").length;
+  const staffInCount = staff.filter((s) => staffOptimistic.has(s.user_id) ? staffOptimistic.get(s.user_id) : (!!s.signed_in_at && !s.signed_out_at)).length;
   const visitorsInCount = visitors.filter((v) => !v.signed_out_at).length;
 
-  const childrenByRoom = new Map<string, ChildSignInRow[]>();
-  const noRoom: ChildSignInRow[] = [];
-  children.forEach((c) => {
-    if (!c.room_id) {
-      noRoom.push(c);
-    } else {
-      const key = c.room_id;
-      if (!childrenByRoom.has(key)) childrenByRoom.set(key, []);
-      childrenByRoom.get(key)!.push(c);
-    }
-  });
-
+  // Group children by room
   const roomGroups: { roomId: string | null; roomName: string; children: ChildSignInRow[] }[] = [];
+  const addedRooms = new Set<string | null>();
   children.forEach((c) => {
-    if (c.room_id && !roomGroups.find((g) => g.roomId === c.room_id)) {
+    const key = c.room_id ?? null;
+    if (!addedRooms.has(key)) {
+      addedRooms.add(key);
       roomGroups.push({
-        roomId: c.room_id,
-        roomName: c.room_name ?? "Unknown Room",
-        children: children.filter((ch) => ch.room_id === c.room_id),
+        roomId: key,
+        roomName: key ? (c.room_name ?? "Unknown Room") : "Unassigned",
+        children: children.filter((ch) => (ch.room_id ?? null) === key),
       });
     }
   });
-  if (noRoom.length > 0) {
-    roomGroups.push({ roomId: null, roomName: "Unassigned", children: noRoom });
-  }
 
   const TAB_ITEMS: { id: Tab; label: string; count: number; color: string }[] = [
     { id: "children", label: "Children", count: signedInCount, color: "text-coral-dark" },
@@ -350,11 +464,38 @@ export default function SignInBoard({ children, staff, visitors, currentUserId, 
 
   return (
     <div className="flex flex-col gap-0 h-full">
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="mb-3 flex items-center gap-3 rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3">
+          <span className="text-xl" aria-hidden>⚠️</span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800">You&apos;re offline</p>
+            <p className="text-xs text-amber-700">
+              Sign-ins are being saved locally{offlineQueue.length > 0 ? ` (${offlineQueue.length} queued)` : ""} and will sync automatically when the connection returns.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Syncing banner */}
+      {replaying && (
+        <div className="mb-3 flex items-center gap-3 rounded-2xl bg-sage-light border border-sage px-4 py-3">
+          <span className="text-xl" aria-hidden>🔄</span>
+          <p className="text-sm font-semibold text-sage-dark">Syncing {offlineQueue.length} queued sign-ins…</p>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="font-display text-2xl font-bold text-ink">Sign In / Out</h1>
-          <p className="text-sm text-ink/50">{new Date(today + "T00:00:00").toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</p>
+          <p className="text-sm text-ink/50">
+            {new Date(today + "T00:00:00").toLocaleDateString("en-AU", {
+              weekday: "long",
+              day: "numeric",
+              month: "long",
+            })}
+          </p>
         </div>
         <div className="flex gap-3 text-sm">
           <span className="rounded-full bg-coral-light px-3 py-1 font-semibold text-coral-dark">{signedInCount} children</span>
@@ -373,9 +514,7 @@ export default function SignInBoard({ children, staff, visitors, currentUserId, 
             type="button"
             onClick={() => setTab(t.id)}
             className={`flex-1 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id
-                ? "bg-coral text-white"
-                : "text-ink/60 hover:bg-coral-light/50 hover:text-ink"
+              tab === t.id ? "bg-coral text-white" : "text-ink/60 hover:bg-coral-light/50 hover:text-ink"
             }`}
           >
             {t.label}
@@ -388,7 +527,6 @@ export default function SignInBoard({ children, staff, visitors, currentUserId, 
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-
         {/* Children tab */}
         {tab === "children" && (
           <div className="flex flex-col gap-4">
@@ -402,7 +540,14 @@ export default function SignInBoard({ children, staff, visitors, currentUserId, 
                   </p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                     {group.children.map((child) => (
-                      <ChildCard key={child.id} child={child} currentUserId={currentUserId} />
+                      <ChildCard
+                        key={child.id}
+                        child={child}
+                        optimisticStatus={childOptimistic.get(child.id)}
+                        isOnline={isOnline}
+                        onQueueAction={queueAction}
+                        onOptimistic={handleChildOptimistic}
+                      />
                     ))}
                   </div>
                 </div>
@@ -419,7 +564,15 @@ export default function SignInBoard({ children, staff, visitors, currentUserId, 
             ) : (
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
                 {staff.map((s) => (
-                  <StaffCard key={s.user_id} staff={s} currentUserId={currentUserId} />
+                  <StaffCard
+                    key={s.user_id}
+                    staff={s}
+                    currentUserId={currentUserId}
+                    isOnline={isOnline}
+                    onQueueAction={queueAction}
+                    optimisticSignedIn={staffOptimistic.get(s.user_id)}
+                    onOptimistic={handleStaffOptimistic}
+                  />
                 ))}
               </div>
             )}
@@ -432,14 +585,14 @@ export default function SignInBoard({ children, staff, visitors, currentUserId, 
         {/* Visitors tab */}
         {tab === "visitors" && (
           <div className="flex flex-col gap-3">
-            <VisitorForm onDone={refresh} />
+            <VisitorForm onDone={refresh} isOnline={isOnline} onQueueAction={queueAction} />
             {visitors.length === 0 ? (
               <p className="text-center text-sm text-ink/40 py-4">No visitors today.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 <p className="text-xs font-semibold uppercase tracking-widest text-ink/40">Today&apos;s visitors</p>
                 {visitors.map((v) => (
-                  <VisitorCard key={v.id} visitor={v} />
+                  <VisitorCard key={v.id} visitor={v} isOnline={isOnline} onQueueAction={queueAction} />
                 ))}
               </div>
             )}

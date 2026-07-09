@@ -1,7 +1,7 @@
 ﻿import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getChild } from "@/lib/supabase/children";
-import { getObservations } from "@/lib/supabase/observations";
+import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
 import PrintButton from "@/components/PrintButton";
 import Link from "next/link";
 
@@ -26,6 +26,17 @@ export default async function PortfolioPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const [child, observations] = await Promise.all([getChild(id), getObservations(id)]);
   if (!child) notFound();
+
+  // Resolve signed photo URLs (1-hour expiry — long enough for a print session)
+  const photoUrlMap = new Map<string, string>();
+  await Promise.all(
+    observations
+      .filter((o) => o.photo_url)
+      .map(async (o) => {
+        const url = await getSignedPhotoUrl(o.photo_url!);
+        if (url) photoUrlMap.set(o.id, url);
+      }),
+  );
 
   const allEylfCodes = [...new Set(observations.flatMap((o) => o.eylf_codes))].sort();
   const dateRange =
@@ -158,41 +169,54 @@ export default async function PortfolioPage({ params }: { params: Promise<{ id: 
           <p className="text-sm text-ink/50 print:text-black">No observations recorded yet.</p>
         ) : (
           <div className="space-y-5">
-            {observations.map((o) => (
-              <div
-                key={o.id}
-                className="rounded-2xl border border-coral-light p-4 print:break-inside-avoid print:border-black"
-              >
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-semibold text-ink/40 print:text-black">
-                    {new Date(o.observed_at).toLocaleDateString("en-AU", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                  {o.activity_title && (
-                    <span className="shrink-0 text-xs text-ink/40 print:text-black">
-                      Activity: {o.activity_title}
-                    </span>
+            {observations.map((o) => {
+              const photoUrl = photoUrlMap.get(o.id);
+              return (
+                <div
+                  key={o.id}
+                  className="rounded-2xl border border-coral-light p-4 print:break-inside-avoid print:border-black"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-3">
+                    <p className="text-xs font-semibold text-ink/40 print:text-black">
+                      {new Date(o.observed_at).toLocaleDateString("en-AU", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                    </p>
+                    {o.activity_title && (
+                      <span className="shrink-0 text-xs text-ink/40 print:text-black">
+                        Activity: {o.activity_title}
+                      </span>
+                    )}
+                  </div>
+                  {photoUrl && (
+                    <div className="mb-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={photoUrl}
+                        alt="Observation photo"
+                        className="w-full max-h-64 rounded-xl object-cover print:max-h-48"
+                      />
+                    </div>
+                  )}
+                  <p className="text-sm leading-relaxed text-ink print:text-black">{o.note_text}</p>
+                  {o.eylf_codes.length > 0 && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {o.eylf_codes.map((code) => (
+                        <span
+                          key={code}
+                          className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark print:border print:border-black print:bg-transparent print:text-black"
+                        >
+                          EYLF {code}
+                        </span>
+                      ))}
+                    </div>
                   )}
                 </div>
-                <p className="text-sm leading-relaxed text-ink print:text-black">{o.note_text}</p>
-                {o.eylf_codes.length > 0 && (
-                  <div className="mt-2.5 flex flex-wrap gap-1.5">
-                    {o.eylf_codes.map((code) => (
-                      <span
-                        key={code}
-                        className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark print:border print:border-black print:bg-transparent print:text-black"
-                      >
-                        EYLF {code}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
