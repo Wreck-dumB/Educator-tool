@@ -1116,6 +1116,106 @@ Rules:
 }
 
 // =========================================
+// Daily routine generation
+// =========================================
+
+export interface RoutineBlockRaw {
+  time: string;
+  title: string;
+  duration_minutes: number;
+  notes?: string;
+  type: "routine" | "activity" | "meal" | "rest" | "outdoor" | "transition";
+}
+
+export interface DailyRoutineInput {
+  date: string;
+  dayName: string;
+  childCount: number;
+  ageRange?: string;
+  roomName?: string;
+  focusTopic?: string;
+  plannedActivities: string[];
+}
+
+const ROUTINE_TOOL = {
+  name: "set_daily_routine",
+  description: "Output the complete time-blocked daily routine for an early childhood centre day",
+  input_schema: {
+    type: "object" as const,
+    required: ["blocks"],
+    properties: {
+      blocks: {
+        type: "array" as const,
+        description: "The time blocks in chronological order",
+        items: {
+          type: "object" as const,
+          required: ["time", "title", "duration_minutes", "type"],
+          properties: {
+            time: { type: "string" as const, description: "Start time in 24h HH:MM format, e.g. 08:30" },
+            title: { type: "string" as const },
+            duration_minutes: { type: "number" as const, minimum: 5, maximum: 180 },
+            notes: { type: "string" as const, description: "Optional notes for staff, e.g. setup, transition tips" },
+            type: {
+              type: "string" as const,
+              enum: ["routine", "activity", "meal", "rest", "outdoor", "transition"],
+            },
+          },
+        },
+      },
+    },
+  },
+};
+
+export async function generateDailyRoutine(
+  input: DailyRoutineInput,
+): Promise<RoutineBlockRaw[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const system = `You are an expert early childhood educator planning a time-blocked daily routine for an Australian early childhood centre.
+Create a realistic, developmentally appropriate routine that:
+- Runs from approximately 7:30–8:00 AM arrival to 5:30–6:00 PM departure
+- Includes adequate transition times, meals, rest/sleep (for under-3s), and outdoor time
+- Weaves in planned learning activities at appropriate times
+- Leaves breathing room between transitions — don't over-schedule
+PRIVACY: Never include or repeat any child's name, date of birth, or any personal identifier in your response.`;
+
+  const activityList = input.plannedActivities.length > 0
+    ? `Planned activities for today:\n${input.plannedActivities.map((a, i) => `${i + 1}. ${a}`).join("\n")}`
+    : "No specific activities pre-planned for today — suggest appropriate ones.";
+
+  const userMsg = [
+    `Date: ${input.dayName} ${input.date}`,
+    `Children attending: ~${input.childCount}`,
+    input.ageRange ? `Age range: ${input.ageRange}` : "",
+    input.roomName ? `Room: ${input.roomName}` : "",
+    input.focusTopic ? `Focus topic: ${input.focusTopic}` : "",
+    "",
+    activityList,
+    "",
+    "Generate a complete, realistic daily routine using the set_daily_routine tool.",
+  ].filter(Boolean).join("\n");
+
+  const client = new Anthropic({ apiKey });
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    system,
+    messages: [{ role: "user", content: userMsg }],
+    tools: [ROUTINE_TOOL],
+    tool_choice: { type: "tool", name: "set_daily_routine" },
+  });
+
+  const toolUse = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Model did not return a tool call");
+
+  const result = toolUse.input as { blocks?: RoutineBlockRaw[] };
+  return result.blocks ?? [];
+}
+
+// =========================================
 // Group activity generation from follow-ups
 // =========================================
 

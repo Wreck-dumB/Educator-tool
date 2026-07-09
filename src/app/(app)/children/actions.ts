@@ -203,6 +203,42 @@ export async function createChildContact(formData: FormData) {
   redirect(`/children/${childId}`);
 }
 
+export async function setAttendanceDays(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const childId = formData.get("child_id") as string;
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId || !childId) redirect(`/children/${childId}`);
+
+  // day_0 through day_4 — value is session_type or empty string (= not enrolled that day)
+  const days: { day_of_week: number; session_type: string }[] = [];
+  for (let d = 0; d <= 4; d++) {
+    const val = (formData.get(`day_${d}`) as string) || "";
+    if (val) days.push({ day_of_week: d, session_type: val });
+  }
+
+  // Replace all existing days for this child
+  await supabase.from("child_attendance_days").delete().eq("child_id", childId);
+  if (days.length > 0) {
+    await supabase.from("child_attendance_days").insert(
+      days.map((d) => ({
+        child_id: childId,
+        owner_user_id: ownerUserId,
+        day_of_week: d.day_of_week,
+        session_type: d.session_type as "full_day" | "morning" | "afternoon",
+      })),
+    );
+  }
+
+  revalidatePath(`/children/${childId}`);
+  revalidatePath("/day-plan");
+  redirect(`/children/${childId}?saved=1`);
+}
+
 export async function updateChildInterests(formData: FormData) {
   const supabase = await createClient();
   const {

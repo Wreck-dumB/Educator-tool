@@ -9,7 +9,9 @@ import {
   updateChildEnrolment,
   createChildContact,
   deleteChildContact,
+  setAttendanceDays,
 } from "@/app/(app)/children/actions";
+import { createClient } from "@/lib/supabase/server";
 import { getObservations } from "@/lib/supabase/observations";
 import ObservationList from "@/components/ObservationList";
 import { getRooms } from "@/lib/supabase/rooms";
@@ -47,12 +49,14 @@ export default async function ChildDetailPage({
 
   if (!child) notFound();
 
-  const [observations, invites, contacts, rooms, myRole] = await Promise.all([
+  const supabase = await createClient();
+  const [observations, invites, contacts, rooms, myRole, { data: attendanceDays }] = await Promise.all([
     getObservations(id),
     getChildInvites(id),
     getChildContacts(id),
     getRooms(),
     getMyStaffRole(),
+    supabase.from("child_attendance_days").select("day_of_week, session_type").eq("child_id", id),
   ]);
   const canManage = myRole === "director" || myRole === "2ic";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -363,6 +367,40 @@ export default async function ChildDetailPage({
             </button>
           </form>
         </details>
+      </div>
+
+      {/* Enrolled days */}
+      <div className={`mt-6 print:hidden ${cardClass}`}>
+        <div className="border-b border-coral-light px-4 py-3">
+          <h2 className="font-display text-sm font-semibold text-ink">Enrolled days</h2>
+          <p className="mt-0.5 text-xs text-ink/50">Which days {child.first_name} normally attends — used by the Day Plan to build the daily roster.</p>
+        </div>
+        <form action={setAttendanceDays} className="px-4 py-4">
+          <input type="hidden" name="child_id" value={child.id} />
+          <div className="space-y-2">
+            {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day, i) => {
+              const existing = (attendanceDays ?? []).find((d) => d.day_of_week === i);
+              return (
+                <div key={day} className="flex items-center justify-between gap-3">
+                  <span className="w-28 text-sm text-ink/80">{day}</span>
+                  <select
+                    name={`day_${i}`}
+                    defaultValue={existing?.session_type ?? ""}
+                    className="flex-1 rounded-lg border border-coral-light bg-white px-2 py-1.5 text-xs text-ink focus:border-coral focus:outline-none"
+                  >
+                    <option value="">Not enrolled</option>
+                    <option value="full_day">Full day</option>
+                    <option value="morning">Morning only</option>
+                    <option value="afternoon">Afternoon only</option>
+                  </select>
+                </div>
+              );
+            })}
+          </div>
+          <button type="submit" className="mt-4 rounded-full bg-coral-light px-4 py-1.5 text-xs font-semibold text-coral-dark hover:bg-coral/20">
+            Save enrolled days
+          </button>
+        </form>
       </div>
 
       <div className={`mt-6 print:hidden ${cardClass}`}>

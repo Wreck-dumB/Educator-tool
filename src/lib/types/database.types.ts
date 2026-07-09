@@ -19,6 +19,15 @@ export type PermissionSlipType = "excursion_consent" | "photo_media_consent" | "
 export type PermissionSlipStatus = "draft" | "sent" | "closed";
 export type MaterialCategory = "classroom" | "food";
 export type WaitingListStatus = "enquiry" | "waitlisted" | "offered" | "enrolled" | "declined" | "withdrawn";
+export interface RoutineBlock {
+  id: string;
+  time: string;
+  title: string;
+  duration_minutes: number;
+  notes?: string;
+  activity_id?: string | null;
+  type: "routine" | "activity" | "meal" | "rest" | "outdoor" | "transition";
+}
 export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 export type SessionPreference = "full_day" | "morning" | "afternoon" | "flexible";
 export type StaffRole = "director" | "2ic" | "staff";
@@ -1436,6 +1445,63 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["waiting_list_enquiries"]["Insert"]>;
+        Relationships: [];
+      };
+      child_attendance_days: {
+        Row: {
+          id: string;
+          child_id: string;
+          owner_user_id: string;
+          day_of_week: number;
+          session_type: "full_day" | "morning" | "afternoon";
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          owner_user_id: string;
+          day_of_week: number;
+          session_type?: "full_day" | "morning" | "afternoon";
+        };
+        Update: { session_type?: "full_day" | "morning" | "afternoon" };
+        Relationships: [];
+      };
+      daily_routines: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          title: string;
+          date: string | null;
+          room_id: string | null;
+          blocks: RoutineBlock[];
+          is_template: boolean;
+          focus_topic: string | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          title: string;
+          date?: string | null;
+          room_id?: string | null;
+          blocks?: RoutineBlock[];
+          is_template?: boolean;
+          focus_topic?: string | null;
+          notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?: string;
+          date?: string | null;
+          room_id?: string | null;
+          blocks?: RoutineBlock[];
+          is_template?: boolean;
+          focus_topic?: string | null;
+          notes?: string | null;
+          updated_at?: string;
+        };
         Relationships: [];
       };
       child_follow_ups: {
