@@ -203,6 +203,23 @@ export async function createChildContact(formData: FormData) {
   redirect(`/children/${childId}`);
 }
 
+export async function updateChildInterests(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const childId = formData.get("child_id") as string;
+  const interests = (formData.get("interests") as string)?.trim() || null;
+  const returnTo = (formData.get("return_to") as string) || "/observations";
+
+  await supabase.from("children").update({ current_interests: interests }).eq("id", childId);
+
+  revalidatePath(`/children/${childId}`);
+  redirect(returnTo);
+}
+
 export async function deleteChildContact(formData: FormData) {
   const supabase = await createClient();
   const contactId = formData.get("contact_id") as string;

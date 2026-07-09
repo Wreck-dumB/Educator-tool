@@ -5,6 +5,8 @@ import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations"
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getRiskAssessments } from "@/lib/supabase/riskAssessments";
 import { logObservation } from "@/app/(app)/observations/actions";
+import { addActivityToProgram } from "@/app/(app)/programs/actions";
+import { getPrograms } from "@/lib/supabase/programs";
 import { archiveActivity, unarchiveActivity } from "../actions";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
 import { cardClass, errorBannerClass } from "@/lib/ui";
@@ -25,11 +27,12 @@ export default async function ActivityDetailPage({
   const activity = await getActivity(id);
   if (!activity) notFound();
 
-  const [children, allObservations, riskAssessments, outcomes] = await Promise.all([
+  const [children, allObservations, riskAssessments, outcomes, programs] = await Promise.all([
     getChildren(),
     getObservations(),
     getRiskAssessments(activity.id),
     getEylfOutcomes(),
+    getPrograms(),
   ]);
   const observations = allObservations.filter((o) => o.activity_id === activity.id);
 
@@ -150,6 +153,47 @@ export default async function ActivityDetailPage({
           </div>
         )}
       </div>
+
+      {programs.length > 0 && (
+        <details className={`mt-6 group ${cardClass}`}>
+          <summary className="flex cursor-pointer items-center justify-between p-5">
+            <span className="font-display text-sm font-semibold text-ink">Add to a program</span>
+            <span className="text-xs text-ink/40 group-open:hidden">Click to expand</span>
+          </summary>
+          <div className="border-t border-coral-light px-5 pb-5 pt-4">
+            <form action={addActivityToProgram} className="space-y-3">
+              <input type="hidden" name="activity_id" value={activity.id} />
+              <input type="hidden" name="title" value={activity.title} />
+              <input type="hidden" name="eylf_codes" value={JSON.stringify(activity.eylf_codes)} />
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink/60">Program</label>
+                <select name="program_id" className="w-full rounded-xl border border-coral-light bg-white px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral">
+                  {programs.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.title} ({new Date(p.start_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} – {new Date(p.end_date).toLocaleDateString("en-AU", { day: "numeric", month: "short" })})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-ink/60">Day</label>
+                <input
+                  type="date"
+                  name="day_date"
+                  defaultValue={new Date().toISOString().slice(0, 10)}
+                  className="w-full rounded-xl border border-coral-light bg-white px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
+                />
+              </div>
+              <button
+                type="submit"
+                className="rounded-full bg-coral-light px-4 py-2 text-xs font-semibold text-coral-dark hover:bg-coral/20 transition-colors"
+              >
+                Add to program →
+              </button>
+            </form>
+          </div>
+        </details>
+      )}
 
       {observations.length > 0 && (
         <ObservationList observations={observations} />

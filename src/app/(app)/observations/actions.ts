@@ -87,10 +87,15 @@ export async function logObservation(formData: FormData) {
   revalidatePath("/observations");
   childIds.forEach((id) => revalidatePath(`/children/${id}`));
   if (activityId) revalidatePath(`/activities/${activityId}`);
+
+  const obsIds = insertedObs.map((o) => o.id).join(",");
+  const activityParam = activityId ? `&activity=${encodeURIComponent(activityId)}` : "";
+  const savedUrl = `/observations/saved?obs=${obsIds}${activityParam}&from=${encodeURIComponent(returnTo)}`;
+
   if (photoFailed) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Observation saved, but photo upload failed — try adding the photo again from the observations list")}`);
+    redirect(`${savedUrl}&error=${encodeURIComponent("Observation saved, but photo upload failed — try re-adding the photo from the observation log")}`);
   }
-  redirect(returnTo);
+  redirect(savedUrl);
 }
 
 export async function shareObservation(formData: FormData) {
@@ -152,7 +157,8 @@ export async function shareObservation(formData: FormData) {
   }
 
   revalidatePath("/observations");
-  redirect("/observations");
+  const returnTo = (formData.get("return_to") as string) || "/observations";
+  redirect(returnTo);
 }
 
 export async function unshareObservation(formData: FormData) {

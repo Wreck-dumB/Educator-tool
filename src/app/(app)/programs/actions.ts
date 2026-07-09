@@ -1,10 +1,47 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import type { ProgramEntrySuggestion } from "@/lib/types/domain";
 import type { CulturalDay } from "@/lib/types/database.types";
+
+export async function addActivityToProgram(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) redirect("/programs");
+
+  const programId = formData.get("program_id") as string;
+  const activityId = (formData.get("activity_id") as string) || null;
+  const dayDate = formData.get("day_date") as string;
+  const title = (formData.get("title") as string)?.trim();
+  const eylfCodesJson = (formData.get("eylf_codes") as string) || "[]";
+  const eylfCodes = JSON.parse(eylfCodesJson) as string[];
+
+  if (!programId || !dayDate || !title) redirect("/programs");
+
+  const { error } = await supabase.from("program_entries").insert({
+    program_id: programId,
+    activity_id: activityId,
+    day_date: dayDate,
+    title,
+    eylf_codes: eylfCodes,
+    notes: null,
+  });
+
+  if (error) {
+    redirect(`/programs/${programId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/programs/${programId}`);
+  redirect(`/programs/${programId}`);
+}
 
 export async function saveProgram(
   title: string,
