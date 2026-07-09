@@ -19,6 +19,7 @@ export type PermissionSlipType = "excursion_consent" | "photo_media_consent" | "
 export type PermissionSlipStatus = "draft" | "sent" | "closed";
 export type MaterialCategory = "classroom" | "food";
 export type WaitingListStatus = "enquiry" | "waitlisted" | "offered" | "enrolled" | "declined" | "withdrawn";
+export type InvoiceStatus = "draft" | "sent" | "paid" | "overdue" | "cancelled";
 export type SessionPreference = "full_day" | "morning" | "afternoon" | "flexible";
 export type StaffRole = "director" | "2ic" | "staff";
 export type StaffMembershipStatus = "active" | "removed";
@@ -1339,6 +1340,64 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["parent_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      invoices: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          invoice_number: string;
+          parent_user_id: string | null;
+          bill_to_name: string;
+          bill_to_email: string | null;
+          child_id: string | null;
+          period_start: string;
+          period_end: string;
+          due_date: string | null;
+          notes: string | null;
+          status: InvoiceStatus;
+          paid_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          invoice_number: string;
+          parent_user_id?: string | null;
+          bill_to_name: string;
+          bill_to_email?: string | null;
+          child_id?: string | null;
+          period_start: string;
+          period_end: string;
+          due_date?: string | null;
+          notes?: string | null;
+          status?: InvoiceStatus;
+          paid_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invoices"]["Insert"]>;
+        Relationships: [];
+      };
+      invoice_line_items: {
+        Row: {
+          id: string;
+          invoice_id: string;
+          description: string;
+          quantity: number;
+          unit_price_cents: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          invoice_id: string;
+          description: string;
+          quantity?: number;
+          unit_price_cents: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["invoice_line_items"]["Insert"]>;
         Relationships: [];
       };
       waiting_list_enquiries: {

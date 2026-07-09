@@ -88,6 +88,7 @@ const NAV_GROUPS = [
       { href: "/staff", label: "Staff" },
       { href: "/compliance", label: "Compliance Tracker" },
       { href: "/invoices", label: "Invoices" },
+      { href: "/ccs-estimator", label: "CCS Estimator" },
       { href: "/settings", label: "Service Settings" },
     ],
   },
