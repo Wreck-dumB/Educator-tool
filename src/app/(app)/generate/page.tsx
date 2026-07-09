@@ -5,7 +5,12 @@ import { getChildren } from "@/lib/supabase/children";
 import { getDevelopmentalMilestones } from "@/lib/supabase/milestones";
 import GenerateForm from "./GenerateForm";
 
-export default async function GeneratePage() {
+export default async function GeneratePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ outcome?: string }>;
+}) {
+  const params = await searchParams;
   const [outcomes, materials, children, milestones] = await Promise.all([
     getEylfOutcomes(),
     getMaterials(),
@@ -37,7 +42,13 @@ export default async function GeneratePage() {
       )}
 
       <div className="mt-6">
-        <GenerateForm outcomes={outcomes} materials={materials} childProfiles={children} milestones={milestones} />
+        <GenerateForm
+          outcomes={outcomes}
+          materials={materials}
+          childProfiles={children}
+          milestones={milestones}
+          defaultOutcomeCode={params.outcome}
+        />
       </div>
     </div>
   );

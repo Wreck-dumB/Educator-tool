@@ -18,6 +18,8 @@ export type IncidentRecordType = "incident" | "injury" | "trauma" | "illness";
 export type PermissionSlipType = "excursion_consent" | "photo_media_consent" | "medication_authorisation" | "other";
 export type PermissionSlipStatus = "draft" | "sent" | "closed";
 export type MaterialCategory = "classroom" | "food";
+export type WaitingListStatus = "enquiry" | "waitlisted" | "offered" | "enrolled" | "declined" | "withdrawn";
+export type SessionPreference = "full_day" | "morning" | "afternoon" | "flexible";
 export type StaffRole = "director" | "2ic" | "staff";
 export type StaffMembershipStatus = "active" | "removed";
 export type StaffInviteRole = "2ic" | "staff";
@@ -1337,6 +1339,44 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["parent_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      waiting_list_enquiries: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_first_name: string;
+          child_date_of_birth: string | null;
+          preferred_start_date: string | null;
+          room_id: string | null;
+          session_preference: SessionPreference;
+          parent_name: string;
+          parent_email: string | null;
+          parent_phone: string | null;
+          notes: string | null;
+          status: WaitingListStatus;
+          enquiry_date: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_first_name: string;
+          child_date_of_birth?: string | null;
+          preferred_start_date?: string | null;
+          room_id?: string | null;
+          session_preference?: SessionPreference;
+          parent_name: string;
+          parent_email?: string | null;
+          parent_phone?: string | null;
+          notes?: string | null;
+          status?: WaitingListStatus;
+          enquiry_date?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["waiting_list_enquiries"]["Insert"]>;
         Relationships: [];
       };
       casual_day_requests: {

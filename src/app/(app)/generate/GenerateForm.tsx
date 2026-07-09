@@ -37,17 +37,20 @@ interface Props {
   materials: Material[];
   childProfiles: ChildProfile[];
   milestones: DevelopmentalMilestone[];
+  defaultOutcomeCode?: string;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-export default function GenerateForm({ outcomes, materials, childProfiles, milestones }: Props) {
+export default function GenerateForm({ outcomes, materials, childProfiles, milestones, defaultOutcomeCode }: Props) {
   const [selectedMaterials, setSelectedMaterials] = useState<Set<string>>(new Set());
   const [adhocMaterials, setAdhocMaterials] = useState("");
   const [timeMinutes, setTimeMinutes] = useState<number | "">("");
   const [groupSize, setGroupSize] = useState("");
   const [energyLevel, setEnergyLevel] = useState("");
-  const [selectedOutcomes, setSelectedOutcomes] = useState<Set<string>>(new Set());
+  const [selectedOutcomes, setSelectedOutcomes] = useState<Set<string>>(
+    () => new Set(defaultOutcomeCode ? [defaultOutcomeCode] : [])
+  );
   const [childId, setChildId] = useState("");
   const [childQuery, setChildQuery] = useState("");
   const [focusInterest, setFocusInterest] = useState("");

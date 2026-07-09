@@ -29,6 +29,7 @@ const NAV_GROUPS = [
       { href: "/generate", label: "Generate Activity" },
       { href: "/activities", label: "Activities" },
       { href: "/observations", label: "Observations" },
+      { href: "/programming", label: "Programming Workspace" },
       { href: "/programs", label: "Programs" },
       { href: "/milestones", label: "Milestones" },
       { href: "/materials", label: "Materials" },
