@@ -17,7 +17,6 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const observationNote = typeof body?.observationNote === "string" ? body.observationNote.slice(0, 2000) : "";
-  const childName = typeof body?.childName === "string" ? body.childName.slice(0, 100) : "this child";
   const childInterests = typeof body?.childInterests === "string" ? body.childInterests.slice(0, 500) : null;
   const eylfCodes = Array.isArray(body?.eylfCodes) ? (body.eylfCodes as string[]).slice(0, 10) : [];
   const previousActivityTitle = typeof body?.previousActivityTitle === "string" ? body.previousActivityTitle : null;
@@ -28,7 +27,7 @@ export async function POST(request: Request) {
 
   const outcomes = await getEylfOutcomes();
   const activity = await generateFollowUpActivity(
-    { observationNote, childName, childInterests, eylfCodes, previousActivityTitle },
+    { observationNote, childInterests, eylfCodes, previousActivityTitle },
     outcomes,
   );
 

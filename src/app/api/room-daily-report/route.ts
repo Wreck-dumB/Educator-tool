@@ -51,10 +51,12 @@ const REPORT_TOOL: Anthropic.Tool = {
 const SYSTEM_PROMPT = `You are an early childhood education specialist helping an Australian educator summarise their room's day.
 
 Write in a warm, professional tone that reflects the EYLF's image of the child as capable and curious.
-- Use first names if provided; otherwise use "a child" or "the children"
+- NEVER use any child's name — always say "a child", "the children", or use the positional label given (e.g. "Child 1") if needed to distinguish individuals
 - Do NOT fabricate specific events — only describe what is evidenced by the data provided
 - Protect confidentiality: if there were incidents, acknowledge care was provided without naming children or specifics
-- Keep the report concise — it should be readable in under a minute`;
+- Keep the report concise — it should be readable in under a minute
+
+PRIVACY: This is a child safety requirement. Never repeat or include any child's real name in your response.`;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -84,7 +86,7 @@ export async function POST(request: Request) {
   // Fetch room + children in that room
   const [{ data: room }, { data: roomChildren }] = await Promise.all([
     supabase.from("rooms").select("name").eq("id", roomId).single(),
-    supabase.from("children").select("id, first_name, date_of_birth").eq("room_id", roomId),
+    supabase.from("children").select("id").eq("room_id", roomId),
   ]);
 
   if (!room) {
@@ -118,23 +120,26 @@ export async function POST(request: Request) {
       .lte("occurred_at", dateEnd),
   ]);
 
-  const childMap = new Map((roomChildren ?? []).map((c) => [c.id, c]));
+  // Map child IDs to anonymous labels (Child 1, Child 2, ...) so the AI
+  // can produce a coherent report without receiving any real child names.
+  const childLabelMap = new Map(
+    (roomChildren ?? []).map((c, i) => [c.id, `Child ${i + 1}`]),
+  );
 
   const attendanceSummary = (attendance ?? [])
     .filter((a) => a.status !== "absent")
     .map((a) => {
-      const child = childMap.get(a.child_id);
-      const name = child?.first_name ?? "Unknown";
+      const label = childLabelMap.get(a.child_id) ?? "A child";
       const signIn = a.signed_in_at ? new Date(a.signed_in_at).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) : "?";
       const signOut = a.signed_out_at ? new Date(a.signed_out_at).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit" }) : "still in";
-      return `${name}: ${signIn}–${signOut}`;
+      return `${label}: ${signIn}–${signOut}`;
     })
     .join("; ");
 
   const obsSummary = (observations ?? [])
     .map((o) => {
-      const child = childMap.get(o.child_id);
-      return `${child?.first_name ?? "A child"}: ${o.note_text}`;
+      const label = childLabelMap.get(o.child_id) ?? "A child";
+      return `${label}: ${o.note_text}`;
     })
     .join("\n");
 
@@ -149,7 +154,7 @@ export async function POST(request: Request) {
 
   const userPrompt = `Room: ${room.name}
 Date: ${new Date(date).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-Enrolled in room: ${(roomChildren ?? []).map((c) => c.first_name).join(", ")}
+Children enrolled in room: ${(roomChildren ?? []).length}
 
 Attendance today:
 ${attendanceSummary || "No attendance records found for today."}

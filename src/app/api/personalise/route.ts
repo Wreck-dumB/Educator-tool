@@ -32,8 +32,8 @@ export async function POST(request: Request) {
   const activity = await getActivity(activityId);
   if (!activity) return NextResponse.json({ error: "Activity not found" }, { status: 404 });
 
-  // Child context — trust DB, not client
-  let childName: string | null = null;
+  // Child context — trust DB, not client. Deliberately not including first_name
+  // — the AI only needs interests/needs/observations to personalise, not the child's identity.
   let interests: string | null = null;
   let additionalNeeds: string | null = null;
   let recentObservations: ChildObservationSummary[] = [];
@@ -41,12 +41,11 @@ export async function POST(request: Request) {
   if (typeof childId === "string" && childId) {
     const { data: child } = await supabase
       .from("children")
-      .select("first_name, current_interests, additional_needs")
+      .select("current_interests, additional_needs")
       .eq("id", childId)
       .maybeSingle();
 
     if (child) {
-      childName = child.first_name;
       interests = child.current_interests ?? null;
       additionalNeeds = child.additional_needs ?? null;
       const obs = await getObservations(childId);
@@ -58,10 +57,6 @@ export async function POST(request: Request) {
     }
   }
 
-  // Allow freeform overrides (child not in system, or extra context)
-  if (typeof body.childName === "string" && body.childName.trim()) {
-    childName = childName ?? body.childName.trim().slice(0, 60);
-  }
   if (typeof body.additionalNeeds === "string" && body.additionalNeeds.trim()) {
     additionalNeeds = body.additionalNeeds.trim().slice(0, 500);
   }
@@ -76,7 +71,6 @@ export async function POST(request: Request) {
   try {
     result = await personaliseActivity(
       activity,
-      childName,
       interests,
       additionalNeeds,
       recentObservations,
@@ -101,6 +95,5 @@ export async function POST(request: Request) {
     energyLevel: activity.energy_level ?? null,
     groupSizeFit: activity.group_size_fit ?? null,
     suggestedTemplate: null,
-    childName,
   });
 }

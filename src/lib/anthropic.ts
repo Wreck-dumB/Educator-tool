@@ -19,7 +19,7 @@ export interface GenerationInput {
   energyLevel?: "calm" | "moderate" | "high";
   targetOutcomeCodes?: string[];
   childInterest?: string;
-  childName?: string;
+  // childName intentionally absent — never send a child's real name to the AI.
   childRecentObservations?: ChildObservationSummary[];
   additionalNeeds?: string;
   targetAgeBracket?: string;
@@ -98,7 +98,9 @@ ${taxonomy}
 
 Never invent a code that isn't in this list. Keep activities playful, safe, age-appropriate, and achievable with ordinary classroom/home resources.
 
-When additional needs/constraints are given (physical, emotional, disability, neurodiversity, family, environmental, or legal), adapt the activity practically and respectfully — focus on concrete accommodations (e.g. seated/standing alternatives, quieter sensory options, simpler instructions, alternative materials) rather than discussing or diagnosing the need itself. Take the educator's description at face value without speculating beyond what's stated.`;
+When additional needs/constraints are given (physical, emotional, disability, neurodiversity, family, environmental, or legal), adapt the activity practically and respectfully — focus on concrete accommodations (e.g. seated/standing alternatives, quieter sensory options, simpler instructions, alternative materials) rather than discussing or diagnosing the need itself. Take the educator's description at face value without speculating beyond what's stated.
+
+PRIVACY: Never include or repeat any child's name, date of birth, or any personal identifier in your response. Refer to any child only as "the child" or "children". This is a child safety requirement.`;
 }
 
 function buildUserPrompt(input: GenerationInput, count: number): string {
@@ -136,19 +138,16 @@ function buildUserPrompt(input: GenerationInput, count: number): string {
     lines.push(`Target these EYLF outcome codes specifically: ${input.targetOutcomeCodes.join(", ")}.`);
   }
   if (input.childInterest) {
-    const who = input.childName ? `${input.childName}'s` : "A child's";
-    lines.push(`${who} current interest to weave in if relevant: ${input.childInterest}.`);
+    lines.push(`A child's current interest to weave in if relevant: ${input.childInterest}.`);
   }
 
   if (input.additionalNeeds) {
-    const who = input.childName ?? "a child in the group";
     lines.push(
-      `Additional needs/constraints to accommodate for ${who}: ${input.additionalNeeds}. Adapt the activity practically (alternative materials, pacing, sensory load, positioning, etc.) so it's genuinely accessible, without making this the activity's whole focus.`,
+      `Additional needs/constraints to accommodate for a child in the group: ${input.additionalNeeds}. Adapt the activity practically (alternative materials, pacing, sensory load, positioning, etc.) so it's genuinely accessible, without making this the activity's whole focus.`,
     );
   }
 
   if (input.childRecentObservations && input.childRecentObservations.length > 0) {
-    const who = input.childName ?? "this child";
     const summary = input.childRecentObservations
       .map((o) => {
         const codes = o.eylfCodes.length > 0 ? ` (EYLF ${o.eylfCodes.join(", ")})` : "";
@@ -156,7 +155,7 @@ function buildUserPrompt(input: GenerationInput, count: number): string {
       })
       .join("\n");
     lines.push(
-      `Recent observations logged about ${who}, most recent first:\n${summary}\nUse this real history to inform the activity — build on what ${who} has been doing or vary it meaningfully (e.g. extend a skill that's emerging, target an EYLF outcome not in this recent list, or revisit an interest from a fresh angle) rather than proposing something disconnected from their actual recent experience.`,
+      `Recent observations logged about this child, most recent first:\n${summary}\nUse this real history to inform the activity — build on what this child has been doing or vary it meaningfully (e.g. extend a skill that's emerging, target an EYLF outcome not in this recent list, or revisit an interest from a fresh angle) rather than proposing something disconnected from their actual recent experience.`,
     );
   }
 
@@ -953,7 +952,7 @@ const PERSONALISE_ACTIVITY_TOOL: Anthropic.Tool = {
     properties: {
       title: {
         type: "string",
-        description: "Keep close to the original title, optionally noting the personalisation e.g. 'Name Tracing — for Mia'.",
+        description: "Keep close to the original title, optionally noting the personalisation e.g. 'Name Tracing — adapted for individual'.",
       },
       summary: {
         type: "string",
@@ -1001,7 +1000,6 @@ Never use a code that isn't in the above list.`;
 
 export async function personaliseActivity(
   activity: import("@/lib/types/domain").GeneratedActivity & { eylf_codes?: string[] },
-  childName: string | null,
   interests: string | null,
   additionalNeeds: string | null,
   recentObservations: ChildObservationSummary[],
@@ -1028,26 +1026,23 @@ export async function personaliseActivity(
   }
 
   lines.push("---");
-
-  if (childName) lines.push(`Personalise for: ${childName}`);
+  lines.push("Personalise for: the child");
   if (interests) lines.push(`Current interests: ${interests}`);
   if (additionalNeeds) {
-    const who = childName ?? "this child";
     lines.push(
-      `Additional needs/constraints for ${who}: ${additionalNeeds}. Adapt practically so the activity is genuinely accessible — without making the adaptation the activity's whole focus.`,
+      `Additional needs/constraints for this child: ${additionalNeeds}. Adapt practically so the activity is genuinely accessible — without making the adaptation the activity's whole focus.`,
     );
   }
   if (recentObservations.length > 0) {
-    const who = childName ?? "this child";
     const obs = recentObservations
       .map((o) => {
         const codes = o.eylfCodes.length > 0 ? ` (EYLF ${o.eylfCodes.join(", ")})` : "";
         return `- ${o.observedAt}: ${o.noteText}${codes}`;
       })
       .join("\n");
-    lines.push(`Recent observations for ${who}:\n${obs}`);
+    lines.push(`Recent observations for this child:\n${obs}`);
   }
-  if (!childName && !interests && !additionalNeeds && recentObservations.length === 0) {
+  if (!interests && !additionalNeeds && recentObservations.length === 0) {
     lines.push("No specific child context provided — personalise for a generic individual child (solo focus) rather than a whole group.");
   }
 
@@ -1062,7 +1057,6 @@ export async function personaliseActivity(
 
 export interface FollowUpInput {
   observationNote: string;
-  childName: string;
   childInterests: string | null;
   eylfCodes: string[];
   previousActivityTitle?: string | null;
@@ -1089,7 +1083,6 @@ Rules:
 - Make it practical and doable in a typical early childhood setting`;
 
   const lines = [
-    `Child: ${input.childName}`,
     input.childInterests ? `Current interests: ${input.childInterests}` : "",
     input.previousActivityTitle ? `This observation came from activity: "${input.previousActivityTitle}"` : "",
     `Observation: "${input.observationNote}"`,
@@ -1098,17 +1091,6 @@ Rules:
     "Propose a single follow-up activity that extends this observation. Use the propose_activities tool with exactly one activity.",
   ].filter(Boolean);
 
-  const suggestions = await generateActivitySuggestions(
-    {
-      mode: "interest",
-      childInterest: input.observationNote.slice(0, 500),
-      childName: input.childName,
-    },
-    outcomes,
-    1,
-  );
-
-  // Use direct call for more targeted result
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
 
@@ -1130,6 +1112,5 @@ Rules:
   const result = toolUse.input as { activities?: RawActivitySuggestion[] };
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
-  void suggestions;
   return activity;
 }

@@ -58,7 +58,9 @@ Your advice must be:
 
 When you see incident patterns in the data, name them specifically (e.g. "incidents appear to cluster around transition times" or "this child's recent incidents involve physical aggression towards peers, which may indicate frustration when verbal communication breaks down"). If the data is sparse, say so honestly rather than speculating.
 
-Frame all strategies positively and practically — what to DO, not just what to avoid.`;
+Frame all strategies positively and practically — what to DO, not just what to avoid.
+
+PRIVACY: Never include or repeat any child's name, date of birth, or any personal identifier in your response. Refer to the child only as "the child". This is a child safety requirement.`;
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -123,7 +125,7 @@ export async function POST(request: Request) {
       ? observations.map((o) => `- ${new Date(o.observed_at).toLocaleDateString("en-AU")}: ${o.note_text}`).join("\n")
       : "No observations on record.";
 
-  const userPrompt = `Child: ${child.first_name} (${ageText})
+  const userPrompt = `Child: the child (${ageText})
 Current interests: ${child.current_interests || "not recorded"}
 Additional needs: ${child.additional_needs || "none recorded"}
 

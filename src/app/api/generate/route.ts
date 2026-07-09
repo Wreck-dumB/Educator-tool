@@ -98,7 +98,10 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (child) {
-      input.childName = child.first_name;
+      // Deliberately not including child.first_name in the AI prompt —
+      // the model doesn't need the actual name to personalise activities,
+      // and sending a name + medical/behavioural data to a third-party API
+      // is an unnecessary PII disclosure under the Australian Privacy Act.
       if (!input.childInterest && child.current_interests) {
         input.childInterest = child.current_interests;
       }
