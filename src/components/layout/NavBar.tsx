@@ -29,6 +29,7 @@ const NAV_GROUPS = [
     label: "Educator Tools",
     items: [
       { href: "/generate", label: "Generate Activity" },
+      { href: "/brain-breaks", label: "Brain Breaks" },
       { href: "/activities", label: "Activities" },
       { href: "/observations", label: "Observations" },
       { href: "/programming", label: "Programming Workspace" },

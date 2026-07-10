@@ -1267,3 +1267,157 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
   if (!activity) throw new Error("No activity returned");
   return activity;
 }
+
+// =========================================
+// Brain Breaks generation
+// =========================================
+
+export interface RawBrainBreak {
+  title: string;
+  type: "movement" | "mindfulness" | "cognitive" | "creative" | "sensory";
+  duration_minutes: number;
+  energy_impact: "settles" | "energises" | "refocuses";
+  instructions: string[];
+  materials_needed: string[];
+  discussion_question?: string;
+  quiz_questions?: { question: string; options: string[]; answer: string }[];
+  transition_line: string;
+  eylf_connection?: string;
+}
+
+export interface BrainBreakInput {
+  ageGroup: string;
+  roomEnergy: "too_high" | "too_low" | "scattered";
+  durationMinutes: number;
+  breakType?: string;
+}
+
+function makeBrainBreaksTool(count: number): Anthropic.Tool {
+  return {
+    name: "propose_brain_breaks",
+    description: `Propose ${count} Brain Break activities that reset the room's energy and shift children's thinking mode.`,
+    input_schema: {
+      type: "object",
+      properties: {
+        brain_breaks: {
+          type: "array",
+          minItems: 1,
+          maxItems: count,
+          items: {
+            type: "object",
+            required: ["title", "type", "duration_minutes", "energy_impact", "instructions", "materials_needed", "transition_line"],
+            properties: {
+              title: { type: "string", description: "Short, catchy name for the brain break." },
+              type: { type: "string", enum: ["movement", "mindfulness", "cognitive", "creative", "sensory"] },
+              duration_minutes: { type: "integer", minimum: 1, maximum: 15 },
+              energy_impact: {
+                type: "string",
+                enum: ["settles", "energises", "refocuses"],
+                description: "What this break does to the room: 'settles' calms a hyper room, 'energises' lifts a flat room, 'refocuses' restores attention.",
+              },
+              instructions: {
+                type: "array",
+                items: { type: "string" },
+                description: "Concrete, numbered steps the educator follows — 3 to 8 steps, each one sentence.",
+              },
+              materials_needed: {
+                type: "array",
+                items: { type: "string" },
+                description: "Items needed beyond what is in any classroom. Leave empty array if no materials required.",
+              },
+              discussion_question: {
+                type: "string",
+                description: "For cognitive or creative types: a single follow-up question to ask the group after the break.",
+              },
+              quiz_questions: {
+                type: "array",
+                description: "For cognitive type with a pop-quiz format: 2–4 age-appropriate questions with options.",
+                items: {
+                  type: "object",
+                  required: ["question", "options", "answer"],
+                  properties: {
+                    question: { type: "string" },
+                    options: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 },
+                    answer: { type: "string" },
+                  },
+                },
+              },
+              transition_line: {
+                type: "string",
+                description: "A specific phrase the educator says to bring the group back after the break.",
+              },
+              eylf_connection: {
+                type: "string",
+                description: "One sentence naming which EYLF outcome this supports.",
+              },
+            },
+          },
+        },
+      },
+      required: ["brain_breaks"],
+    },
+  };
+}
+
+export async function generateBrainBreaks(input: BrainBreakInput, count = 3): Promise<RawBrainBreak[]> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
+
+  const client = new Anthropic({ apiKey });
+
+  const AGE_LABELS: Record<string, string> = {
+    toddlers_1_2: "toddlers aged 1–2 years",
+    toddlers_2_3: "toddlers aged 2–3 years",
+    preschool_3_4: "preschool children aged 3–4 years",
+    preschool_4_5: "preschool children aged 4–5 years",
+    kindy_5_plus: "kindergarten/school-age children aged 5+",
+    mixed: "a mixed-age group",
+  };
+  const ENERGY_LABELS: Record<string, string> = {
+    too_high: "too high — the room is loud, excited, or chaotic and children need to settle before regrouping",
+    too_low: "too low — children are disengaged, tired, or flat and need energising to re-engage",
+    scattered: "scattered/unfocused — attention is fragmented and children need to refocus",
+  };
+
+  const ageLabel = AGE_LABELS[input.ageGroup] ?? input.ageGroup;
+  const energyLabel = ENERGY_LABELS[input.roomEnergy] ?? input.roomEnergy;
+  const typeInstruction =
+    input.breakType && input.breakType !== "any"
+      ? `Preferred type: ${input.breakType} — use this type for all suggestions.`
+      : `Mix the types across the suggestions for variety.`;
+
+  const systemPrompt = `You are an assistant for early childhood educators in Australia. You generate quick "Brain Break" activities — short, fun games or exercises that reset the room's energy and shift children into a different thinking or learning mode before the group continues or starts a new activity.
+
+A great Brain Break:
+- Requires zero preparation and ideally no materials
+- Takes 1–10 minutes maximum
+- Genuinely shifts physical energy, cognitive engagement, or sensory attention
+- Feels like a game, not another task
+- Is age-appropriate and immediately executable
+
+PRIVACY: Never include or repeat any child's name, date of birth, or any personal identifier in your response. Refer to children as "children" or "the group". This is a child safety requirement.`;
+
+  const userPrompt = `Age group: ${ageLabel}
+Current room energy: ${energyLabel}
+Time available: approximately ${input.durationMinutes} minutes
+${typeInstruction}
+
+Propose ${count} Brain Break ideas using the propose_brain_breaks tool. Make them varied, fun, and instantly usable.`;
+
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+    tools: [makeBrainBreaksTool(count)],
+    tool_choice: { type: "tool", name: "propose_brain_breaks" },
+  });
+
+  const toolUse = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Model did not return a tool call");
+
+  const result = toolUse.input as { brain_breaks?: RawBrainBreak[] };
+  return result.brain_breaks ?? [];
+}

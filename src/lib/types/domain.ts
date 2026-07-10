@@ -95,6 +95,20 @@ export interface ActivitySuggestion {
   suggestedTemplate: "name_trace" | "drawing_frame" | "writing_lines" | null;
 }
 
+/** A brain break suggestion returned by the generation engine (transient, not saved). */
+export interface BrainBreakSuggestion {
+  title: string;
+  type: "movement" | "mindfulness" | "cognitive" | "creative" | "sensory";
+  durationMinutes: number;
+  energyImpact: "settles" | "energises" | "refocuses";
+  instructions: string[];
+  materialsNeeded: string[];
+  discussionQuestion?: string;
+  quizQuestions?: { question: string; options: string[]; answer: string }[];
+  transitionLine: string;
+  eylfConnection?: string;
+}
+
 /** A candidate risk assessment returned by the generation engine, before it's saved. */
 export interface RiskAssessmentSuggestion {
   contextNotes: string | null;
