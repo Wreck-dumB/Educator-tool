@@ -207,6 +207,53 @@ export default async function IncidentReportsPage({
               </p>
             </div>
 
+            {/* ── Reg 176 regulatory authority notification ──────────── */}
+            <div className="rounded-xl border border-coral-light bg-coral-light/20 p-4 space-y-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-ink/70">
+                Regulatory authority notification (Reg 176)
+              </p>
+              <p className="text-xs text-ink/60">
+                Reg 176 of the Education and Care Services National Regulations requires the
+                approved provider to notify the regulatory authority as soon as practicable (and
+                within 24 hours) of a{" "}
+                <strong>serious incident</strong> — defined as: death, serious injury or illness,
+                child missing/not collected, emergency services called, or similar. This applies
+                even if the incident was minor internally.
+              </p>
+              <label className="flex items-start gap-2 text-sm text-ink/80">
+                <input
+                  type="checkbox"
+                  name="regulatory_authority_notified"
+                  value="1"
+                  className="mt-0.5 h-4 w-4 rounded border-coral accent-coral"
+                />
+                <span>
+                  <strong>This incident is or may be a serious incident (Reg 176)</strong> — the
+                  regulatory authority was or will be notified
+                </span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-ink/50">Date and time of notification</label>
+                  <input
+                    type="datetime-local"
+                    name="regulatory_authority_notified_at"
+                    className={`mt-0.5 ${inputClass}`}
+                  />
+                </div>
+                <input
+                  name="regulatory_authority_notification_method"
+                  type="text"
+                  placeholder="Method (phone, email, online portal)"
+                  className={`${inputClass} mt-5`}
+                />
+              </div>
+              <p className="text-xs text-ink/40">
+                NSW: notify the NSW Regulatory Authority via the National Quality Agenda IT System
+                (NQA ITS) or by phone on 1800 619 113. Retain a copy of all notifications.
+              </p>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <input
                 name="completed_by_name"
@@ -236,6 +283,7 @@ export default async function IncidentReportsPage({
             const child = children.find((c) => c.id === r.child_id);
             const hasHarmFlag = r.possible_harm_indicator;
             const reportMade = r.mandatory_report_made;
+            const reg176 = r.regulatory_authority_notified;
             return (
               <li key={r.id} className="py-3">
                 <div className="flex items-start justify-between gap-3">
@@ -253,7 +301,12 @@ export default async function IncidentReportsPage({
                               : "bg-amber-100 text-amber-800"
                           }`}
                         >
-                          {reportMade ? "Report made" : "⚑ Harm flagged"}
+                          {reportMade ? "DCJ report made" : "⚑ Harm flagged"}
+                        </span>
+                      )}
+                      {reg176 && (
+                        <span className="rounded-full bg-coral-light px-2 py-0.5 text-[10px] font-bold uppercase text-coral-dark">
+                          Reg 176 notified
                         </span>
                       )}
                     </div>

@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice } from "./actions";
+import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice, updateGovernanceDetails } from "./actions";
 import { errorBannerClass, successBannerClass } from "@/lib/ui";
 
 const ALL_OBS_TYPES: { key: string; label: string; short: string }[] = [
@@ -22,6 +22,11 @@ interface Props {
   serviceName: string;
   preferredObservationTypes: string[];
   aiDataNoticeAcceptedAt: string | null;
+  approvedProviderNumber: string | null;
+  serviceApprovalNumber: string | null;
+  nominatedSupervisorName: string | null;
+  nominatedSupervisorPhone: string | null;
+  nominatedSupervisorEmail: string | null;
 }
 
 export default function SettingsClient({
@@ -31,6 +36,11 @@ export default function SettingsClient({
   serviceName,
   preferredObservationTypes,
   aiDataNoticeAcceptedAt,
+  approvedProviderNumber,
+  serviceApprovalNumber,
+  nominatedSupervisorName,
+  nominatedSupervisorPhone,
+  nominatedSupervisorEmail,
 }: Props) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [preview, setPreview] = useState<string | null>(null);
@@ -49,6 +59,9 @@ export default function SettingsClient({
   const [aiNoticePending, startAiTransition] = useTransition();
   const [aiNoticeAccepted, setAiNoticeAccepted] = useState<string | null>(aiDataNoticeAcceptedAt);
   const [aiNoticeError, setAiNoticeError] = useState<string | null>(null);
+  const [govPending, startGovTransition] = useTransition();
+  const [govError, setGovError] = useState<string | null>(null);
+  const [govSuccess, setGovSuccess] = useState(false);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -120,6 +133,19 @@ export default function SettingsClient({
         setObsError(result.error);
       } else {
         setObsSuccess(true);
+      }
+    });
+  }
+
+  function handleGovSave(formData: FormData) {
+    setGovError(null);
+    setGovSuccess(false);
+    startGovTransition(async () => {
+      const result = await updateGovernanceDetails(formData);
+      if (result.error) {
+        setGovError(result.error);
+      } else {
+        setGovSuccess(true);
       }
     });
   }
@@ -251,6 +277,87 @@ export default function SettingsClient({
           Changes appear immediately — no restart needed.
         </p>
       </div>
+
+      {/* Service governance (Reg 168) */}
+      <section className="rounded-2xl border border-coral-light bg-white p-5">
+        <h2 className="font-display text-base font-semibold text-ink mb-1">Service governance</h2>
+        <p className="text-sm text-ink/50 mb-4">
+          Your ACECQA approval numbers and nominated supervisor details (Reg 168 of the Education
+          and Care Services National Regulations 2011). Required for regulatory correspondence,
+          incident notifications, and assessment and rating visits.
+        </p>
+        <form action={handleGovSave} className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-ink/60 mb-1">
+                Approved Provider Number
+              </label>
+              <input
+                name="approved_provider_number"
+                type="text"
+                placeholder="AP0000000"
+                defaultValue={approvedProviderNumber ?? ""}
+                disabled={!isDirector || govPending}
+                className="w-full rounded-xl border border-coral-light px-3 py-2 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none disabled:opacity-50"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink/60 mb-1">
+                Service Approval Number
+              </label>
+              <input
+                name="service_approval_number"
+                type="text"
+                placeholder="SE-00000000"
+                defaultValue={serviceApprovalNumber ?? ""}
+                disabled={!isDirector || govPending}
+                className="w-full rounded-xl border border-coral-light px-3 py-2 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none disabled:opacity-50"
+              />
+            </div>
+          </div>
+          <p className="text-xs font-semibold text-ink/50 pt-1">Nominated supervisor</p>
+          <input
+            name="nominated_supervisor_name"
+            type="text"
+            placeholder="Full name"
+            defaultValue={nominatedSupervisorName ?? ""}
+            disabled={!isDirector || govPending}
+            className="w-full rounded-xl border border-coral-light px-3 py-2 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none disabled:opacity-50"
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              name="nominated_supervisor_phone"
+              type="text"
+              placeholder="Phone"
+              defaultValue={nominatedSupervisorPhone ?? ""}
+              disabled={!isDirector || govPending}
+              className="rounded-xl border border-coral-light px-3 py-2 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none disabled:opacity-50"
+            />
+            <input
+              name="nominated_supervisor_email"
+              type="email"
+              placeholder="Email"
+              defaultValue={nominatedSupervisorEmail ?? ""}
+              disabled={!isDirector || govPending}
+              className="rounded-xl border border-coral-light px-3 py-2 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none disabled:opacity-50"
+            />
+          </div>
+          {govError && <p className={errorBannerClass}>{govError}</p>}
+          {govSuccess && <p className={successBannerClass}>Governance details saved.</p>}
+          {!isDirector && (
+            <p className="text-xs text-ink/40">Only the Director can update governance details.</p>
+          )}
+          {isDirector && (
+            <button
+              type="submit"
+              disabled={govPending}
+              className="rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
+            >
+              {govPending ? "Saving…" : "Save governance details"}
+            </button>
+          )}
+        </form>
+      </section>
 
       {/* Observation type preferences */}
       <section className="rounded-2xl border border-coral-light bg-white p-5">

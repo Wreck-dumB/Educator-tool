@@ -48,6 +48,8 @@ export async function createChildIncidentReport(formData: FormData) {
   const possibleHarm = formData.get("possible_harm_indicator") === "1";
   const reportMade = formData.get("mandatory_report_made") === "1";
   const reportAt = formData.get("mandatory_report_at") as string;
+  const reg176 = formData.get("regulatory_authority_notified") === "1";
+  const reg176At = formData.get("regulatory_authority_notified_at") as string;
 
   const { error } = await supabase.from("child_incident_reports").insert({
     owner_user_id: ownerUserId,
@@ -69,6 +71,9 @@ export async function createChildIncidentReport(formData: FormData) {
     mandatory_report_made: reportMade ? true : null,
     mandatory_report_at: reportMade && reportAt ? new Date(reportAt).toISOString() : null,
     mandatory_report_by: reportMade ? user.id : null,
+    regulatory_authority_notified: reg176,
+    regulatory_authority_notified_at: reg176 && reg176At ? new Date(reg176At).toISOString() : null,
+    regulatory_authority_notification_method: field(formData, "regulatory_authority_notification_method"),
   });
 
   if (error) {

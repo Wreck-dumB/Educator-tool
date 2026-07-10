@@ -752,6 +752,9 @@ export interface Database {
           mandatory_report_made: boolean | null;
           mandatory_report_at: string | null;
           mandatory_report_by: string | null;
+          regulatory_authority_notified: boolean;
+          regulatory_authority_notified_at: string | null;
+          regulatory_authority_notification_method: string | null;
           created_at: string;
         };
         Insert: {
@@ -775,6 +778,9 @@ export interface Database {
           mandatory_report_made?: boolean | null;
           mandatory_report_at?: string | null;
           mandatory_report_by?: string | null;
+          regulatory_authority_notified?: boolean;
+          regulatory_authority_notified_at?: string | null;
+          regulatory_authority_notification_method?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["child_incident_reports"]["Insert"]>;
@@ -1043,6 +1049,11 @@ export interface Database {
           privacy_policy_url: string | null;
           ai_data_notice_accepted_at: string | null;
           ai_data_notice_accepted_by: string | null;
+          approved_provider_number: string | null;
+          service_approval_number: string | null;
+          nominated_supervisor_name: string | null;
+          nominated_supervisor_phone: string | null;
+          nominated_supervisor_email: string | null;
           created_at: string;
         };
         Insert: {
@@ -1055,9 +1066,70 @@ export interface Database {
           privacy_policy_url?: string | null;
           ai_data_notice_accepted_at?: string | null;
           ai_data_notice_accepted_by?: string | null;
+          approved_provider_number?: string | null;
+          service_approval_number?: string | null;
+          nominated_supervisor_name?: string | null;
+          nominated_supervisor_phone?: string | null;
+          nominated_supervisor_email?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;
+        Relationships: [];
+      };
+      complaint_records: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          received_at: string;
+          complainant_type: "parent" | "staff" | "child" | "community" | "anonymous" | "regulatory_body";
+          subject: string;
+          description: string;
+          status: "received" | "acknowledged" | "under_review" | "resolved" | "escalated";
+          resolution_notes: string | null;
+          resolved_at: string | null;
+          created_by_user_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          received_at?: string;
+          complainant_type?: "parent" | "staff" | "child" | "community" | "anonymous" | "regulatory_body";
+          subject: string;
+          description: string;
+          status?: "received" | "acknowledged" | "under_review" | "resolved" | "escalated";
+          resolution_notes?: string | null;
+          resolved_at?: string | null;
+          created_by_user_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["complaint_records"]["Insert"]>;
+        Relationships: [];
+      };
+      environment_safety_checks: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          check_date: string;
+          room_id: string | null;
+          items: Record<string, boolean>;
+          notes: string | null;
+          completed_by_user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          check_date: string;
+          room_id?: string | null;
+          items: Record<string, boolean>;
+          notes?: string | null;
+          completed_by_user_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["environment_safety_checks"]["Insert"]>;
         Relationships: [];
       };
       staff_memberships: {

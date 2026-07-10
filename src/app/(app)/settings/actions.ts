@@ -158,6 +158,40 @@ export async function updateObservationPreferences(
   return {};
 }
 
+export async function updateGovernanceDetails(
+  formData: FormData
+): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update governance details" };
+
+  const field = (name: string) => (formData.get(name) as string | null)?.trim() || null;
+
+  const { error } = await supabase
+    .from("services")
+    .update({
+      approved_provider_number: field("approved_provider_number"),
+      service_approval_number: field("service_approval_number"),
+      nominated_supervisor_name: field("nominated_supervisor_name"),
+      nominated_supervisor_phone: field("nominated_supervisor_phone"),
+      nominated_supervisor_email: field("nominated_supervisor_email"),
+    })
+    .eq("id", service.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  return {};
+}
+
 export async function acceptAiDataNotice(): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {

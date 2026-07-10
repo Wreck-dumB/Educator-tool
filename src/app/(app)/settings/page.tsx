@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   const { data: service } = await supabase
     .from("services")
-    .select("name, display_name, logo_path, preferred_observation_types, ai_data_notice_accepted_at")
+    .select("name, display_name, logo_path, preferred_observation_types, ai_data_notice_accepted_at, approved_provider_number, service_approval_number, nominated_supervisor_name, nominated_supervisor_phone, nominated_supervisor_email")
     .maybeSingle();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -36,6 +36,11 @@ export default async function SettingsPage() {
         serviceName={service?.name ?? "My Service"}
         preferredObservationTypes={service?.preferred_observation_types ?? ["anecdotal", "learning_story", "jotting"]}
         aiDataNoticeAcceptedAt={service?.ai_data_notice_accepted_at ?? null}
+        approvedProviderNumber={service?.approved_provider_number ?? null}
+        serviceApprovalNumber={service?.service_approval_number ?? null}
+        nominatedSupervisorName={service?.nominated_supervisor_name ?? null}
+        nominatedSupervisorPhone={service?.nominated_supervisor_phone ?? null}
+        nominatedSupervisorEmail={service?.nominated_supervisor_email ?? null}
       />
     </div>
   );
