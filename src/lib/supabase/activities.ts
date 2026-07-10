@@ -44,6 +44,16 @@ export async function getActivities(): Promise<ActivityWithOutcomes[]> {
   return attachEylfCodes(data ?? []);
 }
 
+export async function getActivitiesByIds(ids: string[]): Promise<ActivityWithOutcomes[]> {
+  if (ids.length === 0) return [];
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("generated_activities")
+    .select("*")
+    .in("id", ids);
+  return attachEylfCodes(data ?? []);
+}
+
 export async function getActivity(id: string): Promise<ActivityWithOutcomes | null> {
   const supabase = await createClient();
   const { data } = await supabase

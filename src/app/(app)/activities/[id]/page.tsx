@@ -4,6 +4,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getRiskAssessments } from "@/lib/supabase/riskAssessments";
+import { getMaterials } from "@/lib/supabase/materials";
 import { logObservation } from "@/app/(app)/observations/actions";
 import { addActivityToProgram } from "@/app/(app)/programs/actions";
 import { getPrograms } from "@/lib/supabase/programs";
@@ -11,6 +12,7 @@ import { archiveActivity, unarchiveActivity } from "../actions";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
 import { cardClass, errorBannerClass } from "@/lib/ui";
 import { getServiceObservationTypes } from "@/lib/supabase/services";
+import { getMaterialStatuses } from "@/lib/materialsMatch";
 import RiskAssessmentPanel from "./RiskAssessmentPanel";
 import PersonalisePanel from "./PersonalisePanel";
 import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
@@ -28,14 +30,19 @@ export default async function ActivityDetailPage({
   const activity = await getActivity(id);
   if (!activity) notFound();
 
-  const [children, allObservations, riskAssessments, outcomes, programs, enabledObsTypes] = await Promise.all([
+  const [children, allObservations, riskAssessments, outcomes, programs, enabledObsTypes, inventory] = await Promise.all([
     getChildren(),
     getObservations(),
     getRiskAssessments(activity.id),
     getEylfOutcomes(),
     getPrograms(),
     getServiceObservationTypes(),
+    getMaterials(),
   ]);
+
+  const materialStatuses = activity.materials_used.length > 0
+    ? getMaterialStatuses(activity.materials_used, inventory)
+    : [];
   const observations = allObservations.filter((o) => o.activity_id === activity.id);
 
   return (
@@ -103,15 +110,40 @@ export default async function ActivityDetailPage({
         </ol>
       )}
 
-      {activity.materials_used.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-ink/70">
-          <span className="font-medium">Materials:</span>
-          {activity.materials_used.map((m, idx) => (
-            <span key={idx} className="inline-flex items-center gap-1">
-              <span aria-hidden>{getMaterialIcon(m)}</span>
-              {m}
-            </span>
-          ))}
+      {materialStatuses.length > 0 && (
+        <div className={`mt-4 ${cardClass} p-4`}>
+          <p className="mb-2 text-sm font-semibold text-ink">Materials check</p>
+          <ul className="space-y-1.5">
+            {materialStatuses.map((s) => (
+              <li key={s.name} className="flex items-center gap-2 text-sm">
+                <span aria-hidden className="text-base">{getMaterialIcon(s.name)}</span>
+                <span className="flex-1 text-ink">{s.name}</span>
+                {s.status === "in_stock" && (
+                  <span className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark">
+                    ✓ In stock{s.match?.quantity != null ? ` (${s.match.quantity}${s.match.unit ? ` ${s.match.unit}` : ""})` : ""}
+                  </span>
+                )}
+                {s.status === "low_stock" && (
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                    ⚠ Low stock — {s.match!.quantity} {s.match!.unit ?? ""} left
+                  </span>
+                )}
+                {s.status === "not_in_inventory" && (
+                  <span className="rounded-full bg-coral-light px-2 py-0.5 text-xs font-medium text-coral-dark">
+                    🛒 Not in inventory
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {materialStatuses.some((s) => s.status !== "in_stock") && (
+            <a
+              href="/materials"
+              className="mt-3 block text-xs font-medium text-coral-dark hover:underline"
+            >
+              Update inventory →
+            </a>
+          )}
         </div>
       )}
 
@@ -187,6 +219,30 @@ export default async function ActivityDetailPage({
                   className="w-full rounded-xl border border-coral-light bg-white px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
                 />
               </div>
+              {materialStatuses.length > 0 && (
+                <div className="rounded-xl bg-cream-dark/40 p-3">
+                  <p className="mb-2 text-xs font-semibold text-ink/70">Materials you&apos;ll need before this date</p>
+                  <ul className="space-y-1">
+                    {materialStatuses.map((s) => (
+                      <li key={s.name} className="flex items-center gap-1.5 text-xs">
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          s.status === "in_stock" ? "bg-sage" : s.status === "low_stock" ? "bg-amber-400" : "bg-coral"
+                        }`} />
+                        <span className="text-ink/80">{s.name}</span>
+                        {s.status === "in_stock" && s.match?.quantity != null && (
+                          <span className="text-ink/40">— {s.match.quantity} {s.match.unit ?? ""} in stock</span>
+                        )}
+                        {s.status === "low_stock" && (
+                          <span className="font-medium text-amber-700">— only {s.match!.quantity} left</span>
+                        )}
+                        {s.status === "not_in_inventory" && (
+                          <span className="font-medium text-coral-dark">— not in inventory</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <button
                 type="submit"
                 className="rounded-full bg-coral-light px-4 py-2 text-xs font-semibold text-coral-dark hover:bg-coral/20 transition-colors"

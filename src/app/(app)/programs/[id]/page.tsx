@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProgram } from "@/lib/supabase/programs";
+import { getActivitiesByIds } from "@/lib/supabase/activities";
+import { getMaterials } from "@/lib/supabase/materials";
+import { getMaterialStatuses, itemsToSource } from "@/lib/materialsMatch";
 import PrintButton from "@/components/PrintButton";
 
 export default async function ProgramDetailPage({
@@ -11,6 +14,42 @@ export default async function ProgramDetailPage({
   const { id } = await params;
   const program = await getProgram(id);
   if (!program) notFound();
+
+  const today = new Date().toISOString().slice(0, 10);
+  const futureEntries = program.entries.filter((e) => e.activity_id && e.day_date >= today);
+  const activityIds = [...new Set(futureEntries.map((e) => e.activity_id!))];
+
+  const [activities, inventory] = await Promise.all([
+    getActivitiesByIds(activityIds),
+    getMaterials(),
+  ]);
+
+  const activityById = new Map(activities.map((a) => [a.id, a]));
+
+  // Build consolidated shopping list: material name → { status, neededFor: string[] }
+  type ShoppingItem = { name: string; status: "low_stock" | "not_in_inventory"; neededFor: string[] };
+  const shoppingMap = new Map<string, ShoppingItem>();
+
+  for (const entry of futureEntries) {
+    const activity = activityById.get(entry.activity_id!);
+    if (!activity || activity.materials_used.length === 0) continue;
+    const statuses = getMaterialStatuses(activity.materials_used, inventory);
+    for (const s of itemsToSource(statuses)) {
+      const key = s.name.toLowerCase();
+      const existing = shoppingMap.get(key);
+      if (existing) {
+        if (!existing.neededFor.includes(entry.title)) existing.neededFor.push(entry.title);
+      } else {
+        shoppingMap.set(key, { name: s.name, status: s.status as "low_stock" | "not_in_inventory", neededFor: [entry.title] });
+      }
+    }
+  }
+
+  const shoppingList = Array.from(shoppingMap.values()).sort((a, b) => {
+    // not_in_inventory sorts before low_stock
+    if (a.status !== b.status) return a.status === "not_in_inventory" ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
 
   const entriesByDay = program.entries.reduce<Record<string, typeof program.entries>>((acc, e) => {
     (acc[e.day_date] ??= []).push(e);
@@ -31,6 +70,37 @@ export default async function ProgramDetailPage({
         <p className="mt-1 text-sm text-ink/60 print:text-black">
           {new Date(program.start_date).toLocaleDateString()} – {new Date(program.end_date).toLocaleDateString()}
         </p>
+
+        {shoppingList.length > 0 && (
+          <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 print:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-amber-900">
+                🛒 Materials needed for upcoming activities
+              </p>
+              <Link href="/materials" className="text-xs font-medium text-amber-700 hover:underline">
+                Update inventory →
+              </Link>
+            </div>
+            <ul className="mt-3 space-y-2">
+              {shoppingList.map((item) => (
+                <li key={item.name} className="flex items-start gap-2 text-sm">
+                  <span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${
+                    item.status === "not_in_inventory" ? "bg-coral" : "bg-amber-400"
+                  }`} />
+                  <div>
+                    <span className="font-medium text-amber-900">{item.name}</span>
+                    {item.status === "low_stock" && (
+                      <span className="ml-1.5 text-xs text-amber-700">(low stock)</span>
+                    )}
+                    <p className="text-xs text-amber-700/80">
+                      Needed for: {item.neededFor.join(", ")}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {program.cultural_days.length > 0 && (
           <div className="mt-4 rounded-xl bg-amber-light p-3 print:rounded-none print:border print:border-black print:bg-white print:text-black">
