@@ -95,16 +95,19 @@ export interface ActivitySuggestion {
   suggestedTemplate: "name_trace" | "drawing_frame" | "writing_lines" | null;
 }
 
-/** A brain break suggestion returned by the generation engine (transient, not saved). */
+/** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */
 export interface BrainBreakSuggestion {
   title: string;
   type: "movement" | "mindfulness" | "cognitive" | "creative" | "sensory";
   durationMinutes: number;
   energyImpact: "settles" | "energises" | "refocuses";
-  instructions: string[];
-  materialsNeeded: string[];
+  screenIntro: string;
+  actions?: string[];
+  quizQuestions?: { question: string; options: string[]; answer: string; funFact?: string }[];
+  breathing?: { inhaleSeconds: number; holdSeconds: number; exhaleSeconds: number; cycles: number; mantra?: string };
+  sensorySteps?: string[];
+  creativePrompt?: string;
   discussionQuestion?: string;
-  quizQuestions?: { question: string; options: string[]; answer: string }[];
   transitionLine: string;
   eylfConnection?: string;
 }

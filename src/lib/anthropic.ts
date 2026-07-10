@@ -1269,7 +1269,8 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
 }
 
 // =========================================
-// Brain Breaks generation
+// Brain Breaks generation — digital/interactive mode
+// Each break is designed to run on a classroom screen; no paper, no printing.
 // =========================================
 
 export interface RawBrainBreak {
@@ -1277,10 +1278,34 @@ export interface RawBrainBreak {
   type: "movement" | "mindfulness" | "cognitive" | "creative" | "sensory";
   duration_minutes: number;
   energy_impact: "settles" | "energises" | "refocuses";
-  instructions: string[];
-  materials_needed: string[];
+  /** Short tagline shown on the preview card. */
+  screen_intro: string;
+  /** movement: short on-screen action commands shown one at a time ("JUMP 5 TIMES! 🦘") */
+  actions?: string[];
+  /** cognitive: interactive multiple-choice questions displayed on screen */
+  quiz_questions?: {
+    question: string;
+    options: string[];
+    answer: string;
+    /** Delightful extra fact revealed after the answer */
+    fun_fact?: string;
+  }[];
+  /** mindfulness: parameters for the animated breathing circle */
+  breathing?: {
+    inhale_seconds: number;
+    hold_seconds: number;
+    exhale_seconds: number;
+    cycles: number;
+    /** Short calming phrase shown during the exercise */
+    mantra?: string;
+  };
+  /** sensory: awareness prompts shown one at a time ("Close your eyes… name 3 sounds you can hear") */
+  sensory_steps?: string[];
+  /** creative: big on-screen challenge the whole group does together */
+  creative_prompt?: string;
+  /** Optional follow-up question shown at the end of creative/sensory breaks */
   discussion_question?: string;
-  quiz_questions?: { question: string; options: string[]; answer: string }[];
+  /** Exact phrase the educator says to bring the group back to work */
   transition_line: string;
   eylf_connection?: string;
 }
@@ -1295,7 +1320,7 @@ export interface BrainBreakInput {
 function makeBrainBreaksTool(count: number): Anthropic.Tool {
   return {
     name: "propose_brain_breaks",
-    description: `Propose ${count} Brain Break activities that reset the room's energy and shift children's thinking mode.`,
+    description: `Propose ${count} digital, interactive Brain Break activities that run on a classroom screen — no paper, no printing, no materials.`,
     input_schema: {
       type: "object",
       properties: {
@@ -1305,50 +1330,71 @@ function makeBrainBreaksTool(count: number): Anthropic.Tool {
           maxItems: count,
           items: {
             type: "object",
-            required: ["title", "type", "duration_minutes", "energy_impact", "instructions", "materials_needed", "transition_line"],
+            required: ["title", "type", "duration_minutes", "energy_impact", "screen_intro", "transition_line"],
             properties: {
-              title: { type: "string", description: "Short, catchy name for the brain break." },
+              title: { type: "string", description: "Short, catchy name shown on the card and on-screen header." },
               type: { type: "string", enum: ["movement", "mindfulness", "cognitive", "creative", "sensory"] },
-              duration_minutes: { type: "integer", minimum: 1, maximum: 15 },
+              duration_minutes: { type: "integer", minimum: 1, maximum: 12 },
               energy_impact: {
                 type: "string",
                 enum: ["settles", "energises", "refocuses"],
-                description: "What this break does to the room: 'settles' calms a hyper room, 'energises' lifts a flat room, 'refocuses' restores attention.",
+                description: "'settles' calms a hyper room; 'energises' lifts a flat room; 'refocuses' restores attention without big energy change.",
               },
-              instructions: {
-                type: "array",
-                items: { type: "string" },
-                description: "Concrete, numbered steps the educator follows — 3 to 8 steps, each one sentence.",
-              },
-              materials_needed: {
-                type: "array",
-                items: { type: "string" },
-                description: "Items needed beyond what is in any classroom. Leave empty array if no materials required.",
-              },
-              discussion_question: {
+              screen_intro: {
                 type: "string",
-                description: "For cognitive or creative types: a single follow-up question to ask the group after the break.",
+                description: "1–2 sentence tagline shown on the preview card so the educator can preview before launching.",
+              },
+              actions: {
+                type: "array",
+                description: "REQUIRED for 'movement' type. Short, punchy on-screen action commands children respond to physically — think Simon Says on a screen. Make them silly and physical. 6–10 actions. Examples: 'JUMP 5 TIMES! 🦘', 'WIGGLE YOUR WHOLE BODY! 🌊', 'ROAR LIKE A T-REX! 🦖', 'SPIN AROUND TWICE! 🌀', 'BALANCE ON ONE FOOT FOR 5 SECONDS! 🦩'.",
+                items: { type: "string" },
               },
               quiz_questions: {
                 type: "array",
-                description: "For cognitive type with a pop-quiz format: 2–4 age-appropriate questions with options.",
+                description: "REQUIRED for 'cognitive' type. Age-appropriate questions with big tappable options displayed on screen. Children shout out or come tap the screen. 3–5 questions.",
                 items: {
                   type: "object",
                   required: ["question", "options", "answer"],
                   properties: {
-                    question: { type: "string" },
-                    options: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4 },
-                    answer: { type: "string" },
+                    question: { type: "string", description: "Fun, age-appropriate question — about animals, colours, counting, nature, the world." },
+                    options: { type: "array", items: { type: "string" }, minItems: 2, maxItems: 4, description: "Short answer options (1–4 words each)." },
+                    answer: { type: "string", description: "Must exactly match one of the options." },
+                    fun_fact: { type: "string", description: "A short delightful extra fact shown after the answer is revealed — the 'wow!' moment." },
                   },
                 },
               },
+              breathing: {
+                type: "object",
+                description: "REQUIRED for 'mindfulness' type. Drives an animated breathing circle on screen that grows on inhale and shrinks on exhale. Children watch and breathe along.",
+                required: ["inhale_seconds", "hold_seconds", "exhale_seconds", "cycles"],
+                properties: {
+                  inhale_seconds: { type: "integer", minimum: 2, maximum: 6 },
+                  hold_seconds: { type: "integer", minimum: 0, maximum: 4 },
+                  exhale_seconds: { type: "integer", minimum: 2, maximum: 6 },
+                  cycles: { type: "integer", minimum: 3, maximum: 8, description: "How many full breath cycles." },
+                  mantra: { type: "string", description: "Short calming phrase shown on screen during the exercise, e.g. 'I am calm. I am safe. I am ready.'" },
+                },
+              },
+              sensory_steps: {
+                type: "array",
+                description: "REQUIRED for 'sensory' type. Sensory awareness prompts shown one at a time on screen — children close their eyes or focus attention then share. 4–7 steps. Examples: 'Close your eyes… how many sounds can you hear?', 'Press your feet flat on the floor. What does it feel like?'",
+                items: { type: "string" },
+              },
+              creative_prompt: {
+                type: "string",
+                description: "REQUIRED for 'creative' type. A single big, playful creative challenge displayed large on screen — the whole group does it together. Examples: 'Use your body to make the shape of a letter — hold it while we guess!', 'Make the funniest face you can and freeze for 5 seconds!', 'Act like a slow-motion robot — move EVERY part of your body in slow motion.'",
+              },
+              discussion_question: {
+                type: "string",
+                description: "Optional. For creative/sensory types: a fun follow-up question shown on screen after the main activity, e.g. 'What was the trickiest part?' or 'If you were an animal, which one felt like you today?'",
+              },
               transition_line: {
                 type: "string",
-                description: "A specific phrase the educator says to bring the group back after the break.",
+                description: "The exact phrase the educator says to bring the group back to learning — warm, brief, ready. E.g. 'Shake it out — great work! Now let's bring those fresh brains back to the table.'",
               },
               eylf_connection: {
                 type: "string",
-                description: "One sentence naming which EYLF outcome this supports.",
+                description: "One sentence naming the EYLF outcome this supports, e.g. 'EYLF 3.2 — children take increasing responsibility for their own health and physical wellbeing.'",
               },
             },
           },
@@ -1374,35 +1420,39 @@ export async function generateBrainBreaks(input: BrainBreakInput, count = 3): Pr
     mixed: "a mixed-age group",
   };
   const ENERGY_LABELS: Record<string, string> = {
-    too_high: "too high — the room is loud, excited, or chaotic and children need to settle before regrouping",
-    too_low: "too low — children are disengaged, tired, or flat and need energising to re-engage",
-    scattered: "scattered/unfocused — attention is fragmented and children need to refocus",
+    too_high: "too high — the room is loud, excited, or chaotic; children need to settle and refocus",
+    too_low: "too low — children are disengaged, flat, or tired; they need energising to re-engage",
+    scattered: "scattered/unfocused — attention is fragmented; children need a gentle reset without a big energy spike",
   };
 
   const ageLabel = AGE_LABELS[input.ageGroup] ?? input.ageGroup;
   const energyLabel = ENERGY_LABELS[input.roomEnergy] ?? input.roomEnergy;
   const typeInstruction =
     input.breakType && input.breakType !== "any"
-      ? `Preferred type: ${input.breakType} — use this type for all suggestions.`
-      : `Mix the types across the suggestions for variety.`;
+      ? `Preferred type: ${input.breakType} — use this type for all ${count} suggestions.`
+      : `Vary the types across the ${count} suggestions for variety.`;
 
-  const systemPrompt = `You are an assistant for early childhood educators in Australia. You generate quick "Brain Break" activities — short, fun games or exercises that reset the room's energy and shift children into a different thinking or learning mode before the group continues or starts a new activity.
+  const systemPrompt = `You are an assistant for early childhood educators in Australia. You generate digital, on-screen "Brain Break" activities — interactive experiences that run on a classroom screen or device and that children engage with directly on the spot. These are NOT paper-based.
 
-A great Brain Break:
-- Requires zero preparation and ideally no materials
-- Takes 1–10 minutes maximum
-- Genuinely shifts physical energy, cognitive engagement, or sensory attention
-- Feels like a game, not another task
-- Is age-appropriate and immediately executable
+Critical context: children have been doing hands-on paper activities all day. Brain Breaks are a screen-based reward and energy reset — something fun to look forward to, and something that inadvertently keeps learning active without it feeling like work.
 
-PRIVACY: Never include or repeat any child's name, date of birth, or any personal identifier in your response. Refer to children as "children" or "the group". This is a child safety requirement.`;
+Design principle: EVERYTHING happens on the screen. No printing, no paper, no materials needed.
+- movement: action commands appear on screen one at a time; children respond with their bodies (like Simon Says but on screen)
+- mindfulness: an animated breathing circle on screen guides children through breath cycles
+- cognitive: big, colourful multiple-choice questions appear on screen; children shout out or tap the answer; a fun fact is revealed after each answer
+- creative: one big creative challenge fills the screen — the whole group does it together and laughs
+- sensory: short awareness prompts appear on screen one at a time; children close their eyes or focus inward then share
+
+Make the content exciting, silly, surprising, and age-appropriate. Cognitive questions should be genuinely fun (animal facts, surprising nature trivia, counting challenges). Movement actions should be delightfully silly. Creative prompts should make children laugh.
+
+PRIVACY: Never include any child's name, date of birth, or personal identifier. Refer to children as "children" or "the group". This is a child safety requirement.`;
 
   const userPrompt = `Age group: ${ageLabel}
 Current room energy: ${energyLabel}
 Time available: approximately ${input.durationMinutes} minutes
 ${typeInstruction}
 
-Propose ${count} Brain Break ideas using the propose_brain_breaks tool. Make them varied, fun, and instantly usable.`;
+Propose ${count} digital Brain Break ideas using the propose_brain_breaks tool.`;
 
   const message = await client.messages.create({
     model: MODEL,
