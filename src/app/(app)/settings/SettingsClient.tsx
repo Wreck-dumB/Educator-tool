@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice, updateGovernanceDetails } from "./actions";
+import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice, updateGovernanceDetails, updateMaterialAlertLeadDays } from "./actions";
 import { errorBannerClass, successBannerClass } from "@/lib/ui";
 
 const ALL_OBS_TYPES: { key: string; label: string; short: string }[] = [
@@ -27,6 +27,7 @@ interface Props {
   nominatedSupervisorName: string | null;
   nominatedSupervisorPhone: string | null;
   nominatedSupervisorEmail: string | null;
+  materialAlertLeadDays: number;
 }
 
 export default function SettingsClient({
@@ -41,6 +42,7 @@ export default function SettingsClient({
   nominatedSupervisorName,
   nominatedSupervisorPhone,
   nominatedSupervisorEmail,
+  materialAlertLeadDays,
 }: Props) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [preview, setPreview] = useState<string | null>(null);
@@ -62,6 +64,10 @@ export default function SettingsClient({
   const [govPending, startGovTransition] = useTransition();
   const [govError, setGovError] = useState<string | null>(null);
   const [govSuccess, setGovSuccess] = useState(false);
+  const [leadDays, setLeadDays] = useState(materialAlertLeadDays);
+  const [leadDaysPending, startLeadDaysTransition] = useTransition();
+  const [leadDaysError, setLeadDaysError] = useState<string | null>(null);
+  const [leadDaysSuccess, setLeadDaysSuccess] = useState(false);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -447,6 +453,54 @@ export default function SettingsClient({
               <p className="text-xs text-amber-700">The Director must acknowledge this notice.</p>
             )}
           </>
+        )}
+      </section>
+
+      {/* Material order alert lead time */}
+      <section className="rounded-2xl border border-ink/10 bg-white p-5 space-y-4">
+        <div>
+          <h2 className="font-display text-base font-semibold text-ink">Material order alert lead time</h2>
+          <p className="mt-1 text-sm text-ink/60">
+            How many days before an activity is scheduled should SparkPlay alert you that materials are
+            missing or low in stock? The default is 14 days, giving you time to order and receive supplies.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={3}
+            max={90}
+            value={leadDays}
+            onChange={(e) => setLeadDays(Number(e.target.value))}
+            disabled={!isDirector}
+            className="w-24 rounded-xl border border-ink/20 px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-coral/40 disabled:bg-ink/5 disabled:text-ink/40"
+          />
+          <span className="text-sm text-ink/60">days</span>
+        </div>
+        {leadDaysError && <p className={errorBannerClass}>{leadDaysError}</p>}
+        {leadDaysSuccess && <p className={successBannerClass}>Alert lead time saved.</p>}
+        {!isDirector && (
+          <p className="text-xs text-ink/40">Only the Director can change this setting.</p>
+        )}
+        {isDirector && (
+          <button
+            type="button"
+            onClick={() => {
+              setLeadDaysError(null);
+              setLeadDaysSuccess(false);
+              startLeadDaysTransition(async () => {
+                const clamped = Math.max(3, Math.min(90, Math.round(leadDays)));
+                setLeadDays(clamped);
+                const result = await updateMaterialAlertLeadDays(clamped);
+                if (result?.error) setLeadDaysError(result.error);
+                else setLeadDaysSuccess(true);
+              });
+            }}
+            disabled={leadDaysPending}
+            className="rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
+          >
+            {leadDaysPending ? "Saving…" : "Save lead time"}
+          </button>
         )}
       </section>
     </div>

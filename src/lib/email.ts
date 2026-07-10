@@ -80,6 +80,51 @@ export function newMessageEmail(parentEmail: string, childName: string): EmailPa
   };
 }
 
+export interface MaterialAlertPayload {
+  to: string;
+  serviceName: string;
+  notInInventory: string[];
+  lowStock: string[];
+  leadDays: number;
+  horizon: string;
+}
+
+export function materialOrderAlertEmail(p: MaterialAlertPayload): EmailPayload {
+  const total = p.notInInventory.length + p.lowStock.length;
+  const missing = p.notInInventory.map((m) => `<li style="color:#c0392b">🛒 <strong>${m}</strong> — not in inventory</li>`).join("");
+  const low = p.lowStock.map((m) => `<li style="color:#e67e22">⚠ <strong>${m}</strong> — low stock</li>`).join("");
+
+  return {
+    to: p.to,
+    subject: `Action required: ${total} material(s) needed before activities at ${p.serviceName}`,
+    html: `
+      <div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:24px">
+        <h2 style="color:#E8614A;margin-bottom:8px">Materials needed — order soon</h2>
+        <p style="color:#444;line-height:1.6">
+          You have upcoming activities at <strong>${p.serviceName}</strong> that require materials
+          not currently in stock. Activities are planned within the next <strong>${p.leadDays} days</strong>
+          (by <strong>${p.horizon}</strong>).
+        </p>
+        <h3 style="margin-top:20px;color:#333">Items to source (${total} total)</h3>
+        <ul style="line-height:2;padding-left:20px">
+          ${missing}${low}
+        </ul>
+        <a href="${SITE_URL}/materials"
+           style="display:inline-block;margin-top:20px;background:#E8614A;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600">
+          Update inventory →
+        </a>
+        <a href="${SITE_URL}/programs"
+           style="display:inline-block;margin-top:12px;margin-left:12px;background:#5C8C6A;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600">
+          View programs →
+        </a>
+        <p style="margin-top:24px;color:#999;font-size:12px">
+          SparkPlay · Automated material readiness alert for ${p.serviceName}.
+          You can adjust the lead time in Service Settings.
+        </p>
+      </div>`,
+  };
+}
+
 export function permissionSlipEmail(parentEmail: string, childName: string, slipTitle: string): EmailPayload {
   return {
     to: parentEmail,

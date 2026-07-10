@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/material-alerts",
+      "schedule": "0 21 * * *"
+    }
+  ]
+}

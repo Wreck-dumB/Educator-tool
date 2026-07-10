@@ -8,6 +8,7 @@ import { getObservations } from "@/lib/supabase/observations";
 import { getIncidentAlerts } from "@/lib/supabase/incidents";
 import { getExpiringHealthPlans } from "@/lib/supabase/healthPlans";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { getUnreadStaffNotifications, markStaffNotificationsRead } from "@/lib/supabase/staffNotifications";
 import { cardClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
@@ -52,7 +53,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const ownerUserId = await getMyServiceOwnerId();
 
-  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans, absenceRes] = await Promise.all([
+  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans, staffNotifs, absenceRes] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
     getRooms(),
@@ -60,6 +61,7 @@ export default async function DashboardPage() {
     getObservations(),
     getIncidentAlerts(),
     getExpiringHealthPlans(30),
+    getUnreadStaffNotifications(),
     ownerUserId
       ? supabase
           .from("parent_absence_notifications")
@@ -98,6 +100,33 @@ export default async function DashboardPage() {
         <h1 className="font-display text-3xl font-semibold text-coral-dark">{greeting()}</h1>
         <p className="mt-1 text-sm text-ink/60">{new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
+
+      {/* Staff notifications (material order alerts etc.) */}
+      {staffNotifs.length > 0 && (
+        <div className="mb-6 space-y-2">
+          {staffNotifs.map((n) => (
+            <div key={n.id} className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
+              <span className="mt-0.5 text-lg">🛒</span>
+              <div className="flex-1">
+                <p className="font-medium text-amber-900">{n.title}</p>
+                {n.body && <p className="mt-0.5 text-sm text-amber-800">{n.body}</p>}
+              </div>
+              <div className="flex shrink-0 gap-2">
+                {n.href && (
+                  <Link href={n.href} className="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500">
+                    Review →
+                  </Link>
+                )}
+                <form action={async () => { "use server"; await markStaffNotificationsRead([n.id]); }}>
+                  <button type="submit" className="rounded-full border border-amber-400 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100">
+                    Dismiss
+                  </button>
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Attendance summary */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

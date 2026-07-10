@@ -1059,6 +1059,7 @@ export interface Database {
           nominated_supervisor_name: string | null;
           nominated_supervisor_phone: string | null;
           nominated_supervisor_email: string | null;
+          material_alert_lead_days: number;
           created_at: string;
         };
         Insert: {
@@ -1076,6 +1077,7 @@ export interface Database {
           nominated_supervisor_name?: string | null;
           nominated_supervisor_phone?: string | null;
           nominated_supervisor_email?: string | null;
+          material_alert_lead_days?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;
@@ -1840,6 +1842,50 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["visitor_log"]["Insert"]>;
         Relationships: [];
       };
+      staff_notifications: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          recipient_user_id: string;
+          type: "material_order_alert";
+          title: string;
+          body: string | null;
+          href: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          recipient_user_id: string;
+          type: "material_order_alert";
+          title: string;
+          body?: string | null;
+          href?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      material_order_alerts: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          materials_needed: unknown;
+          lead_days: number;
+          sent_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          materials_needed: unknown;
+          lead_days: number;
+          sent_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["material_order_alerts"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1912,6 +1958,10 @@ export interface Database {
           _notes?: string | null;
         };
         Returns: string;
+      };
+      process_material_order_alerts: {
+        Args: Record<PropertyKey, never>;
+        Returns: { notifications_created: number };
       };
     };
   };

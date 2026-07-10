@@ -192,6 +192,29 @@ export async function updateGovernanceDetails(
   return {};
 }
 
+export async function updateMaterialAlertLeadDays(days: number): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update this setting" };
+
+  const clamped = Math.max(3, Math.min(90, Math.round(days)));
+  const { error } = await supabase
+    .from("services")
+    .update({ material_alert_lead_days: clamped })
+    .eq("id", service.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  return {};
+}
+
 export async function acceptAiDataNotice(): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {

@@ -4,6 +4,8 @@ import { getProgram } from "@/lib/supabase/programs";
 import { getActivitiesByIds } from "@/lib/supabase/activities";
 import { getMaterials } from "@/lib/supabase/materials";
 import { getMaterialStatuses, itemsToSource } from "@/lib/materialsMatch";
+import { getMyStaffRole } from "@/lib/supabase/staff";
+import { sendMaterialAlertNow } from "../actions";
 import PrintButton from "@/components/PrintButton";
 
 export default async function ProgramDetailPage({
@@ -12,8 +14,9 @@ export default async function ProgramDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const program = await getProgram(id);
+  const [program, myRole] = await Promise.all([getProgram(id), getMyStaffRole()]);
   if (!program) notFound();
+  const canAlert = myRole === "director" || myRole === "2ic";
 
   const today = new Date().toISOString().slice(0, 10);
   const futureEntries = program.entries.filter((e) => e.activity_id && e.day_date >= today);
@@ -77,9 +80,18 @@ export default async function ProgramDetailPage({
               <p className="text-sm font-semibold text-amber-900">
                 🛒 Materials needed for upcoming activities
               </p>
-              <Link href="/materials" className="text-xs font-medium text-amber-700 hover:underline">
-                Update inventory →
-              </Link>
+              <div className="flex items-center gap-2">
+                <Link href="/materials" className="text-xs font-medium text-amber-700 hover:underline">
+                  Update inventory →
+                </Link>
+                {canAlert && (
+                  <form action={async () => { await sendMaterialAlertNow(); }}>
+                    <button type="submit" className="rounded-full border border-amber-400 px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100">
+                      Alert staff now
+                    </button>
+                  </form>
+                )}
+              </div>
             </div>
             <ul className="mt-3 space-y-2">
               {shoppingList.map((item) => (

@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   const { data: service } = await supabase
     .from("services")
-    .select("name, display_name, logo_path, preferred_observation_types, ai_data_notice_accepted_at, approved_provider_number, service_approval_number, nominated_supervisor_name, nominated_supervisor_phone, nominated_supervisor_email")
+    .select("name, display_name, logo_path, preferred_observation_types, ai_data_notice_accepted_at, approved_provider_number, service_approval_number, nominated_supervisor_name, nominated_supervisor_phone, nominated_supervisor_email, material_alert_lead_days")
     .maybeSingle();
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -41,6 +41,7 @@ export default async function SettingsPage() {
         nominatedSupervisorName={service?.nominated_supervisor_name ?? null}
         nominatedSupervisorPhone={service?.nominated_supervisor_phone ?? null}
         nominatedSupervisorEmail={service?.nominated_supervisor_email ?? null}
+        materialAlertLeadDays={service?.material_alert_lead_days ?? 14}
       />
     </div>
   );
