@@ -45,6 +45,11 @@ export type StaffInviteStatus = "pending" | "accepted" | "expired" | "revoked";
 export type AttendanceStatus = "absent" | "signed_in" | "signed_out";
 export type RatioTier = "under_2" | "2_to_3" | "3_to_6" | "school_age" | "unknown";
 
+export type MedicationRoute = "oral" | "topical" | "inhaled" | "eye_drops" | "ear_drops" | "nasal" | "injection" | "other";
+export type AuthorisationMethod = "written_form" | "verbal" | "standing_order" | "health_plan";
+export type ShiftType = "morning" | "afternoon" | "full_day" | "split";
+export type VisitorType = "volunteer" | "contractor" | "delivery" | "government_inspector" | "student_placement" | "parent_observer" | "other";
+
 export type PosterTheme = "coral" | "sage" | "amber" | "ink" | "plain";
 export type PosterImageSource = "upload" | "stock";
 
@@ -1721,6 +1726,118 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["daily_nappy"]["Insert"]>;
+        Relationships: [];
+      };
+      medication_administration_log: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          medication_name: string;
+          dose: string;
+          route: MedicationRoute;
+          administered_at: string;
+          administered_by_user_id: string;
+          parent_authorised: boolean;
+          authorised_by_name: string | null;
+          authorisation_method: AuthorisationMethod | null;
+          reason: string | null;
+          observations_after: string | null;
+          next_dose_due: string | null;
+          witnessed_by_user_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          medication_name: string;
+          dose: string;
+          route: MedicationRoute;
+          administered_at?: string;
+          administered_by_user_id: string;
+          parent_authorised?: boolean;
+          authorised_by_name?: string | null;
+          authorisation_method?: AuthorisationMethod | null;
+          reason?: string | null;
+          observations_after?: string | null;
+          next_dose_due?: string | null;
+          witnessed_by_user_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["medication_administration_log"]["Insert"]>;
+        Relationships: [];
+      };
+      shift_handover_notes: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          shift_date: string;
+          shift_type: ShiftType;
+          written_by_user_id: string;
+          general_notes: string | null;
+          children_notes: string | null;
+          medication_summary: string | null;
+          incidents_summary: string | null;
+          outstanding_tasks: string | null;
+          acknowledged_by_user_id: string | null;
+          acknowledged_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          shift_date?: string;
+          shift_type: ShiftType;
+          written_by_user_id: string;
+          general_notes?: string | null;
+          children_notes?: string | null;
+          medication_summary?: string | null;
+          incidents_summary?: string | null;
+          outstanding_tasks?: string | null;
+          acknowledged_by_user_id?: string | null;
+          acknowledged_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["shift_handover_notes"]["Insert"]>;
+        Relationships: [];
+      };
+      visitor_log: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          visitor_name: string;
+          visitor_type: VisitorType;
+          organisation: string | null;
+          purpose_of_visit: string;
+          signed_in_at: string;
+          signed_out_at: string | null;
+          id_checked: boolean;
+          wwcc_checked: boolean;
+          wwcc_number: string | null;
+          supervised: boolean;
+          signed_in_by_user_id: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          visitor_name: string;
+          visitor_type: VisitorType;
+          organisation?: string | null;
+          purpose_of_visit: string;
+          signed_in_at?: string;
+          signed_out_at?: string | null;
+          id_checked?: boolean;
+          wwcc_checked?: boolean;
+          wwcc_number?: string | null;
+          supervised?: boolean;
+          signed_in_by_user_id: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["visitor_log"]["Insert"]>;
         Relationships: [];
       };
     };

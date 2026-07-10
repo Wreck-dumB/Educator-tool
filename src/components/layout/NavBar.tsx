@@ -14,6 +14,7 @@ const NAV_GROUPS = [
       { href: "/onsite", label: "On Site Board" },
       { href: "/attendance", label: "Roll Call" },
       { href: "/casual-days", label: "Casual Days" },
+      { href: "/visitor-log", label: "Visitor Log" },
     ],
   },
   {
@@ -23,6 +24,7 @@ const NAV_GROUPS = [
       { href: "/digest", label: "Daily Digest" },
       { href: "/follow-ups", label: "Follow-ups" },
       { href: "/day-plan", label: "Day Plan" },
+      { href: "/handover", label: "Shift Handover" },
     ],
   },
   {
@@ -55,6 +57,7 @@ const NAV_GROUPS = [
     label: "Daily Forms",
     items: [
       { href: "/incident-reports", label: "Incidents" },
+      { href: "/medication-log", label: "Medication Log" },
       { href: "/safety-checks", label: "Safety Checks" },
       { href: "/complaints", label: "Complaints" },
       { href: "/permission-slips", label: "Permission Slips" },
