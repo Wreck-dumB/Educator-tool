@@ -20,10 +20,13 @@ export default async function OnsitePage() {
 
   const today = todayAEST();
 
-  const [onsite, ratioData] = await Promise.all([
+  const [onsite, ratioData, serviceRow] = await Promise.all([
     getOnsiteData(today, ownerUserId),
     getRatioData(today, ownerUserId),
+    supabase.from("services").select("jurisdiction").eq("director_user_id", ownerUserId).maybeSingle(),
   ]);
+
+  const jurisdiction = (serviceRow.data?.jurisdiction ?? "national") as string;
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6 md:px-6">
@@ -35,6 +38,7 @@ export default async function OnsitePage() {
         ratioRooms={ratioData.rooms}
         totalSignedInStaff={ratioData.totalSignedInStaff}
         today={today}
+        jurisdiction={jurisdiction}
       />
     </div>
   );

@@ -149,7 +149,6 @@ export async function updateChildEnrolment(formData: FormData) {
       is_anaphylaxis_risk: formData.get("is_anaphylaxis_risk") === "on",
       medical_management_plan: field("medical_management_plan"),
       dietary_restrictions: field("dietary_restrictions"),
-      immunisation_status: field("immunisation_status"),
     })
     .eq("id", id);
 
@@ -273,6 +272,29 @@ export async function updateChildInterests(formData: FormData) {
 
   revalidatePath(`/children/${childId}`);
   redirect(returnTo);
+}
+
+export async function updateImmunisationStatus(formData: FormData): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const childId = formData.get("child_id") as string;
+  const status = formData.get("immunisation_status") as string;
+  const checkedDate = (formData.get("immunisation_checked_date") as string) || null;
+  const notes = (formData.get("immunisation_notes") as string)?.trim() || null;
+
+  const validStatuses = ["up_to_date", "medical_exemption", "approved_catch_up", "not_sighted", "overdue"];
+  if (!validStatuses.includes(status)) return { error: "Invalid status" };
+
+  const { error } = await supabase
+    .from("children")
+    .update({ immunisation_status: status as never, immunisation_checked_date: checkedDate, immunisation_notes: notes })
+    .eq("id", childId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/children/${childId}`);
+  return {};
 }
 
 export async function deleteChildContact(formData: FormData) {

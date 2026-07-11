@@ -89,13 +89,19 @@ const NAV_GROUPS = [
   },
   {
     label: "Professional Development",
-    items: [{ href: "/reflections", label: "Reflections" }],
+    items: [
+      { href: "/reflections", label: "Reflections" },
+      { href: "/pd-hours", label: "PD Hours" },
+    ],
   },
   {
     label: "Administration",
     items: [
       { href: "/staff", label: "Staff" },
+      { href: "/staff/roster", label: "Staff Roster" },
       { href: "/compliance", label: "Compliance Tracker" },
+      { href: "/closures", label: "Service Closures" },
+      { href: "/broadcasts", label: "Broadcasts" },
       { href: "/invoices", label: "Invoices" },
       { href: "/ccs-estimator", label: "CCS Estimator" },
       { href: "/settings", label: "Service Settings" },

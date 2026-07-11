@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice, updateGovernanceDetails, updateMaterialAlertLeadDays } from "./actions";
+import { uploadServiceLogo, removeServiceLogo, updateServiceName, updateObservationPreferences, acceptAiDataNotice, updateGovernanceDetails, updateMaterialAlertLeadDays, updateJurisdiction } from "./actions";
 import { errorBannerClass, successBannerClass } from "@/lib/ui";
 
 const ALL_OBS_TYPES: { key: string; label: string; short: string }[] = [
@@ -28,6 +28,7 @@ interface Props {
   nominatedSupervisorPhone: string | null;
   nominatedSupervisorEmail: string | null;
   materialAlertLeadDays: number;
+  jurisdiction: string;
 }
 
 export default function SettingsClient({
@@ -43,6 +44,7 @@ export default function SettingsClient({
   nominatedSupervisorPhone,
   nominatedSupervisorEmail,
   materialAlertLeadDays,
+  jurisdiction,
 }: Props) {
   const [logoUrl, setLogoUrl] = useState<string | null>(currentLogoUrl);
   const [preview, setPreview] = useState<string | null>(null);
@@ -68,6 +70,10 @@ export default function SettingsClient({
   const [leadDaysPending, startLeadDaysTransition] = useTransition();
   const [leadDaysError, setLeadDaysError] = useState<string | null>(null);
   const [leadDaysSuccess, setLeadDaysSuccess] = useState(false);
+  const [selectedJurisdiction, setSelectedJurisdiction] = useState(jurisdiction);
+  const [jurisdictionPending, startJurisdictionTransition] = useTransition();
+  const [jurisdictionError, setJurisdictionError] = useState<string | null>(null);
+  const [jurisdictionSuccess, setJurisdictionSuccess] = useState(false);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -500,6 +506,57 @@ export default function SettingsClient({
             className="rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
           >
             {leadDaysPending ? "Saving…" : "Save lead time"}
+          </button>
+        )}
+      </section>
+
+      {/* State / territory ratio config */}
+      <section className="rounded-2xl border border-ink/10 bg-white p-5 space-y-4">
+        <div>
+          <h2 className="font-display text-base font-semibold text-ink">State / territory jurisdiction</h2>
+          <p className="mt-1 text-sm text-ink/60">
+            Sets the ratio tier used on the On Site Board. NSW and WA use 1:10 for 3–6 year olds instead of the national 1:11.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <select
+            value={selectedJurisdiction}
+            onChange={(e) => setSelectedJurisdiction(e.target.value)}
+            disabled={!isDirector}
+            className="rounded-xl border border-ink/20 px-3 py-2 text-sm text-ink focus:outline-none focus:ring-2 focus:ring-coral/40 disabled:bg-ink/5 disabled:text-ink/40"
+          >
+            <option value="national">National (default)</option>
+            <option value="nsw">New South Wales</option>
+            <option value="vic">Victoria</option>
+            <option value="qld">Queensland</option>
+            <option value="wa">Western Australia</option>
+            <option value="sa">South Australia</option>
+            <option value="tas">Tasmania</option>
+            <option value="act">ACT</option>
+            <option value="nt">Northern Territory</option>
+          </select>
+        </div>
+        {jurisdictionError && <p className={errorBannerClass}>{jurisdictionError}</p>}
+        {jurisdictionSuccess && <p className={successBannerClass}>Jurisdiction saved.</p>}
+        {!isDirector && (
+          <p className="text-xs text-ink/40">Only the Director can change this setting.</p>
+        )}
+        {isDirector && (
+          <button
+            type="button"
+            onClick={() => {
+              setJurisdictionError(null);
+              setJurisdictionSuccess(false);
+              startJurisdictionTransition(async () => {
+                const result = await updateJurisdiction(selectedJurisdiction);
+                if (result?.error) setJurisdictionError(result.error);
+                else setJurisdictionSuccess(true);
+              });
+            }}
+            disabled={jurisdictionPending}
+            className="rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:opacity-50 transition-colors"
+          >
+            {jurisdictionPending ? "Saving…" : "Save jurisdiction"}
           </button>
         )}
       </section>

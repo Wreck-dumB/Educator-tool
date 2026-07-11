@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 
 export interface StaffNotification {
   id: string;
-  type: "material_order_alert";
+  type: "material_order_alert" | "birthday_reminder" | "immunisation_overdue" | "broadcast_message";
   title: string;
   body: string | null;
   href: string | null;

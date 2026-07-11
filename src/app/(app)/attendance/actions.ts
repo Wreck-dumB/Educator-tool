@@ -114,6 +114,31 @@ export async function undoAttendance(formData: FormData) {
   revalidatePath("/attendance");
 }
 
+export async function updateWellbeing(formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const childId = formData.get("child_id") as string;
+  const date = formData.get("date") as string;
+  const level = parseInt(formData.get("wellbeing_level") as string, 10);
+  const note = (formData.get("wellbeing_note") as string)?.trim() || null;
+
+  if (!childId || !date || isNaN(level) || level < 1 || level > 5) return;
+
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return;
+
+  await supabase
+    .from("attendance_records")
+    .update({ wellbeing_level: level, wellbeing_note: note })
+    .eq("owner_user_id", ownerUserId)
+    .eq("child_id", childId)
+    .eq("date", date);
+
+  revalidatePath("/attendance");
+}
+
 export async function updateRoomStaffCount(formData: FormData) {
   const supabase = await createClient();
   const {

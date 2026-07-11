@@ -11,6 +11,7 @@ import {
   createChildContact,
   deleteChildContact,
   setAttendanceDays,
+  updateImmunisationStatus,
 } from "@/app/(app)/children/actions";
 import { createClient } from "@/lib/supabase/server";
 import { getObservations } from "@/lib/supabase/observations";
@@ -269,19 +270,6 @@ export default async function ChildDetailPage({
               className={inputClass}
             />
           </div>
-          <div>
-            <label htmlFor="immunisation_status" className="block text-sm font-medium text-ink/70">
-              Immunisation status
-            </label>
-            <input
-              id="immunisation_status"
-              name="immunisation_status"
-              type="text"
-              placeholder="e.g. Up to date per AIR, sighted DD/MM/YYYY"
-              defaultValue={child.immunisation_status ?? ""}
-              className={inputClass}
-            />
-          </div>
           <button type="submit" className={`w-full ${primaryButtonClass}`}>
             Save enrolment details
           </button>
@@ -301,6 +289,65 @@ export default async function ChildDetailPage({
           {child.dietary_restrictions && <p>Dietary restrictions: {child.dietary_restrictions}</p>}
           {child.immunisation_status && <p>Immunisation: {child.immunisation_status}</p>}
         </div>
+      </div>
+
+      {/* Immunisation tracking (No Jab No Play compliance) */}
+      <div className={`mt-6 p-5 ${cardClass} ${
+        child.immunisation_status === "not_sighted" || child.immunisation_status === "overdue"
+          ? "border-coral/40 bg-coral/5"
+          : child.immunisation_status === "up_to_date"
+          ? "border-sage-dark/30 bg-sage-light/30"
+          : ""
+      }`}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-display text-sm font-semibold text-ink">Immunisation status</h2>
+          {child.immunisation_status === "not_sighted" && (
+            <span className="rounded-full bg-coral/15 px-2 py-0.5 text-xs font-semibold text-coral-dark">Action required</span>
+          )}
+          {child.immunisation_status === "overdue" && (
+            <span className="rounded-full bg-coral px-2 py-0.5 text-xs font-semibold text-white">Overdue</span>
+          )}
+          {child.immunisation_status === "up_to_date" && (
+            <span className="rounded-full bg-sage-dark/20 px-2 py-0.5 text-xs font-semibold text-sage-dark">Up to date</span>
+          )}
+        </div>
+        <p className="text-xs text-ink/50 mb-4">
+          Under No Jab No Play, services must sight a current AIR Immunisation History Statement from myGov
+          before attendance. Medical exemptions and approved catch-up schedules are accepted alternatives.
+        </p>
+        <form action={async (fd: FormData) => { await updateImmunisationStatus(fd); }} className="space-y-3">
+          <input type="hidden" name="child_id" value={child.id} />
+          <div>
+            <label className="block text-sm font-medium text-ink/70 mb-1">Current status</label>
+            <select name="immunisation_status" defaultValue={child.immunisation_status ?? "not_sighted"} className={inputClass}>
+              <option value="not_sighted">Not yet sighted</option>
+              <option value="up_to_date">Up to date — AIR statement sighted</option>
+              <option value="approved_catch_up">Approved catch-up schedule in progress</option>
+              <option value="medical_exemption">Medical exemption (ACIR/GP certified)</option>
+              <option value="overdue">Overdue — statement needs renewal</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink/70 mb-1">Date statement last sighted</label>
+            <input
+              type="date"
+              name="immunisation_checked_date"
+              defaultValue={child.immunisation_checked_date ?? ""}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ink/70 mb-1">Notes (optional)</label>
+            <input
+              type="text"
+              name="immunisation_notes"
+              defaultValue={child.immunisation_notes ?? ""}
+              placeholder="e.g. Medical exemption ref #, catch-up plan details"
+              className={inputClass}
+            />
+          </div>
+          <button type="submit" className={secondaryButtonClass}>Update immunisation record</button>
+        </form>
       </div>
 
       <div className={`mt-6 p-5 print:border print:border-black print:bg-white ${cardClass}`}>

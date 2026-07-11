@@ -111,7 +111,9 @@ export interface Database {
           is_anaphylaxis_risk: boolean;
           medical_management_plan: string | null;
           dietary_restrictions: string | null;
-          immunisation_status: string | null;
+          immunisation_status: "up_to_date" | "medical_exemption" | "approved_catch_up" | "not_sighted" | "overdue" | null;
+          immunisation_checked_date: string | null;
+          immunisation_notes: string | null;
           room_id: string | null;
           enrolment_ended_at: string | null;
           created_at: string;
@@ -131,7 +133,9 @@ export interface Database {
           is_anaphylaxis_risk?: boolean;
           medical_management_plan?: string | null;
           dietary_restrictions?: string | null;
-          immunisation_status?: string | null;
+          immunisation_status?: "up_to_date" | "medical_exemption" | "approved_catch_up" | "not_sighted" | "overdue" | null;
+          immunisation_checked_date?: string | null;
+          immunisation_notes?: string | null;
           room_id?: string | null;
           enrolment_ended_at?: string | null;
           created_at?: string;
@@ -503,6 +507,7 @@ export interface Database {
           start_date: string;
           end_date: string;
           cultural_days: CulturalDay[];
+          room_id: string | null;
           created_at: string;
         };
         Insert: {
@@ -512,6 +517,7 @@ export interface Database {
           start_date: string;
           end_date: string;
           cultural_days?: CulturalDay[];
+          room_id?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["programs"]["Insert"]>;
@@ -1060,6 +1066,7 @@ export interface Database {
           nominated_supervisor_phone: string | null;
           nominated_supervisor_email: string | null;
           material_alert_lead_days: number;
+          jurisdiction: "national" | "nsw" | "vic" | "qld" | "wa" | "sa" | "tas" | "act" | "nt";
           created_at: string;
         };
         Insert: {
@@ -1078,6 +1085,7 @@ export interface Database {
           nominated_supervisor_phone?: string | null;
           nominated_supervisor_email?: string | null;
           material_alert_lead_days?: number;
+          jurisdiction?: "national" | "nsw" | "vic" | "qld" | "wa" | "sa" | "tas" | "act" | "nt";
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;
@@ -1205,6 +1213,8 @@ export interface Database {
           signed_out_at: string | null;
           signed_out_by: string | null;
           notes: string | null;
+          wellbeing_level: number | null;
+          wellbeing_note: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1219,6 +1229,8 @@ export interface Database {
           signed_out_at?: string | null;
           signed_out_by?: string | null;
           notes?: string | null;
+          wellbeing_level?: number | null;
+          wellbeing_note?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1437,30 +1449,6 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["staff_compliance"]["Insert"]>;
         Relationships: [];
       };
-      parent_notifications: {
-        Row: {
-          id: string;
-          recipient_user_id: string;
-          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged";
-          title: string;
-          body: string | null;
-          href: string | null;
-          read_at: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          recipient_user_id: string;
-          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged";
-          title: string;
-          body?: string | null;
-          href?: string | null;
-          read_at?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["parent_notifications"]["Insert"]>;
-        Relationships: [];
-      };
       invoices: {
         Row: {
           id: string;
@@ -1674,38 +1662,6 @@ export interface Database {
         };
         Relationships: [];
       };
-      casual_day_requests: {
-        Row: {
-          id: string;
-          parent_user_id: string;
-          child_id: string;
-          educator_user_id: string;
-          requested_date: string;
-          session_type: "full_day" | "morning" | "afternoon";
-          notes: string | null;
-          status: "pending" | "approved" | "declined";
-          responded_by: string | null;
-          responded_at: string | null;
-          response_note: string | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          parent_user_id: string;
-          child_id: string;
-          educator_user_id: string;
-          requested_date: string;
-          session_type?: "full_day" | "morning" | "afternoon";
-          notes?: string | null;
-          status?: "pending" | "approved" | "declined";
-          responded_by?: string | null;
-          responded_at?: string | null;
-          response_note?: string | null;
-          created_at?: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["casual_day_requests"]["Insert"]>;
-        Relationships: [];
-      };
       daily_nappy: {
         Row: {
           id: string;
@@ -1842,12 +1798,170 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["visitor_log"]["Insert"]>;
         Relationships: [];
       };
+      parent_notifications: {
+        Row: {
+          id: string;
+          recipient_user_id: string;
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update";
+          title: string;
+          body: string | null;
+          href: string | null;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          recipient_user_id: string;
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update";
+          title: string;
+          body?: string | null;
+          href?: string | null;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["parent_notifications"]["Insert"]>;
+        Relationships: [];
+      };
+      casual_day_requests: {
+        Row: {
+          id: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          requested_date: string;
+          session_type: "full_day" | "morning" | "afternoon";
+          notes: string | null;
+          status: "pending" | "approved" | "declined";
+          responded_by: string | null;
+          responded_at: string | null;
+          response_note: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          parent_user_id: string;
+          child_id: string;
+          educator_user_id: string;
+          requested_date: string;
+          session_type?: "full_day" | "morning" | "afternoon";
+          notes?: string | null;
+          status?: "pending" | "approved" | "declined";
+          responded_by?: string | null;
+          responded_at?: string | null;
+          response_note?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["casual_day_requests"]["Insert"]>;
+        Relationships: [];
+      };
+      service_closures: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          closure_date: string;
+          closure_type: "public_holiday" | "pupil_free" | "emergency" | "maintenance" | "other";
+          reason: string | null;
+          affects_casual_days: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          closure_date: string;
+          closure_type?: "public_holiday" | "pupil_free" | "emergency" | "maintenance" | "other";
+          reason?: string | null;
+          affects_casual_days?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["service_closures"]["Insert"]>;
+        Relationships: [];
+      };
+      staff_pd_hours: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          completed_date: string;
+          course_name: string;
+          provider: string | null;
+          hours: number;
+          pd_type: "first_aid" | "child_protection" | "curriculum" | "leadership" | "nqs" | "wellbeing" | "other";
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          completed_date: string;
+          course_name: string;
+          provider?: string | null;
+          hours: number;
+          pd_type?: "first_aid" | "child_protection" | "curriculum" | "leadership" | "nqs" | "wellbeing" | "other";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_pd_hours"]["Insert"]>;
+        Relationships: [];
+      };
+      broadcast_messages: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          created_by: string;
+          title: string;
+          body: string;
+          target: "all_parents" | "room";
+          room_id: string | null;
+          send_email: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          created_by: string;
+          title: string;
+          body: string;
+          target?: "all_parents" | "room";
+          room_id?: string | null;
+          send_email?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["broadcast_messages"]["Insert"]>;
+        Relationships: [];
+      };
+      staff_roster: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          roster_date: string;
+          shift_start: string;
+          shift_end: string;
+          room_id: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          roster_date: string;
+          shift_start: string;
+          shift_end: string;
+          room_id?: string | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_roster"]["Insert"]>;
+        Relationships: [];
+      };
       staff_notifications: {
         Row: {
           id: string;
           owner_user_id: string;
           recipient_user_id: string;
-          type: "material_order_alert";
+          type: "material_order_alert" | "birthday_reminder" | "immunisation_overdue" | "broadcast_message";
           title: string;
           body: string | null;
           href: string | null;
@@ -1858,7 +1972,7 @@ export interface Database {
           id?: string;
           owner_user_id: string;
           recipient_user_id: string;
-          type: "material_order_alert";
+          type: "material_order_alert" | "birthday_reminder" | "immunisation_overdue" | "broadcast_message";
           title: string;
           body?: string | null;
           href?: string | null;
@@ -1962,6 +2076,18 @@ export interface Database {
       process_material_order_alerts: {
         Args: Record<PropertyKey, never>;
         Returns: { notifications_created: number };
+      };
+      process_birthday_reminders: {
+        Args: Record<PropertyKey, never>;
+        Returns: { birthday_reminders_created: number };
+      };
+      process_immunisation_alerts: {
+        Args: Record<PropertyKey, never>;
+        Returns: { immunisation_alerts_created: number };
+      };
+      is_service_closed: {
+        Args: { _owner_user_id: string; _date: string };
+        Returns: boolean;
       };
     };
   };

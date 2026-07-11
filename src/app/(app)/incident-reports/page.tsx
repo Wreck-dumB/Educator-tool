@@ -7,6 +7,7 @@ import {
   deleteChildIncidentReport,
   createStaffIncidentReport,
   deleteStaffIncidentReport,
+  notifyParentOfIncident,
 } from "./actions";
 
 const RECORD_TYPE_LABELS: Record<string, string> = {
@@ -314,18 +315,34 @@ export default async function IncidentReportsPage({
                       {new Date(r.occurred_at).toLocaleString("en-AU")}
                     </p>
                     <p className="mt-1 text-sm text-ink/80">{r.description}</p>
+                    <p className="mt-1 text-xs text-ink/40">
+                      {r.parent_notified_at
+                        ? `Parent notified ${new Date(r.parent_notified_at).toLocaleString("en-AU")} via ${r.parent_notification_method ?? "unknown"}`
+                        : "Parent not yet notified"}
+                    </p>
                   </div>
-                  {isDirector && (
-                    <form action={deleteChildIncidentReport}>
-                      <input type="hidden" name="id" value={r.id} />
-                      <button
-                        type="submit"
-                        className="shrink-0 text-xs text-coral-dark hover:underline"
-                      >
-                        Remove
-                      </button>
-                    </form>
-                  )}
+                  <div className="flex shrink-0 flex-col gap-1.5 items-end">
+                    <a href={`/incident-reports/${r.id}/notify`} className="text-xs text-coral-dark hover:underline">
+                      Reg 176 form →
+                    </a>
+                    {!r.parent_notified_at && (
+                      <form action={async (fd: FormData) => { await notifyParentOfIncident(fd); }}>
+                        <input type="hidden" name="incident_id" value={r.id} />
+                        <input type="hidden" name="method" value="in-app" />
+                        <button type="submit" className="text-xs font-medium text-sage-dark hover:underline">
+                          Notify parent
+                        </button>
+                      </form>
+                    )}
+                    {isDirector && (
+                      <form action={deleteChildIncidentReport}>
+                        <input type="hidden" name="id" value={r.id} />
+                        <button type="submit" className="text-xs text-coral-dark hover:underline">
+                          Remove
+                        </button>
+                      </form>
+                    )}
+                  </div>
                 </div>
               </li>
             );

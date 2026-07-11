@@ -215,6 +215,32 @@ export async function updateMaterialAlertLeadDays(days: number): Promise<{ error
   return {};
 }
 
+export async function updateJurisdiction(jurisdiction: string): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const valid = ["national", "nsw", "vic", "qld", "wa", "sa", "tas", "act", "nt"];
+  if (!valid.includes(jurisdiction)) return { error: "Invalid jurisdiction" };
+
+  const { data: service } = await supabase
+    .from("services")
+    .select("id, director_user_id")
+    .eq("director_user_id", user.id)
+    .maybeSingle();
+  if (!service) return { error: "Only the Director can update this setting" };
+
+  const { error } = await supabase
+    .from("services")
+    .update({ jurisdiction: jurisdiction as never })
+    .eq("id", service.id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/settings");
+  revalidatePath("/onsite");
+  return {};
+}
+
 export async function acceptAiDataNotice(): Promise<{ error?: string }> {
   const supabase = await createClient();
   const {

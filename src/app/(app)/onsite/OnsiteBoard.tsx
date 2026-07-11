@@ -6,13 +6,22 @@ import Link from "next/link";
 import type { VisitorSignInRow } from "@/lib/supabase/signinBoard";
 import { signOutVisitor } from "../../(kiosk)/signin/actions";
 
-// Australian NQF ratio tiers
-const RATIO_TIERS = [
+// Australian NQF ratio tiers — NSW and WA use 1:10 for 3–6 year olds instead of 1:11
+const BASE_RATIO_TIERS = [
   { label: "Under 2", maxMonths: 24, ratio: 4 },
   { label: "2–3 yrs", maxMonths: 36, ratio: 5 },
   { label: "3–6 yrs", maxMonths: 72, ratio: 11 },
   { label: "School+", maxMonths: Infinity, ratio: 15 },
 ];
+
+function getRatioTiers(jurisdiction: string) {
+  if (jurisdiction === "nsw" || jurisdiction === "wa") {
+    return BASE_RATIO_TIERS.map((t) =>
+      t.maxMonths === 72 ? { ...t, ratio: 10 } : t
+    );
+  }
+  return BASE_RATIO_TIERS;
+}
 
 function ageInMonths(dob: string | null): number | null {
   if (!dob) return null;
@@ -24,16 +33,16 @@ function ageInMonths(dob: string | null): number | null {
   );
 }
 
-function ageTier(months: number | null) {
-  if (months === null) return RATIO_TIERS[RATIO_TIERS.length - 1];
-  return RATIO_TIERS.find((t) => months < t.maxMonths) ?? RATIO_TIERS[RATIO_TIERS.length - 1];
+function ageTier(months: number | null, tiers: typeof BASE_RATIO_TIERS) {
+  if (months === null) return tiers[tiers.length - 1];
+  return tiers.find((t) => months < t.maxMonths) ?? tiers[tiers.length - 1];
 }
 
-function requiredEducators(children: { date_of_birth: string | null }[]): number {
+function requiredEducators(children: { date_of_birth: string | null }[], tiers: typeof BASE_RATIO_TIERS): number {
   if (children.length === 0) return 0;
   const sum = children.reduce((acc, c) => {
     const months = ageInMonths(c.date_of_birth);
-    const tier = ageTier(months);
+    const tier = ageTier(months, tiers);
     return acc + 1 / tier.ratio;
   }, 0);
   return Math.ceil(sum);
@@ -88,6 +97,7 @@ interface Props {
   ratioRooms: RatioRoom[];
   totalSignedInStaff: number;
   today: string;
+  jurisdiction: string;
 }
 
 type DetailModal = {
@@ -121,7 +131,9 @@ export default function OnsiteBoard({
   ratioRooms,
   totalSignedInStaff,
   today,
+  jurisdiction,
 }: Props) {
+  const RATIO_TIERS = getRatioTiers(jurisdiction);
   const router = useRouter();
   const [showRatios, setShowRatios] = useState(false);
   const [modal, setModal] = useState<DetailModal | null>(null);
@@ -376,7 +388,7 @@ export default function OnsiteBoard({
               <p className="text-sm text-ink/40 text-center py-4">No children currently signed in.</p>
             )}
             {ratioRooms.map((room) => {
-              const required = requiredEducators(room.children);
+              const required = requiredEducators(room.children, RATIO_TIERS);
               const actual = room.manual_staff_count > 0
                 ? room.manual_staff_count
                 : totalSignedInStaff;
@@ -430,7 +442,7 @@ export default function OnsiteBoard({
                   <div className="flex flex-col gap-1">
                     {room.children.map((c) => {
                       const months = ageInMonths(c.date_of_birth);
-                      const tier = ageTier(months);
+                      const tier = ageTier(months, RATIO_TIERS);
                       const ageLabel = months !== null
                         ? `${Math.floor(months / 12)}y ${months % 12}m`
                         : "Age unknown";

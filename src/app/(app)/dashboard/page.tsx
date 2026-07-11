@@ -101,30 +101,40 @@ export default async function DashboardPage() {
         <p className="mt-1 text-sm text-ink/60">{new Date().toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" })}</p>
       </div>
 
-      {/* Staff notifications (material order alerts etc.) */}
+      {/* Staff notifications (material order alerts, birthdays, immunisation alerts etc.) */}
       {staffNotifs.length > 0 && (
         <div className="mb-6 space-y-2">
-          {staffNotifs.map((n) => (
-            <div key={n.id} className="flex items-start gap-3 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3">
-              <span className="mt-0.5 text-lg">🛒</span>
-              <div className="flex-1">
-                <p className="font-medium text-amber-900">{n.title}</p>
-                {n.body && <p className="mt-0.5 text-sm text-amber-800">{n.body}</p>}
+          {staffNotifs.map((n) => {
+            const style =
+              n.type === "birthday_reminder"
+                ? { border: "border-pink-300", bg: "bg-pink-50", icon: "🎂", textHead: "text-pink-900", textBody: "text-pink-800", btn: "bg-pink-400 hover:bg-pink-500", dismiss: "border-pink-400 text-pink-700 hover:bg-pink-100" }
+                : n.type === "immunisation_overdue"
+                ? { border: "border-coral/60", bg: "bg-coral/10", icon: "💉", textHead: "text-coral-dark", textBody: "text-coral-dark/80", btn: "bg-coral hover:bg-coral-dark", dismiss: "border-coral/60 text-coral-dark hover:bg-coral/10" }
+                : n.type === "broadcast_message"
+                ? { border: "border-sage", bg: "bg-sage-light", icon: "📢", textHead: "text-sage-dark", textBody: "text-sage-dark/80", btn: "bg-sage hover:bg-sage-dark", dismiss: "border-sage text-sage-dark hover:bg-sage-light" }
+                : { border: "border-amber-300", bg: "bg-amber-50", icon: "🛒", textHead: "text-amber-900", textBody: "text-amber-800", btn: "bg-amber-400 hover:bg-amber-500", dismiss: "border-amber-400 text-amber-700 hover:bg-amber-100" };
+            return (
+              <div key={n.id} className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${style.border} ${style.bg}`}>
+                <span className="mt-0.5 text-lg">{style.icon}</span>
+                <div className="flex-1">
+                  <p className={`font-medium ${style.textHead}`}>{n.title}</p>
+                  {n.body && <p className={`mt-0.5 text-sm ${style.textBody}`}>{n.body}</p>}
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  {n.href && (
+                    <Link href={n.href} className={`rounded-full px-3 py-1 text-xs font-semibold text-white ${style.btn}`}>
+                      Review →
+                    </Link>
+                  )}
+                  <form action={async () => { "use server"; await markStaffNotificationsRead([n.id]); }}>
+                    <button type="submit" className={`rounded-full border px-3 py-1 text-xs font-medium ${style.dismiss}`}>
+                      Dismiss
+                    </button>
+                  </form>
+                </div>
               </div>
-              <div className="flex shrink-0 gap-2">
-                {n.href && (
-                  <Link href={n.href} className="rounded-full bg-amber-400 px-3 py-1 text-xs font-semibold text-white hover:bg-amber-500">
-                    Review →
-                  </Link>
-                )}
-                <form action={async () => { "use server"; await markStaffNotificationsRead([n.id]); }}>
-                  <button type="submit" className="rounded-full border border-amber-400 px-3 py-1 text-xs font-medium text-amber-700 hover:bg-amber-100">
-                    Dismiss
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import type { ChildProfile, AttendanceRecord, Room, RoomStaffCount } from "@/lib/types/domain";
-import { signIn, signOut, markAbsent, undoAttendance, updateRoomStaffCount } from "./actions";
+import { signIn, signOut, markAbsent, undoAttendance, updateRoomStaffCount, updateWellbeing } from "./actions";
 
 // ─── Australian NQF educator-to-child ratios ─────────────────────────────────
 // Source: Education and Care Services National Regulations, Regulation 123.
@@ -72,6 +72,8 @@ function StatusBadge({ status }: { status: "not_marked" | "absent" | "signed_in"
   return <span className="inline-flex items-center gap-1 rounded-full bg-amber-light px-2.5 py-0.5 text-xs font-semibold text-amber-dark">– Not marked</span>;
 }
 
+const WELLBEING_EMOJIS = ["😢", "😟", "😐", "😊", "😄"];
+
 // ─── Individual child row ─────────────────────────────────────────────────────
 function ChildRow({ child, record, date }: { child: ChildProfile; record: AttendanceRecord | undefined; date: string }) {
   const [pending, startTransition] = useTransition();
@@ -99,12 +101,43 @@ function ChildRow({ child, record, date }: { child: ChildProfile; record: Attend
           </div>
         </div>
 
-        <div className="flex gap-4 text-xs text-ink/40">
-          {record?.signed_in_at && (
-            <span>In {fmt(record.signed_in_at)}{record.signed_in_by ? ` · ${record.signed_in_by}` : ""}</span>
-          )}
-          {record?.signed_out_at && (
-            <span>Out {fmt(record.signed_out_at)}{record.signed_out_by ? ` · ${record.signed_out_by}` : ""}</span>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex gap-4 text-xs text-ink/40">
+            {record?.signed_in_at && (
+              <span>In {fmt(record.signed_in_at)}{record.signed_in_by ? ` · ${record.signed_in_by}` : ""}</span>
+            )}
+            {record?.signed_out_at && (
+              <span>Out {fmt(record.signed_out_at)}{record.signed_out_by ? ` · ${record.signed_out_by}` : ""}</span>
+            )}
+          </div>
+          {status === "signed_in" && (
+            <div className="flex items-center gap-1">
+              {WELLBEING_EMOJIS.map((emoji, i) => {
+                const level = i + 1;
+                const selected = record?.wellbeing_level === level;
+                return (
+                  <button
+                    key={level}
+                    type="button"
+                    title={`Wellbeing: ${level}/5`}
+                    disabled={pending}
+                    onClick={() => {
+                      const fd = new FormData();
+                      fd.set("child_id", child.id);
+                      fd.set("date", date);
+                      fd.set("wellbeing_level", String(level));
+                      startTransition(async () => { await updateWellbeing(fd); router.refresh(); });
+                    }}
+                    className={`text-base transition-opacity hover:opacity-100 ${selected ? "opacity-100 scale-110" : "opacity-30"}`}
+                  >
+                    {emoji}
+                  </button>
+                );
+              })}
+              {record?.wellbeing_note && (
+                <span className="ml-1 text-xs text-ink/40 italic">{record.wellbeing_note}</span>
+              )}
+            </div>
           )}
         </div>
 

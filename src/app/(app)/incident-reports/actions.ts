@@ -150,6 +150,58 @@ export async function createStaffIncidentReport(formData: FormData) {
   redirect("/incident-reports");
 }
 
+export async function notifyParentOfIncident(formData: FormData): Promise<{ error?: string; count?: number }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Not authenticated" };
+
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return { error: "No active service" };
+
+  const incidentId = formData.get("incident_id") as string;
+  const method = (formData.get("method") as string)?.trim() || "in-app";
+
+  const { data: report } = await supabase
+    .from("child_incident_reports")
+    .select("id, child_id, description, occurred_at")
+    .eq("id", incidentId)
+    .eq("owner_user_id", ownerUserId)
+    .single();
+  if (!report) return { error: "Incident not found" };
+
+  // Find linked parents for this child
+  const { data: links } = await supabase
+    .from("parent_child_links")
+    .select("parent_user_id")
+    .eq("child_id", report.child_id);
+
+  if (!links || links.length === 0) return { error: "No linked parents found for this child" };
+
+  const occurredDate = new Date(report.occurred_at).toLocaleDateString("en-AU");
+  const notifications = links.map((l) => ({
+    recipient_user_id: l.parent_user_id,
+    type: "incident_update" as never,
+    title: "Incident report filed",
+    body: `An incident was recorded on ${occurredDate}. Please contact the service for details.`,
+    href: null,
+  }));
+
+  const { error: insertError } = await supabase.from("parent_notifications").insert(notifications);
+  if (insertError) return { error: insertError.message };
+
+  // Mark the incident as parent-notified
+  await supabase
+    .from("child_incident_reports")
+    .update({
+      parent_notified_at: new Date().toISOString(),
+      parent_notification_method: method,
+    })
+    .eq("id", incidentId);
+
+  revalidatePath("/incident-reports");
+  return { count: links.length };
+}
+
 export async function deleteStaffIncidentReport(formData: FormData) {
   const supabase = await createClient();
   const {
