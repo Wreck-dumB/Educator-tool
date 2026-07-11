@@ -6,15 +6,20 @@ import type { ChildProfile, AttendanceRecord, Room, RoomStaffCount } from "@/lib
 import { signIn, signOut, markAbsent, undoAttendance, updateRoomStaffCount, updateWellbeing } from "./actions";
 
 // ─── Australian NQF educator-to-child ratios ─────────────────────────────────
-// Source: Education and Care Services National Regulations, Regulation 123.
-// Ratios differ slightly between states/territories; these are the national
-// minimum requirements as a safe baseline.
-const RATIO_TIERS = [
-  { maxMonths: 24,  label: "Under 2",    ratio: 4  },
-  { maxMonths: 36,  label: "2–3 years",  ratio: 5  },
-  { maxMonths: 72,  label: "3–6 years",  ratio: 11 },
+// NSW and WA use 1:10 for 3–6yo instead of the national 1:11.
+const BASE_RATIO_TIERS = [
+  { maxMonths: 24,       label: "Under 2",    ratio: 4  },
+  { maxMonths: 36,       label: "2–3 years",  ratio: 5  },
+  { maxMonths: 72,       label: "3–6 years",  ratio: 11 },
   { maxMonths: Infinity, label: "School age", ratio: 15 },
-] as const;
+];
+
+function getRatioTiers(jurisdiction: string) {
+  if (jurisdiction === "nsw" || jurisdiction === "wa") {
+    return BASE_RATIO_TIERS.map((t) => t.maxMonths === 72 ? { ...t, ratio: 10 } : t);
+  }
+  return BASE_RATIO_TIERS;
+}
 
 function ageMonths(dob: string | null): number | null {
   if (!dob) return null;
@@ -23,13 +28,8 @@ function ageMonths(dob: string | null): number | null {
   return (today.getFullYear() - b.getFullYear()) * 12 + (today.getMonth() - b.getMonth());
 }
 
-function ratioTier(months: number | null) {
-  if (months === null) return RATIO_TIERS[0]; // unknown age → strictest tier
-  return RATIO_TIERS.find((t) => months < t.maxMonths) ?? RATIO_TIERS[RATIO_TIERS.length - 1];
-}
-
 /** Sum required educator fractions per child, rounded up to whole number. */
-function calcRequired(children: ChildProfile[]): {
+function calcRequired(children: ChildProfile[], tiers: typeof BASE_RATIO_TIERS): {
   required: number;
   breakdown: { label: string; count: number; ratio: number }[];
   hasUnknownAge: boolean;
@@ -41,7 +41,7 @@ function calcRequired(children: ChildProfile[]): {
   for (const child of children) {
     const months = ageMonths(child.date_of_birth);
     if (months === null) hasUnknownAge = true;
-    const tier = ratioTier(months);
+    const tier = months === null ? tiers[0] : (tiers.find((t) => months < t.maxMonths) ?? tiers[tiers.length - 1]);
     const perChild = 1 / tier.ratio;
     total += perChild;
     const existing = groups.get(tier.label);
@@ -75,7 +75,14 @@ function StatusBadge({ status }: { status: "not_marked" | "absent" | "signed_in"
 const WELLBEING_EMOJIS = ["😢", "😟", "😐", "😊", "😄"];
 
 // ─── Individual child row ─────────────────────────────────────────────────────
-function ChildRow({ child, record, date }: { child: ChildProfile; record: AttendanceRecord | undefined; date: string }) {
+function ChildRow({
+  child, record, date, ratioTiers,
+}: {
+  child: ChildProfile;
+  record: AttendanceRecord | undefined;
+  date: string;
+  ratioTiers: typeof BASE_RATIO_TIERS;
+}) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const status = record?.status ?? "not_marked";
@@ -88,7 +95,7 @@ function ChildRow({ child, record, date }: { child: ChildProfile; record: Attend
   }
 
   const months = ageMonths(child.date_of_birth);
-  const tier = ratioTier(months);
+  const tier = months === null ? ratioTiers[0] : (ratioTiers.find((t) => months < t.maxMonths) ?? ratioTiers[ratioTiers.length - 1]);
 
   return (
     <li className={`px-4 py-2.5 transition-opacity ${pending ? "opacity-40" : ""}`}>
@@ -186,6 +193,7 @@ function RoomSection({
   date,
   staffCount,
   roomId,
+  ratioTiers,
 }: {
   title: string;
   children: ChildProfile[];
@@ -193,6 +201,7 @@ function RoomSection({
   date: string;
   staffCount: number;
   roomId: string | null;
+  ratioTiers: typeof BASE_RATIO_TIERS;
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -202,7 +211,7 @@ function RoomSection({
   const absent = children.filter((c) => recordMap.get(c.id)?.status === "absent");
   const notMarked = children.filter((c) => !recordMap.has(c.id));
 
-  const { required, breakdown, hasUnknownAge } = calcRequired(signedIn);
+  const { required, breakdown, hasUnknownAge } = calcRequired(signedIn, ratioTiers);
 
   const atRatio = staffCount >= required;
   const noChildren = signedIn.length === 0;
@@ -309,6 +318,7 @@ function RoomSection({
               child={child}
               record={recordMap.get(child.id)}
               date={date}
+              ratioTiers={ratioTiers}
             />
           ))}
         </ul>
@@ -331,9 +341,11 @@ interface Props {
   rooms: Room[];
   staffCounts: RoomStaffCount[];
   date: string;
+  jurisdiction?: string;
 }
 
-export default function AttendanceRegister({ children, records, rooms, staffCounts, date }: Props) {
+export default function AttendanceRegister({ children, records, rooms, staffCounts, date, jurisdiction = "national" }: Props) {
+  const RATIO_TIERS = getRatioTiers(jurisdiction);
   const recordMap = new Map(records.map((r) => [r.child_id, r]));
   const staffMap = new Map(staffCounts.map((s) => [s.room_id, s.staff_count]));
 
@@ -392,7 +404,7 @@ export default function AttendanceRegister({ children, records, rooms, staffCoun
           </p>
           <ul className="divide-y divide-coral-light rounded-2xl border border-coral-light bg-white">
             {children.map((child) => (
-              <ChildRow key={child.id} child={child} record={recordMap.get(child.id)} date={date} />
+              <ChildRow key={child.id} child={child} record={recordMap.get(child.id)} date={date} ratioTiers={RATIO_TIERS} />
             ))}
           </ul>
         </div>
@@ -410,6 +422,7 @@ export default function AttendanceRegister({ children, records, rooms, staffCoun
               date={date}
               staffCount={staffMap.get(room.id) ?? 0}
               roomId={room.id}
+              ratioTiers={RATIO_TIERS}
             />
           ))}
 
@@ -421,6 +434,7 @@ export default function AttendanceRegister({ children, records, rooms, staffCoun
               date={date}
               staffCount={0}
               roomId={null}
+              ratioTiers={RATIO_TIERS}
             />
           )}
         </div>

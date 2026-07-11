@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getChildren } from "@/lib/supabase/children";
 import { getAttendanceForDate } from "@/lib/supabase/attendance";
 import { getRooms, getRoomStaffCountsForDate } from "@/lib/supabase/rooms";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { createClient } from "@/lib/supabase/server";
 import { cardClass } from "@/lib/ui";
 import AttendanceRegister from "./AttendanceRegister";
 
@@ -22,12 +24,18 @@ export default async function AttendancePage({ searchParams }: Props) {
   const { date: rawDate } = await searchParams;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(rawDate ?? "") ? rawDate! : todayLocal();
 
-  const [children, records, rooms, staffCounts] = await Promise.all([
+  const supabase = await createClient();
+  const ownerUserId = await getMyServiceOwnerId();
+  const [children, records, rooms, staffCounts, serviceRow] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
     getRooms(),
     getRoomStaffCountsForDate(date),
+    ownerUserId
+      ? supabase.from("services").select("jurisdiction").eq("director_user_id", ownerUserId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const jurisdiction = (serviceRow as { data: { jurisdiction: string | null } | null })?.data?.jurisdiction ?? "national";
 
   const isToday = date === todayLocal();
 
@@ -91,7 +99,7 @@ export default async function AttendancePage({ searchParams }: Props) {
 
       {/* Register */}
       <div className="mt-4">
-        <AttendanceRegister children={children} records={records} rooms={rooms} staffCounts={staffCounts} date={date} />
+        <AttendanceRegister children={children} records={records} rooms={rooms} staffCounts={staffCounts} date={date} jurisdiction={jurisdiction} />
       </div>
 
       <p className="mt-6 text-xs text-ink/30 print:hidden">

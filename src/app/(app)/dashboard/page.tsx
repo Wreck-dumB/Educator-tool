@@ -13,12 +13,19 @@ import { cardClass } from "@/lib/ui";
 
 export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
 
-const RATIO_TIERS = [
+const BASE_RATIO_TIERS = [
   { maxMonths: 24, ratio: 4 },
   { maxMonths: 36, ratio: 5 },
   { maxMonths: 72, ratio: 11 },
   { maxMonths: Infinity, ratio: 15 },
 ];
+
+function getRatioTiers(jurisdiction: string) {
+  if (jurisdiction === "nsw" || jurisdiction === "wa") {
+    return BASE_RATIO_TIERS.map((t) => t.maxMonths === 72 ? { ...t, ratio: 10 } : t);
+  }
+  return BASE_RATIO_TIERS;
+}
 
 function ageInMonths(dob: string | null): number | null {
   if (!dob) return null;
@@ -27,11 +34,11 @@ function ageInMonths(dob: string | null): number | null {
   return (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
 }
 
-function requiredEducators(children: { date_of_birth: string | null }[]): number {
+function requiredEducators(children: { date_of_birth: string | null }[], tiers: typeof BASE_RATIO_TIERS): number {
   if (children.length === 0) return 0;
   const sum = children.reduce((acc, c) => {
     const months = ageInMonths(c.date_of_birth);
-    const tier = RATIO_TIERS.find((t) => months === null || months < t.maxMonths) ?? RATIO_TIERS[RATIO_TIERS.length - 1];
+    const tier = tiers.find((t) => months === null || months < t.maxMonths) ?? tiers[tiers.length - 1];
     return acc + 1 / tier.ratio;
   }, 0);
   return Math.ceil(sum);
@@ -53,7 +60,7 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const ownerUserId = await getMyServiceOwnerId();
 
-  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans, staffNotifs, absenceRes] = await Promise.all([
+  const [children, records, rooms, staffCounts, recentObs, incidentAlerts, expiringPlans, staffNotifs, absenceRes, serviceRow] = await Promise.all([
     getChildren(),
     getAttendanceForDate(date),
     getRooms(),
@@ -71,7 +78,12 @@ export default async function DashboardPage() {
           .order("absence_date")
           .limit(20)
       : Promise.resolve({ data: [] }),
+    ownerUserId
+      ? supabase.from("services").select("jurisdiction").eq("director_user_id", ownerUserId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
+  const jurisdiction = (serviceRow as { data: { jurisdiction: string | null } | null })?.data?.jurisdiction ?? "national";
+  const RATIO_TIERS = getRatioTiers(jurisdiction);
 
   const absences = (absenceRes as { data: { id: string; child_id: string; absence_date: string; reason: string | null; acknowledged_at: string | null }[] | null }).data ?? [];
   const childNameById = new Map(children.map((c) => [c.id, c.first_name]));
@@ -80,7 +92,7 @@ export default async function DashboardPage() {
   const signedInIds = new Set(signedIn.map((r) => r.child_id));
   const signedInChildren = children.filter((c) => signedInIds.has(c.id));
 
-  const totalRequired = requiredEducators(signedInChildren);
+  const totalRequired = requiredEducators(signedInChildren, RATIO_TIERS);
   const totalStaff = staffCounts.reduce((s, c) => s + c.staff_count, 0);
   const inRatio = totalStaff >= totalRequired;
 
@@ -174,7 +186,7 @@ export default async function DashboardPage() {
             {rooms.map((room) => {
               const roomChildren = signedInChildren.filter((c) => c.room_id === room.id);
               const staffCount = staffCounts.find((s) => s.room_id === room.id)?.staff_count ?? 0;
-              const req = requiredEducators(roomChildren);
+              const req = requiredEducators(roomChildren, RATIO_TIERS);
               const ok = staffCount >= req || roomChildren.length === 0;
               return (
                 <div key={room.id} className="flex items-center justify-between text-sm">
