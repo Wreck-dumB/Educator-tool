@@ -5,47 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { VisitorSignInRow } from "@/lib/supabase/signinBoard";
 import { signOutVisitor } from "../../(kiosk)/signin/actions";
+import { getRatioTiers, ageInMonths, requiredEducators, type RatioTier } from "@/lib/nqf";
 
-// Australian NQF ratio tiers — NSW and WA use 1:10 for 3–6 year olds instead of 1:11
-const BASE_RATIO_TIERS = [
-  { label: "Under 2", maxMonths: 24, ratio: 4 },
-  { label: "2–3 yrs", maxMonths: 36, ratio: 5 },
-  { label: "3–6 yrs", maxMonths: 72, ratio: 11 },
-  { label: "School+", maxMonths: Infinity, ratio: 15 },
-];
-
-function getRatioTiers(jurisdiction: string) {
-  if (jurisdiction === "nsw" || jurisdiction === "wa") {
-    return BASE_RATIO_TIERS.map((t) =>
-      t.maxMonths === 72 ? { ...t, ratio: 10 } : t
-    );
-  }
-  return BASE_RATIO_TIERS;
-}
-
-function ageInMonths(dob: string | null): number | null {
-  if (!dob) return null;
-  const birth = new Date(dob);
-  const now = new Date();
-  return (
-    (now.getFullYear() - birth.getFullYear()) * 12 +
-    (now.getMonth() - birth.getMonth())
-  );
-}
-
-function ageTier(months: number | null, tiers: typeof BASE_RATIO_TIERS) {
+function ageTier(months: number | null, tiers: RatioTier[]) {
   if (months === null) return tiers[tiers.length - 1];
   return tiers.find((t) => months < t.maxMonths) ?? tiers[tiers.length - 1];
-}
-
-function requiredEducators(children: { date_of_birth: string | null }[], tiers: typeof BASE_RATIO_TIERS): number {
-  if (children.length === 0) return 0;
-  const sum = children.reduce((acc, c) => {
-    const months = ageInMonths(c.date_of_birth);
-    const tier = ageTier(months, tiers);
-    return acc + 1 / tier.ratio;
-  }, 0);
-  return Math.ceil(sum);
 }
 
 function formatTime(ts: string): string {

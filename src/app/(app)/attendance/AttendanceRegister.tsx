@@ -5,21 +5,7 @@ import { useRouter } from "next/navigation";
 import type { ChildProfile, AttendanceRecord, Room, RoomStaffCount } from "@/lib/types/domain";
 import { signIn, signOut, markAbsent, undoAttendance, updateRoomStaffCount, updateWellbeing } from "./actions";
 
-// ─── Australian NQF educator-to-child ratios ─────────────────────────────────
-// NSW and WA use 1:10 for 3–6yo instead of the national 1:11.
-const BASE_RATIO_TIERS = [
-  { maxMonths: 24,       label: "Under 2",    ratio: 4  },
-  { maxMonths: 36,       label: "2–3 years",  ratio: 5  },
-  { maxMonths: 72,       label: "3–6 years",  ratio: 11 },
-  { maxMonths: Infinity, label: "School age", ratio: 15 },
-];
-
-function getRatioTiers(jurisdiction: string) {
-  if (jurisdiction === "nsw" || jurisdiction === "wa") {
-    return BASE_RATIO_TIERS.map((t) => t.maxMonths === 72 ? { ...t, ratio: 10 } : t);
-  }
-  return BASE_RATIO_TIERS;
-}
+import { getRatioTiers, childRatioTier, type RatioTier } from "@/lib/nqf";
 
 function ageMonths(dob: string | null): number | null {
   if (!dob) return null;
@@ -29,7 +15,7 @@ function ageMonths(dob: string | null): number | null {
 }
 
 /** Sum required educator fractions per child, rounded up to whole number. */
-function calcRequired(children: ChildProfile[], tiers: typeof BASE_RATIO_TIERS): {
+function calcRequired(children: ChildProfile[], tiers: RatioTier[]): {
   required: number;
   breakdown: { label: string; count: number; ratio: number }[];
   hasUnknownAge: boolean;
@@ -39,9 +25,8 @@ function calcRequired(children: ChildProfile[], tiers: typeof BASE_RATIO_TIERS):
   let total = 0;
 
   for (const child of children) {
-    const months = ageMonths(child.date_of_birth);
-    if (months === null) hasUnknownAge = true;
-    const tier = months === null ? tiers[0] : (tiers.find((t) => months < t.maxMonths) ?? tiers[tiers.length - 1]);
+    if (child.date_of_birth === null) hasUnknownAge = true;
+    const tier = childRatioTier(child.date_of_birth, tiers);
     const perChild = 1 / tier.ratio;
     total += perChild;
     const existing = groups.get(tier.label);
@@ -81,7 +66,7 @@ function ChildRow({
   child: ChildProfile;
   record: AttendanceRecord | undefined;
   date: string;
-  ratioTiers: typeof BASE_RATIO_TIERS;
+  ratioTiers: RatioTier[];
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -201,7 +186,7 @@ function RoomSection({
   date: string;
   staffCount: number;
   roomId: string | null;
-  ratioTiers: typeof BASE_RATIO_TIERS;
+  ratioTiers: RatioTier[];
 }) {
   const [pending, startTransition] = useTransition();
   const router = useRouter();

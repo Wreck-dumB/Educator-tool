@@ -1,7 +1,10 @@
 import { getChildIncidentReports, getStaffIncidentReports } from "@/lib/supabase/incidents";
 import { getChildren } from "@/lib/supabase/children";
 import { getMyStaffRole } from "@/lib/supabase/staff";
+import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { createClient } from "@/lib/supabase/server";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
+import { MANDATORY_REPORTING_TEXT } from "@/lib/nqf";
 import {
   createChildIncidentReport,
   deleteChildIncidentReport,
@@ -23,13 +26,20 @@ export default async function IncidentReportsPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
-  const [childReports, staffReports, children, myRole] = await Promise.all([
+  const supabase = await createClient();
+  const ownerUserId = await getMyServiceOwnerId();
+  const [childReports, staffReports, children, myRole, serviceRow] = await Promise.all([
     getChildIncidentReports(),
     getStaffIncidentReports(),
     getChildren(),
     getMyStaffRole(),
+    ownerUserId
+      ? supabase.from("services").select("jurisdiction").eq("director_user_id", ownerUserId).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const isDirector = myRole === "director";
+  const jurisdiction = (serviceRow as { data: { jurisdiction: string | null } | null })?.data?.jurisdiction ?? "national";
+  const mandatoryText = MANDATORY_REPORTING_TEXT[jurisdiction] ?? MANDATORY_REPORTING_TEXT.national;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -44,21 +54,9 @@ export default async function IncidentReportsPage({
 
       {/* ─── Mandatory Reporting Notice ─────────────────────────────────────── */}
       <div className="mt-5 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-4">
-        <p className="text-sm font-bold text-amber-900">NSW Mandatory Reporting Obligation</p>
-        <p className="mt-1 text-xs text-amber-800">
-          Under the <em>Children and Young Persons (Care and Protection) Act 1998</em> (NSW) s23,
-          all educators are mandatory reporters. If you suspect a child is at risk of significant
-          harm, you must report to the Child Protection Helpline — even if you are uncertain.
-        </p>
-        <div className="mt-2 flex flex-wrap items-center gap-3">
-          <a
-            href="tel:132677"
-            className="rounded-full bg-amber-400 px-3 py-1.5 text-xs font-bold text-white hover:bg-amber-500"
-          >
-            Child Protection Helpline: 13 26 77
-          </a>
-          <span className="text-xs text-amber-700">Available 24/7 · Do not wait until Monday</span>
-        </div>
+        <p className="text-sm font-bold text-amber-900">Mandatory Reporting Obligation</p>
+        <p className="mt-0.5 text-xs text-amber-700 italic">{mandatoryText.act}{mandatoryText.section ? ` ${mandatoryText.section}` : ""}</p>
+        <p className="mt-1 text-xs text-amber-800">{mandatoryText.body}</p>
         <p className="mt-1.5 text-xs text-amber-700">
           Mandatory reporting is a personal legal obligation — it cannot be delegated. Failure to
           report when required is an offence. If you make a report in good faith, you have

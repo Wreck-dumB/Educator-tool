@@ -10,39 +10,9 @@ import { getExpiringHealthPlans } from "@/lib/supabase/healthPlans";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { getUnreadStaffNotifications, markStaffNotificationsRead } from "@/lib/supabase/staffNotifications";
 import { cardClass } from "@/lib/ui";
+import { getRatioTiers, requiredEducators } from "@/lib/nqf";
 
 export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
-
-const BASE_RATIO_TIERS = [
-  { maxMonths: 24, ratio: 4 },
-  { maxMonths: 36, ratio: 5 },
-  { maxMonths: 72, ratio: 11 },
-  { maxMonths: Infinity, ratio: 15 },
-];
-
-function getRatioTiers(jurisdiction: string) {
-  if (jurisdiction === "nsw" || jurisdiction === "wa") {
-    return BASE_RATIO_TIERS.map((t) => t.maxMonths === 72 ? { ...t, ratio: 10 } : t);
-  }
-  return BASE_RATIO_TIERS;
-}
-
-function ageInMonths(dob: string | null): number | null {
-  if (!dob) return null;
-  const birth = new Date(dob);
-  const now = new Date();
-  return (now.getFullYear() - birth.getFullYear()) * 12 + now.getMonth() - birth.getMonth();
-}
-
-function requiredEducators(children: { date_of_birth: string | null }[], tiers: typeof BASE_RATIO_TIERS): number {
-  if (children.length === 0) return 0;
-  const sum = children.reduce((acc, c) => {
-    const months = ageInMonths(c.date_of_birth);
-    const tier = tiers.find((t) => months === null || months < t.maxMonths) ?? tiers[tiers.length - 1];
-    return acc + 1 / tier.ratio;
-  }, 0);
-  return Math.ceil(sum);
-}
 
 function todayLocal() {
   return new Date().toISOString().slice(0, 10);
