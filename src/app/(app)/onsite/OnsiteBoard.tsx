@@ -446,6 +446,9 @@ export default function OnsiteBoard({
                   </span>
                 ))}
               </div>
+              <p className="mt-2 text-[10px] text-ink/30">
+                Reference only — verify current ratios with your state regulatory authority.
+              </p>
             </div>
           </div>
         )}

@@ -5,6 +5,7 @@ import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { createClient } from "@/lib/supabase/server";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { MANDATORY_REPORTING_TEXT } from "@/lib/nqf";
+import { logAuditEvent } from "@/lib/supabase/auditLog";
 import {
   createChildIncidentReport,
   deleteChildIncidentReport,
@@ -41,6 +42,9 @@ export default async function IncidentReportsPage({
   const jurisdiction = (serviceRow as { data: { jurisdiction: string | null } | null })?.data?.jurisdiction ?? "national";
   const mandatoryText = MANDATORY_REPORTING_TEXT[jurisdiction] ?? MANDATORY_REPORTING_TEXT.national;
 
+  // Log access to sensitive incident records (fire and forget)
+  void logAuditEvent("view_incident_reports");
+
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="font-display text-3xl font-semibold text-coral-dark">Incident reports</h1>
@@ -58,9 +62,11 @@ export default async function IncidentReportsPage({
         <p className="mt-0.5 text-xs text-amber-700 italic">{mandatoryText.act}{mandatoryText.section ? ` ${mandatoryText.section}` : ""}</p>
         <p className="mt-1 text-xs text-amber-800">{mandatoryText.body}</p>
         <p className="mt-1.5 text-xs text-amber-700">
-          Mandatory reporting is a personal legal obligation — it cannot be delegated. Failure to
-          report when required is an offence. If you make a report in good faith, you have
-          legislative protection even if the concern is not substantiated.
+          Mandatory reporting is a <strong>personal legal obligation</strong> — it cannot be delegated to a
+          supervisor, another staff member, or software. <strong>SparkPlay does not determine whether a
+          mandatory report is required.</strong> That decision rests with you. Failure to report when
+          required is an offence. If you make a report in good faith you have legislative protection
+          even if the concern is not substantiated.
         </p>
       </div>
 

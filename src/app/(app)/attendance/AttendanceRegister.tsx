@@ -292,6 +292,9 @@ function RoomSection({
             )}
           </div>
         )}
+        <p className="mt-1.5 text-[10px] text-ink/30">
+          Reference only — verify current ratios with your state regulatory authority.
+        </p>
       </div>
 
       {/* Children list */}

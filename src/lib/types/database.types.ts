@@ -573,14 +573,42 @@ export interface Database {
           role: ProfileRole;
           display_name: string;
           created_at: string;
+          terms_accepted_at: string | null;
+          terms_version: string | null;
         };
         Insert: {
           id: string;
           role: ProfileRole;
           display_name: string;
           created_at?: string;
+          terms_accepted_at?: string | null;
+          terms_version?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
+        Relationships: [];
+      };
+      audit_log: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          actor_user_id: string;
+          action: string;
+          target_type: string | null;
+          target_id: string | null;
+          target_label: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          actor_user_id: string;
+          action: string;
+          target_type?: string | null;
+          target_id?: string | null;
+          target_label?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["audit_log"]["Insert"]>;
         Relationships: [];
       };
       child_invites: {
@@ -2003,6 +2031,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      accept_terms: {
+        Args: { _version?: string };
+        Returns: void;
+      };
       is_linked_parent: {
         Args: { _child_id: string };
         Returns: boolean;

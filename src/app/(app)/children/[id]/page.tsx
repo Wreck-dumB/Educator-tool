@@ -21,6 +21,7 @@ import { getMyStaffRole } from "@/lib/supabase/staff";
 import { assignChildToRoom } from "@/app/(app)/rooms/actions";
 import { inputClass, cardClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
+import { logAuditEvent } from "@/lib/supabase/auditLog";
 
 const AUTHORISATION_LABELS: Record<string, string> = {
   is_parent_guardian: "Parent/guardian",
@@ -62,6 +63,13 @@ export default async function ChildDetailPage({
   ]);
   const canManage = myRole === "director" || myRole === "2ic";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+  // Log access to this child's detailed record (fire and forget)
+  void logAuditEvent("view_child_record", {
+    type: "child",
+    id: child.id,
+    label: child.first_name,
+  });
 
   return (
     <div className="mx-auto max-w-2xl print:max-w-none">
@@ -168,6 +176,27 @@ export default async function ChildDetailPage({
             Save changes
           </button>
         </form>
+
+        {/* Data retention notice */}
+        {(() => {
+          if (!child.date_of_birth) return (
+            <p className="mt-3 text-xs text-ink/40 border-t border-ink/10 pt-3">
+              <strong>Record retention:</strong> Incident reports must be kept confidential until
+              the child turns 25 (Regulation 87). Add a date of birth to calculate the exact date.
+            </p>
+          );
+          const retainUntil = new Date(child.date_of_birth);
+          retainUntil.setFullYear(retainUntil.getFullYear() + 25);
+          const isPast = retainUntil < new Date();
+          return (
+            <p className={`mt-3 text-xs border-t border-ink/10 pt-3 ${isPast ? "text-amber-700 font-medium" : "text-ink/40"}`}>
+              <strong>Incident record retention:</strong> Regulation 87 requires records to be kept
+              confidential until{" "}
+              <strong>{retainUntil.toLocaleDateString("en-AU")}</strong>
+              {isPast ? " — this date has passed; records may now be archived or destroyed." : "."}
+            </p>
+          );
+        })()}
       </div>
 
       <div className={`mt-6 p-5 print:border print:border-black print:bg-white ${cardClass}`}>

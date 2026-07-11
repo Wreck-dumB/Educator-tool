@@ -241,8 +241,26 @@ export default async function PermissionSlipsPage({
         })}
       </div>
 
+      {/* E-signature legal notice */}
+      <div className="mt-6 rounded-2xl border border-ink/10 bg-white/60 px-4 py-3 text-xs text-ink/50">
+        <p>
+          <strong className="text-ink/70">About these e-signatures:</strong>{" "}
+          Parent signatures (typed name + confirmation) satisfy the{" "}
+          <em>Electronic Transactions Act 1999</em> (Cth) for routine consent such as photo/media
+          and general excursions. For{" "}
+          <strong className="text-ink/70">medication authorisation</strong>, confirm with your
+          insurer and regulatory authority whether an electronic signature is sufficient for your
+          service&apos;s specific requirements before relying on it.
+        </p>
+        <p className="mt-1.5">
+          Signatures are permanently bound to the exact version of text the parent was shown.
+          If you revise and resend a slip, existing signatures remain valid for the version they
+          signed — the &ldquo;outdated version&rdquo; indicator flags where re-consent is needed.
+        </p>
+      </div>
+
       {/* New slip form */}
-      <div className={`mt-6 p-5 ${cardClass}`}>
+      <div className={`mt-4 p-5 ${cardClass}`}>
         <h2 className="font-display text-sm font-semibold text-ink">New permission slip</h2>
         <form action={createPermissionSlip} className="mt-4 space-y-4">
           <div>

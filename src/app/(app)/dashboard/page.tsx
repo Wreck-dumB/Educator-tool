@@ -144,6 +144,9 @@ export default async function DashboardPage() {
           <p className="text-xs text-ink/50">across {new Set(obsThisWeek.map((o) => o.child_id)).size} children</p>
         </Link>
       </div>
+      <p className="mt-1 text-[10px] text-ink/30">
+        Ratio figures are for reference only — verify current ratios with your state regulatory authority.
+      </p>
 
       {/* Rooms summary */}
       {rooms.length > 0 && (
