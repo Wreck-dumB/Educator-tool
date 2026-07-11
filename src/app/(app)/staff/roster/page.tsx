@@ -49,10 +49,10 @@ export default async function StaffRosterPage({
     .from("staff_roster")
     .select("*")
     .eq("owner_user_id", ownerUserId)
-    .gte("shift_date", monday)
-    .lte("shift_date", sunday)
-    .order("shift_date")
-    .order("start_time");
+    .gte("roster_date", monday)
+    .lte("roster_date", sunday)
+    .order("roster_date")
+    .order("shift_start");
 
   const weekDates = Array.from({ length: 7 }, (_, i) => addDays(monday, i));
 

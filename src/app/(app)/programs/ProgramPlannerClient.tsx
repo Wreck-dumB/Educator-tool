@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { CulturalDay } from "@/lib/types/database.types";
+import type { Room } from "@/lib/types/domain";
 import CulturalCalendar from "./CulturalCalendar";
 import ProgramBuilderForm from "./ProgramBuilderForm";
 
@@ -11,7 +12,7 @@ function addDays(dateStr: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export default function ProgramPlannerClient() {
+export default function ProgramPlannerClient({ rooms = [] }: { rooms?: Room[] }) {
   const [prefill, setPrefill] = useState<{ start: string; end: string; notes: string } | null>(null);
   const [prefillKey, setPrefillKey] = useState(0);
   const formRef = useRef<HTMLDivElement>(null);
@@ -38,6 +39,7 @@ export default function ProgramPlannerClient() {
           initialStartDate={prefill?.start}
           initialEndDate={prefill?.end}
           initialNotes={prefill?.notes}
+          rooms={rooms}
         />
       </div>
     </>

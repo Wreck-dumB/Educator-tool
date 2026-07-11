@@ -71,6 +71,7 @@ export async function saveProgram(
   endDate: string,
   culturalDays: CulturalDay[],
   entries: ProgramEntrySuggestion[],
+  roomId: string | null = null,
 ): Promise<{ id: string } | { error: string }> {
   const supabase = await createClient();
   const {
@@ -94,6 +95,7 @@ export async function saveProgram(
       start_date: startDate,
       end_date: endDate,
       cultural_days: culturalDays,
+      room_id: roomId,
     })
     .select("id")
     .single();

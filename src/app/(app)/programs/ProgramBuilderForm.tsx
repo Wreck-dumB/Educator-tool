@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ProgramSuggestion } from "@/lib/types/domain";
+import type { Room } from "@/lib/types/domain";
 import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { saveProgram } from "./actions";
 
@@ -15,12 +16,14 @@ interface Props {
   initialStartDate?: string;
   initialEndDate?: string;
   initialNotes?: string;
+  rooms?: Room[];
 }
 
-export default function ProgramBuilderForm({ initialStartDate, initialEndDate, initialNotes }: Props) {
+export default function ProgramBuilderForm({ initialStartDate, initialEndDate, initialNotes, rooms = [] }: Props) {
   const [title, setTitle] = useState("");
   const [startDate, setStartDate] = useState(initialStartDate ?? todayPlus(0));
   const [endDate, setEndDate] = useState(initialEndDate ?? todayPlus(6));
+  const [roomId, setRoomId] = useState<string>("");
   const [educatorNotes, setEducatorNotes] = useState(initialNotes ?? "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +61,7 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
       endDate,
       draft.culturalDays,
       draft.entries,
+      roomId || null,
     );
     if ("error" in result) {
       setError(result.error);
@@ -90,6 +94,25 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
           className={inputClass}
         />
       </div>
+
+      {rooms.length > 0 && (
+        <div className="mt-3">
+          <label htmlFor="room_id" className="block text-sm font-medium text-ink/70">
+            Room (optional)
+          </label>
+          <select
+            id="room_id"
+            value={roomId}
+            onChange={(e) => setRoomId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">All rooms / no room</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-4">
         <div>
