@@ -6,7 +6,7 @@ import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createHealthPlan, archiveHealthPlan } from "./actions";
 
-export const metadata: Metadata = { title: "Health Plans · SparkPlay" };
+export const metadata: Metadata = { title: "Health Plans · DR. SparkPlay" };
 
 const PLAN_TYPE_LABELS: Record<string, string> = {
   asthma: "Asthma",

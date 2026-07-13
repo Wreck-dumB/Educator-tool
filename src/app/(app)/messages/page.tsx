@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getMyConversations } from "@/lib/supabase/messaging";
 import { cardClass } from "@/lib/ui";
 
-export const metadata: Metadata = { title: "Messages · SparkPlay" };
+export const metadata: Metadata = { title: "Messages · DR. SparkPlay" };
 
 export default async function MessagesPage() {
   const conversations = await getMyConversations();

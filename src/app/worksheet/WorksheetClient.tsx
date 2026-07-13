@@ -141,7 +141,7 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
         </div>
       )}
 
-      <p className="mt-2 text-right text-xs text-ink/25">SparkPlay</p>
+      <p className="mt-2 text-right text-xs text-ink/25">DR. SparkPlay</p>
     </div>
   );
 }
@@ -182,7 +182,7 @@ function ActivitySheetTemplate({
 
       <p className="mb-2 mt-5 text-xs font-bold uppercase tracking-widest text-ink/40">What I made / what happened:</p>
       <div className="rounded border border-dashed border-ink/20" style={{ height: "60px" }} aria-label="Writing space" />
-      <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
     </div>
   );
 }
@@ -240,7 +240,7 @@ function WritingLinesTemplate({ name, title, imageUrl, imageStyle }: {
         })}
       </svg>
 
-      <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
     </div>
   );
 }
@@ -266,7 +266,7 @@ function DrawingFrameTemplate({ title, name, imageUrl, imageStyle }: {
       )}
       <p className="mb-2 mt-6 text-sm text-ink/50">What I made / what happened:</p>
       <div className="rounded border border-dashed border-ink/20" style={{ height: "68px" }} aria-label="Writing space" />
-      <p className="mt-4 text-right text-xs text-ink/25">SparkPlay</p>
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
     </div>
   );
 }
@@ -321,7 +321,7 @@ export default function WorksheetClient({ type, initialName, title, materials = 
     <div className="min-h-screen bg-white">
       {/* Sticky bar — hidden on print */}
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/10 bg-white px-4 py-2 shadow-sm print:hidden">
-        <span className="text-sm font-medium text-ink/40">SparkPlay Worksheet</span>
+        <span className="text-sm font-medium text-ink/40">DR. SparkPlay Worksheet</span>
         <button
           type="button"
           onClick={() => window.print()}

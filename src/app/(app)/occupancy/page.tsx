@@ -5,7 +5,7 @@ import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { cardClass } from "@/lib/ui";
 import SetCapacityForm from "./SetCapacityForm";
 
-export const metadata: Metadata = { title: "Occupancy · SparkPlay" };
+export const metadata: Metadata = { title: "Occupancy · DR. SparkPlay" };
 
 function todayAEST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });

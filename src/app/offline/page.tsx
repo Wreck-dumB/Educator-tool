@@ -8,7 +8,7 @@ export default function OfflinePage() {
       </span>
       <h1 className="font-display mt-4 text-2xl font-semibold text-coral-dark">You&apos;re offline</h1>
       <p className="mt-2 text-sm text-ink/60">
-        SparkPlay needs a connection to load. Check your internet and try again.
+        DR. SparkPlay needs a connection to load. Check your internet and try again.
       </p>
       <button
         onClick={() => window.location.reload()}

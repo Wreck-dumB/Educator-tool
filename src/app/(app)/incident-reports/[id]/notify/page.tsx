@@ -161,7 +161,7 @@ export default async function IncidentNotifyPage({
 
         {/* Footer */}
         <p className="mt-8 text-center text-xs text-ink/30">
-          Pre-filled by SparkPlay from incident record #{id.slice(0, 8)} · Review all details before submitting
+          Pre-filled by DR. SparkPlay from incident record #{id.slice(0, 8)} · Review all details before submitting
         </p>
       </div>
     </div>

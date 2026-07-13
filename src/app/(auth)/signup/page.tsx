@@ -18,7 +18,7 @@ export default async function SignupPage({
           <span className="text-3xl" aria-hidden>
             ✨
           </span>
-          <h1 className="font-display mt-2 text-2xl font-semibold text-coral-dark">SparkPlay</h1>
+          <h1 className="font-display mt-2 text-2xl font-semibold text-coral-dark">DR. SparkPlay</h1>
           <p className="mt-1 text-sm text-ink/60">Create your account</p>
         </div>
 

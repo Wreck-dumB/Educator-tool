@@ -3,7 +3,7 @@
 // in-app notifications still work, email is a bonus layer.
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS = process.env.EMAIL_FROM ?? "SparkPlay <noreply@sparkplayapp.com.au>";
+const FROM_ADDRESS = process.env.EMAIL_FROM ?? "DR. SparkPlay <noreply@sparkplayapp.com.au>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 interface EmailPayload {
@@ -45,7 +45,7 @@ export function observationSharedEmail(parentEmail: string, childName: string): 
       <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
         <h2 style="color:#E8614A;margin-bottom:8px">New observation for ${childName}</h2>
         <p style="color:#444;line-height:1.6">
-          Your educator has shared a new observation for ${childName} on SparkPlay.
+          Your educator has shared a new observation for ${childName} on DR. SparkPlay.
           Log in to read it, see any photos, and view linked learning outcomes.
         </p>
         <a href="${SITE_URL}/parent/observations"
@@ -53,7 +53,7 @@ export function observationSharedEmail(parentEmail: string, childName: string): 
           View observation
         </a>
         <p style="margin-top:24px;color:#999;font-size:12px">
-          SparkPlay · You're receiving this because you're linked as a parent to ${childName}.
+          DR. SparkPlay · You're receiving this because you're linked as a parent to ${childName}.
         </p>
       </div>`,
   };
@@ -74,7 +74,7 @@ export function newMessageEmail(parentEmail: string, childName: string): EmailPa
           Open messages
         </a>
         <p style="margin-top:24px;color:#999;font-size:12px">
-          SparkPlay · You're receiving this because you're linked as a parent to ${childName}.
+          DR. SparkPlay · You're receiving this because you're linked as a parent to ${childName}.
         </p>
       </div>`,
   };
@@ -118,7 +118,7 @@ export function materialOrderAlertEmail(p: MaterialAlertPayload): EmailPayload {
           View programs →
         </a>
         <p style="margin-top:24px;color:#999;font-size:12px">
-          SparkPlay · Automated material readiness alert for ${p.serviceName}.
+          DR. SparkPlay · Automated material readiness alert for ${p.serviceName}.
           You can adjust the lead time in Service Settings.
         </p>
       </div>`,
@@ -140,7 +140,7 @@ export function permissionSlipEmail(parentEmail: string, childName: string, slip
           View & sign
         </a>
         <p style="margin-top:24px;color:#999;font-size:12px">
-          SparkPlay · You're receiving this because you're linked as a parent to ${childName}.
+          DR. SparkPlay · You're receiving this because you're linked as a parent to ${childName}.
         </p>
       </div>`,
   };

@@ -12,7 +12,7 @@ import { getUnreadStaffNotifications, markStaffNotificationsRead } from "@/lib/s
 import { cardClass } from "@/lib/ui";
 import { getRatioTiers, requiredEducators } from "@/lib/nqf";
 
-export const metadata: Metadata = { title: "Dashboard · SparkPlay" };
+export const metadata: Metadata = { title: "Dashboard · DR. SparkPlay" };
 
 function todayLocal() {
   return new Date().toISOString().slice(0, 10);

@@ -4,7 +4,7 @@ import { getMyStaffRole } from "@/lib/supabase/staff";
 import { getAuditLog } from "@/lib/supabase/auditLog";
 import { cardClass } from "@/lib/ui";
 
-export const metadata: Metadata = { title: "Audit Log · SparkPlay" };
+export const metadata: Metadata = { title: "Audit Log · DR. SparkPlay" };
 
 const ACTION_LABELS: Record<string, string> = {
   view_incident_reports: "Viewed incident reports",

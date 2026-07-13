@@ -63,7 +63,7 @@ export default async function IncidentReportsPage({
         <p className="mt-1 text-xs text-amber-800">{mandatoryText.body}</p>
         <p className="mt-1.5 text-xs text-amber-700">
           Mandatory reporting is a <strong>personal legal obligation</strong> — it cannot be delegated to a
-          supervisor, another staff member, or software. <strong>SparkPlay does not determine whether a
+          supervisor, another staff member, or software. <strong>DR. SparkPlay does not determine whether a
           mandatory report is required.</strong> That decision rests with you. Failure to report when
           required is an offence. If you make a report in good faith you have legislative protection
           even if the concern is not substantiated.

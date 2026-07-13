@@ -6,7 +6,7 @@ import { cardClass, successBannerClass } from "@/lib/ui";
 import { saveQipCheckin } from "../actions";
 import type { QipCheckinResponse } from "@/lib/types/database.types";
 
-export const metadata: Metadata = { title: "QIP Daily Check-in · SparkPlay" };
+export const metadata: Metadata = { title: "QIP Daily Check-in · DR. SparkPlay" };
 
 const QA_QUESTIONS: { qa: number; area: string; question: string }[] = [
   {

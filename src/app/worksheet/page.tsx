@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import WorksheetClient from "./WorksheetClient";
 
 export const metadata: Metadata = {
-  title: "Worksheet · SparkPlay",
+  title: "Worksheet · DR. SparkPlay",
 };
 
 interface Props {

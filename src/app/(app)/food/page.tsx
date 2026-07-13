@@ -4,7 +4,7 @@ import { getFoodForDate } from "@/lib/supabase/dailyCare";
 import { cardClass, inputClass, primaryButtonClass } from "@/lib/ui";
 import { addFoodRecord, deleteFoodRecord } from "./actions";
 
-export const metadata: Metadata = { title: "Food Chart · SparkPlay" };
+export const metadata: Metadata = { title: "Food Chart · DR. SparkPlay" };
 
 const MEAL_TYPES = [
   { value: "breakfast", label: "Breakfast" },

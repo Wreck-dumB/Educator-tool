@@ -6,7 +6,7 @@ import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { addComplianceRecord, deleteComplianceRecord } from "./actions";
 
-export const metadata: Metadata = { title: "Staff Compliance · SparkPlay" };
+export const metadata: Metadata = { title: "Staff Compliance · DR. SparkPlay" };
 
 const TYPE_LABELS: Record<string, string> = {
   wwcc: "Working With Children Check",

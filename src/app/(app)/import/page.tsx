@@ -3,7 +3,7 @@ import Link from "next/link";
 import { cardClass } from "@/lib/ui";
 import DocumentReviewForm from "@/components/DocumentReviewForm";
 
-export const metadata: Metadata = { title: "Document Import & Review · SparkPlay" };
+export const metadata: Metadata = { title: "Document Import & Review · DR. SparkPlay" };
 
 export default function ImportPage() {
   return (
@@ -13,7 +13,7 @@ export default function ImportPage() {
       </h1>
       <p className="mt-1 text-sm text-ink/60">
         Upload an existing policy, form, or procedure and get AI-powered feedback on how to improve
-        it or bring it up to NQS/EYLF standards before importing it into SparkPlay.
+        it or bring it up to NQS/EYLF standards before importing it into DR. SparkPlay.
       </p>
 
       <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -40,7 +40,7 @@ export default function ImportPage() {
           </li>
           <li className="flex gap-3">
             <span className="font-bold text-coral-dark">2.</span>
-            <span>SparkPlay reads the document and checks it against NQS standards, EYLF requirements, and best practice for Australian childcare services.</span>
+            <span>DR. SparkPlay reads the document and checks it against NQS standards, EYLF requirements, and best practice for Australian childcare services.</span>
           </li>
           <li className="flex gap-3">
             <span className="font-bold text-coral-dark">3.</span>
@@ -48,7 +48,7 @@ export default function ImportPage() {
           </li>
           <li className="flex gap-3">
             <span className="font-bold text-coral-dark">4.</span>
-            <span>Once you&apos;re happy with the document, add it to SparkPlay manually via Policies, Document Templates, or Safe Work Procedures.</span>
+            <span>Once you&apos;re happy with the document, add it to DR. SparkPlay manually via Policies, Document Templates, or Safe Work Procedures.</span>
           </li>
         </ol>
         <p className="mt-3 text-xs text-ink/40">

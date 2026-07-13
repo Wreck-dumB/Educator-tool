@@ -12,7 +12,7 @@ export default async function PostersPage() {
       <h1 className="font-display text-3xl font-semibold text-coral-dark">Poster &amp; Flier Maker</h1>
       <p className="mt-1 text-sm text-ink/60">
         Make a poster for your room or a flier for families in a couple of minutes — write it yourself or
-        let SparkPlay draft the wording, add your own photo or a copyright-safe stock picture, then print it.
+        let DR. SparkPlay draft the wording, add your own photo or a copyright-safe stock picture, then print it.
       </p>
 
       <div className="mt-6">

@@ -8,7 +8,7 @@ import RoutineEditor from "@/components/RoutineEditor";
 import { addProgramEntry } from "./actions";
 import type { RoutineBlock } from "@/lib/types/database.types";
 
-export const metadata: Metadata = { title: "Day Plan · SparkPlay" };
+export const metadata: Metadata = { title: "Day Plan · DR. SparkPlay" };
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
@@ -500,7 +500,7 @@ export default async function DayPlanPage({
       {/* ═══════════════ PRINT FOOTER ═══════════════ */}
       <div className="mt-6 hidden border-t border-black pt-3 print:block">
         <div className="flex justify-between text-xs text-black/50">
-          <span>SparkPlay Day Plan — {displayDate}</span>
+          <span>DR. SparkPlay Day Plan — {displayDate}</span>
           <span>Printed: {new Date().toLocaleString("en-AU", { timeZone: "Australia/Sydney" })}</span>
         </div>
       </div>

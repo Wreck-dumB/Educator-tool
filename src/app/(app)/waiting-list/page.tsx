@@ -7,7 +7,7 @@ import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/l
 import type { WaitingListStatus } from "@/lib/types/database.types";
 import { addEnquiry, updateEnquiryStatus, deleteEnquiry } from "./actions";
 
-export const metadata: Metadata = { title: "Waiting List · SparkPlay" };
+export const metadata: Metadata = { title: "Waiting List · DR. SparkPlay" };
 
 function todayAEST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });

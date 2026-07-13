@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "SparkPlay",
-    short_name: "SparkPlay",
+    name: "DR. SparkPlay",
+    short_name: "DR. SparkPlay",
     description: "EYLF-linked activity ideas and daily care tools for early childhood educators.",
     start_url: "/dashboard",
     display: "standalone",

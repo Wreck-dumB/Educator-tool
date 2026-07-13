@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { acceptTerms } from "./actions";
 
-export const metadata: Metadata = { title: "Terms of Service · SparkPlay" };
+export const metadata: Metadata = { title: "Terms of Service · DR. SparkPlay" };
 
 export default function AcceptTermsPage() {
   return (
     <>
       <div className="text-center mb-6">
-        <span className="font-display text-2xl font-semibold text-coral-dark">SparkPlay</span>
+        <span className="font-display text-2xl font-semibold text-coral-dark">DR. SparkPlay</span>
         <h1 className="mt-2 text-xl font-semibold text-ink">Before you continue</h1>
         <p className="mt-1 text-sm text-ink/60">Please read and accept the following to use the app.</p>
       </div>
 
       <div className="rounded-2xl border border-ink/10 bg-white p-5 space-y-4 text-sm text-ink/80">
-        <Item heading="SparkPlay is a productivity tool, not a compliance system.">
+        <Item heading="DR. SparkPlay is a productivity tool, not a compliance system.">
           It does not provide legal, regulatory, or professional advice. You remain solely
           responsible for your service&apos;s compliance with the Education and Care Services
           National Law, National Regulations, and all applicable legislation.
@@ -38,11 +38,11 @@ export default function AcceptTermsPage() {
 
         <Item heading="Child records are sensitive and confidential.">
           Incident reports must be kept confidential until the child turns 25 (Regulation 87).
-          You are responsible for managing access to your service&apos;s SparkPlay account.
+          You are responsible for managing access to your service&apos;s DR. SparkPlay account.
         </Item>
 
         <div className="border-t border-ink/10 pt-4 text-ink/60">
-          By continuing you agree to SparkPlay&apos;s{" "}
+          By continuing you agree to DR. SparkPlay&apos;s{" "}
           <Link href="/terms" target="_blank" className="text-coral-dark underline">Terms of Service</Link>
           {" "}and{" "}
           <Link href="/privacy" target="_blank" className="text-coral-dark underline">Privacy Policy</Link>.

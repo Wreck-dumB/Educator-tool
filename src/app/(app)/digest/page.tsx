@@ -5,7 +5,7 @@ import CopyButton from "@/components/CopyButton";
 import DigestDatePicker from "@/components/DigestDatePicker";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Daily Digest · SparkPlay" };
+export const metadata: Metadata = { title: "Daily Digest · DR. SparkPlay" };
 
 function todayLocal() {
   return new Date().toISOString().slice(0, 10);

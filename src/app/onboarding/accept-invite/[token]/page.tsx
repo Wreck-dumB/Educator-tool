@@ -103,7 +103,7 @@ function InviteShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4">
       <div className="w-full max-w-md space-y-4 rounded-2xl border border-coral-light bg-white p-8 shadow-sm">
-        <h1 className="font-display text-center text-2xl font-semibold text-coral-dark">SparkPlay</h1>
+        <h1 className="font-display text-center text-2xl font-semibold text-coral-dark">DR. SparkPlay</h1>
         {children}
       </div>
     </div>

@@ -15,11 +15,11 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "SparkPlay",
+  title: "DR. SparkPlay",
   description: "EYLF-linked activity ideas and daily care tools for early childhood educators.",
   appleWebApp: {
     capable: true,
-    title: "SparkPlay",
+    title: "DR. SparkPlay",
     statusBarStyle: "default",
   },
 };

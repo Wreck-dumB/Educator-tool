@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Privacy Policy · SparkPlay" };
+export const metadata: Metadata = { title: "Privacy Policy · DR. SparkPlay" };
 
 const EFFECTIVE_DATE = "12 July 2026";
 const CONTACT_EMAIL = "privacy@sparkplay.app";
@@ -15,7 +15,7 @@ export default function PrivacyPolicyPage() {
       <p className="mt-1 text-sm text-ink/50">Effective date: {EFFECTIVE_DATE} · Version 1.0</p>
 
       <p className="mt-6 text-sm text-ink/70">
-        SparkPlay (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is an early childhood education tool operated as
+        DR. SparkPlay (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is an early childhood education tool operated as
         a sole-trader business in Australia. We take privacy seriously, particularly because we handle
         information about children and families. This policy explains what personal information we collect,
         why we collect it, how we protect it, and your rights under the{" "}
@@ -25,11 +25,11 @@ export default function PrivacyPolicyPage() {
       <Section title="1. Who this policy covers">
         <p>This policy applies to:</p>
         <ul>
-          <li><strong>Educators and centre staff</strong> who use SparkPlay to manage their service.</li>
-          <li><strong>Parents and guardians</strong> linked to a child enrolled at a service using SparkPlay.</li>
-          <li><strong>Children</strong> whose records are held in SparkPlay by their educator.</li>
+          <li><strong>Educators and centre staff</strong> who use DR. SparkPlay to manage their service.</li>
+          <li><strong>Parents and guardians</strong> linked to a child enrolled at a service using DR. SparkPlay.</li>
+          <li><strong>Children</strong> whose records are held in DR. SparkPlay by their educator.</li>
         </ul>
-        <p>Children cannot create their own SparkPlay accounts. All child records are created and managed by educators or linked parents.</p>
+        <p>Children cannot create their own DR. SparkPlay accounts. All child records are created and managed by educators or linked parents.</p>
       </Section>
 
       <Section title="2. What information we collect">
@@ -85,7 +85,7 @@ export default function PrivacyPolicyPage() {
       <Section title="3. Why we collect this information">
         <p>We collect personal information only for the following purposes:</p>
         <ul>
-          <li>Providing the SparkPlay service to educators and their centres</li>
+          <li>Providing the DR. SparkPlay service to educators and their centres</li>
           <li>Supporting compliance with the <em>Education and Care Services National Law</em> and National Regulations</li>
           <li>Enabling parent-educator communication and family engagement</li>
           <li>Generating EYLF-linked learning documentation</li>
@@ -121,7 +121,7 @@ export default function PrivacyPolicyPage() {
         <ul>
           <li>
             <strong>Child incident reports</strong> — Regulation 87 requires these records to be kept
-            confidential until the child turns 25. SparkPlay retains these records for the duration
+            confidential until the child turns 25. DR. SparkPlay retains these records for the duration
             of your subscription and displays the mandatory retention date on each child&apos;s profile.
           </li>
           <li>
@@ -199,7 +199,7 @@ export default function PrivacyPolicyPage() {
 
       <Section title="9. Children&rsquo;s privacy">
         <p>
-          We are aware that child information is particularly sensitive. Children cannot create SparkPlay
+          We are aware that child information is particularly sensitive. Children cannot create DR. SparkPlay
           accounts. All child records are created by educators or linked parents and are subject to
           role-based access controls. Child health information (immunisation records, incident reports,
           medical action plans) is treated as sensitive information and is never used for any purpose
@@ -210,14 +210,14 @@ export default function PrivacyPolicyPage() {
       <Section title="10. Changes to this policy">
         <p>
           We may update this policy from time to time. When we do, we will update the effective date
-          above and, for material changes, notify active users by email. Continued use of SparkPlay
+          above and, for material changes, notify active users by email. Continued use of DR. SparkPlay
           after a change constitutes acceptance of the updated policy.
         </p>
       </Section>
 
       <Section title="11. Contact us">
         <p>
-          SparkPlay is operated as a sole-trader business in Australia.
+          DR. SparkPlay is operated as a sole-trader business in Australia.
           For privacy enquiries: <a href={`mailto:${CONTACT_EMAIL}`} className="text-coral-dark underline">{CONTACT_EMAIL}</a>
         </p>
       </Section>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { globalSearch } from "@/lib/supabase/search";
 import { cardClass, inputClass } from "@/lib/ui";
 
-export const metadata: Metadata = { title: "Search · SparkPlay" };
+export const metadata: Metadata = { title: "Search · DR. SparkPlay" };
 
 function excerpt(text: string, query: string, max = 120): string {
   const lower = text.toLowerCase();

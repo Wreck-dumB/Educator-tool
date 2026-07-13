@@ -60,7 +60,7 @@ export default async function AcceptChildInvitePage({
       <InviteShell>
         <p className="text-ink/70">
           You&apos;ve been invited to link your account to <strong>{preview.child_first_name}</strong>
-          &apos;s SparkPlay profile.
+          &apos;s DR. SparkPlay profile.
         </p>
         <p className="mt-4 text-sm text-ink/50">Log in or sign up to accept this invite.</p>
         <div className="mt-4 flex gap-3">
@@ -82,7 +82,7 @@ export default async function AcceptChildInvitePage({
     <InviteShell>
       <p className="text-ink/70">
         You&apos;ve been invited to link your account to <strong>{preview.child_first_name}</strong>
-        &apos;s SparkPlay profile.
+        &apos;s DR. SparkPlay profile.
       </p>
 
       {error && <p className={errorBannerClass}>{error}</p>}
@@ -101,7 +101,7 @@ function InviteShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-cream px-4">
       <div className="w-full max-w-md space-y-4 rounded-2xl border border-coral-light bg-white p-8 shadow-sm">
-        <h1 className="font-display text-center text-2xl font-semibold text-coral-dark">SparkPlay for families</h1>
+        <h1 className="font-display text-center text-2xl font-semibold text-coral-dark">DR. SparkPlay for families</h1>
         {children}
       </div>
     </div>

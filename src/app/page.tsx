@@ -6,7 +6,7 @@ export default function Home() {
       <span className="text-5xl" aria-hidden>
         ✨
       </span>
-      <h1 className="font-display mt-3 text-5xl font-semibold text-coral-dark">SparkPlay</h1>
+      <h1 className="font-display mt-3 text-5xl font-semibold text-coral-dark">DR. SparkPlay</h1>
       <p className="mt-4 max-w-md text-lg text-ink/70">
         Fun, EYLF-linked activity ideas for early childhood educators &mdash; generated
         from whatever you actually have on hand, with documentation built in.

@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { cardClass } from "@/lib/ui";
 import AttendanceRegister from "./AttendanceRegister";
 
-export const metadata: Metadata = { title: "Roll Call · SparkPlay" };
+export const metadata: Metadata = { title: "Roll Call · DR. SparkPlay" };
 
 interface Props {
   searchParams: Promise<{ date?: string }>;

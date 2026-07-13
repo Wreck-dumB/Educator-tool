@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import CcsCalculator from "./CcsCalculator";
 
-export const metadata: Metadata = { title: "CCS / Gap Fee Estimator · SparkPlay" };
+export const metadata: Metadata = { title: "CCS / Gap Fee Estimator · DR. SparkPlay" };
 
 export default function CcsEstimatorPage() {
   return (

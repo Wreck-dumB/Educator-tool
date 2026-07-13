@@ -6,7 +6,7 @@ import { getChildIncidentReports } from "@/lib/supabase/incidents";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createRoom, renameRoom, deleteRoom, assignChildToRoom } from "./actions";
 
-export const metadata: Metadata = { title: "Rooms · SparkPlay" };
+export const metadata: Metadata = { title: "Rooms · DR. SparkPlay" };
 
 export default async function RoomsPage({
   searchParams,

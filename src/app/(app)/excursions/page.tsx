@@ -5,7 +5,7 @@ import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createExcursion } from "./actions";
 
-export const metadata: Metadata = { title: "Excursions · SparkPlay" };
+export const metadata: Metadata = { title: "Excursions · DR. SparkPlay" };
 
 export default async function ExcursionsPage({
   searchParams,

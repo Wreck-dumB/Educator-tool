@@ -3,7 +3,7 @@ import { getWallPostsForEducator } from "@/lib/supabase/wall";
 import { cardClass, inputClass, errorBannerClass } from "@/lib/ui";
 import { postToWall, approvePost, rejectPost, deletePost } from "./actions";
 
-export const metadata: Metadata = { title: "Community Wall · SparkPlay" };
+export const metadata: Metadata = { title: "Community Wall · DR. SparkPlay" };
 
 const STATUS_LABELS: Record<string, { text: string; cls: string }> = {
   pending: { text: "Pending review", cls: "text-amber-dark bg-amber-light" },

@@ -4,7 +4,7 @@ import { getSleepForDate } from "@/lib/supabase/dailyCare";
 import { cardClass, inputClass, primaryButtonClass } from "@/lib/ui";
 import { addSleepRecord, updateSleepEnd, deleteSleepRecord } from "./actions";
 
-export const metadata: Metadata = { title: "Sleep Chart · SparkPlay" };
+export const metadata: Metadata = { title: "Sleep Chart · DR. SparkPlay" };
 
 function todayLocal() {
   return new Date().toISOString().slice(0, 10);

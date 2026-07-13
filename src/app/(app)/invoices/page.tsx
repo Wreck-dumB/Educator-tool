@@ -8,7 +8,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createInvoice } from "./actions";
 
-export const metadata: Metadata = { title: "Invoices · SparkPlay" };
+export const metadata: Metadata = { title: "Invoices · DR. SparkPlay" };
 
 function todayAEST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });

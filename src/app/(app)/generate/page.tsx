@@ -22,7 +22,7 @@ export default async function GeneratePage({
     <div className="mx-auto max-w-2xl">
       <h1 className="font-display text-3xl font-semibold text-coral-dark">Generate an activity</h1>
       <p className="mt-2 text-ink/70">
-        Tell SparkPlay what you have on hand &mdash; materials, time, group size, energy
+        Tell DR. SparkPlay what you have on hand &mdash; materials, time, group size, energy
         level, or a learning outcome &mdash; and get a few EYLF-linked activity ideas.
       </p>
 

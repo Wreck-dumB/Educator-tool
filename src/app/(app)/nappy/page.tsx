@@ -4,7 +4,7 @@ import { getNappyForDate } from "@/lib/supabase/dailyCare";
 import { cardClass, inputClass, primaryButtonClass } from "@/lib/ui";
 import { addNappyRecord, deleteNappyRecord } from "./actions";
 
-export const metadata: Metadata = { title: "Nappy Chart · SparkPlay" };
+export const metadata: Metadata = { title: "Nappy Chart · DR. SparkPlay" };
 
 const NAPPY_TYPES = [
   { value: "wet", label: "Wet" },

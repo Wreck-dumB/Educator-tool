@@ -4,7 +4,7 @@ import { getOutcomeCoverage } from "@/lib/supabase/eylf";
 import { getObservations } from "@/lib/supabase/observations";
 import { cardClass } from "@/lib/ui";
 
-export const metadata: Metadata = { title: "Programming Workspace · SparkPlay" };
+export const metadata: Metadata = { title: "Programming Workspace · DR. SparkPlay" };
 
 const OUTCOME_TITLES: Record<number, string> = {
   1: "Children have a strong sense of identity",

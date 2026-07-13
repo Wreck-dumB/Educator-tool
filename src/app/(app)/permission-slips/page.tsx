@@ -10,7 +10,7 @@ import {
   reopenPermissionSlip,
 } from "./actions";
 
-export const metadata: Metadata = { title: "Permission Slips · SparkPlay" };
+export const metadata: Metadata = { title: "Permission Slips · DR. SparkPlay" };
 
 const SLIP_TYPE_LABELS: Record<string, string> = {
   excursion_consent: "Excursion consent",

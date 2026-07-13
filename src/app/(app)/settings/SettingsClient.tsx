@@ -285,7 +285,7 @@ export default function SettingsClient({
       <div className="rounded-2xl border border-sage-light bg-sage-light/30 p-4 text-sm text-sage-dark">
         <p className="font-semibold mb-1">How it appears on the kiosk</p>
         <p className="text-ink/60">
-          The kiosk header shows your logo and centre name instead of the SparkPlay branding.
+          The kiosk header shows your logo and centre name instead of the DR. SparkPlay branding.
           Changes appear immediately — no restart needed.
         </p>
       </div>
@@ -427,7 +427,7 @@ export default function SettingsClient({
       <section className="rounded-2xl border border-amber-300 bg-amber-50 p-5">
         <h2 className="font-display text-base font-semibold text-amber-900 mb-1">AI data processing notice</h2>
         <p className="text-sm text-amber-800 mb-3">
-          SparkPlay uses the Anthropic Claude API to generate activity ideas and routines. When you use
+          DR. SparkPlay uses the Anthropic Claude API to generate activity ideas and routines. When you use
           these AI features, de-identified information (activity parameters, materials, age ranges — never
           child names, dates of birth, or any other personal identifiers) is sent to Anthropic&apos;s
           servers for processing.
@@ -467,7 +467,7 @@ export default function SettingsClient({
         <div>
           <h2 className="font-display text-base font-semibold text-ink">Material order alert lead time</h2>
           <p className="mt-1 text-sm text-ink/60">
-            How many days before an activity is scheduled should SparkPlay alert you that materials are
+            How many days before an activity is scheduled should DR. SparkPlay alert you that materials are
             missing or low in stock? The default is 14 days, giving you time to order and receive supplies.
           </p>
         </div>

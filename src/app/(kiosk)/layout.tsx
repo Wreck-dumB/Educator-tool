@@ -50,7 +50,7 @@ export default async function KioskLayout({ children }: { children: React.ReactN
           ) : !logoUrl ? (
             <div className="flex items-center gap-2">
               <span className="font-display text-lg font-semibold text-coral-dark">
-                ✨ SparkPlay
+                ✨ DR. SparkPlay
               </span>
               <span className="rounded-full bg-coral-light px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-widest text-coral-dark">
                 Kiosk

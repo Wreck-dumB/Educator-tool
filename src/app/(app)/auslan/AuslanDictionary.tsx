@@ -126,7 +126,7 @@ export default function AuslanDictionary() {
         {results.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-coral-light bg-white p-6 text-center shadow-sm">
             <p className="text-sm text-ink/60">
-              No match for &ldquo;{query}&rdquo; in SparkPlay&apos;s word list yet.
+              No match for &ldquo;{query}&rdquo; in DR. SparkPlay&apos;s word list yet.
             </p>
             <a
               href={signbankSearchUrl(query)}
@@ -185,7 +185,7 @@ export default function AuslanDictionary() {
           ))}
         </div>
         <p className="mt-4 text-center text-[10px] text-ink/40">
-          Printed from SparkPlay · Sign demonstrations at Auslan Signbank (auslan.org.au) · Auslan has regional
+          Printed from DR. SparkPlay · Sign demonstrations at Auslan Signbank (auslan.org.au) · Auslan has regional
           dialect variants — confirm the sign used in your community.
         </p>
       </div>

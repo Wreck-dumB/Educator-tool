@@ -6,7 +6,7 @@ import { getTransitionStatements } from "@/lib/supabase/transitions";
 import { cardClass, primaryButtonClass } from "@/lib/ui";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Transition Statements · SparkPlay" };
+export const metadata: Metadata = { title: "Transition Statements · DR. SparkPlay" };
 
 const TYPE_LABELS: Record<string, string> = {
   to_school: "To school",

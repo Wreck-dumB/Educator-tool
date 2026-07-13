@@ -39,7 +39,7 @@ export default async function AppLayout({
           </main>
           <footer className="border-t border-ink/10 px-6 py-3 print:hidden">
             <div className="mx-auto max-w-4xl flex flex-wrap items-center justify-between gap-2 text-xs text-ink/30">
-              <span>SparkPlay &copy; {new Date().getFullYear()}</span>
+              <span>DR. SparkPlay &copy; {new Date().getFullYear()}</span>
               <div className="flex gap-4">
                 <a href="/privacy" className="hover:text-ink/60 hover:underline">Privacy Policy</a>
                 <a href="/terms" className="hover:text-ink/60 hover:underline">Terms of Service</a>

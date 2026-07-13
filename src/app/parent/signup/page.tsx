@@ -16,7 +16,7 @@ export default async function ParentSignupPage({
           <span className="text-3xl" aria-hidden>
             👋
           </span>
-          <h1 className="font-display mt-2 text-2xl font-semibold text-coral-dark">SparkPlay for families</h1>
+          <h1 className="font-display mt-2 text-2xl font-semibold text-coral-dark">DR. SparkPlay for families</h1>
           <p className="mt-1 text-sm text-ink/60">Create your family account</p>
         </div>
 

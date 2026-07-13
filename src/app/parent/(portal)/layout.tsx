@@ -48,7 +48,7 @@ export default async function ParentPortalLayout({
       <header className="border-b border-coral-light bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-4">
           <div className="flex items-center gap-1 flex-wrap">
-            <span className="font-display text-base font-semibold text-coral-dark mr-3">SparkPlay</span>
+            <span className="font-display text-base font-semibold text-coral-dark mr-3">DR. SparkPlay</span>
             {NAV_LINKS.map((l) => (
               <Link key={l.href} href={l.href} className="rounded-full px-3 py-1 text-sm font-medium text-ink/60 hover:bg-coral-light hover:text-coral-dark transition-colors">
                 {l.label}

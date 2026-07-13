@@ -125,7 +125,7 @@ export default function NavBar({ email }: { email: string }) {
           onClick={() => setOpen(false)}
           className="font-display flex items-center gap-1.5 text-xl font-semibold text-coral-dark"
         >
-          <span aria-hidden>✨</span> SparkPlay
+          <span aria-hidden>✨</span> DR. SparkPlay
         </Link>
       </div>
 
@@ -212,7 +212,7 @@ export default function NavBar({ email }: { email: string }) {
       <div className="md:hidden print:hidden">
         <div className="fixed inset-x-0 top-0 z-40 flex h-12 items-center justify-between border-b border-coral-light bg-white px-4">
           <Link href="/generate" className="font-display flex items-center gap-1.5 text-lg font-semibold text-coral-dark">
-            <span aria-hidden>✨</span> SparkPlay
+            <span aria-hidden>✨</span> DR. SparkPlay
           </Link>
           <button
             onClick={() => setOpen(!open)}

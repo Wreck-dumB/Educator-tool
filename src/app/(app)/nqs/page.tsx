@@ -9,7 +9,7 @@ import NqsStandardCard from "./NqsStandardCard";
 import { updateAssessmentNotes } from "./actions";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "NQS Self-Assessment · SparkPlay" };
+export const metadata: Metadata = { title: "NQS Self-Assessment · DR. SparkPlay" };
 
 const QA_DESCRIPTIONS: Record<number, string> = {
   1: "Educational program and practice",

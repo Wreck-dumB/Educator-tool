@@ -7,7 +7,7 @@ import GroupSuggestionPanel from "@/components/GroupSuggestionPanel";
 import type { FollowUpForGroup } from "@/components/GroupSuggestionPanel";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "Follow-ups · SparkPlay" };
+export const metadata: Metadata = { title: "Follow-ups · DR. SparkPlay" };
 
 export default async function FollowUpsPage() {
   const supabase = await createClient();

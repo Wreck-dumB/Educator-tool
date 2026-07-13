@@ -7,7 +7,7 @@ import TransitionEditor from "../TransitionEditor";
 import PrintButton from "@/components/PrintButton";
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Edit Transition Statement · SparkPlay" };
+export const metadata: Metadata = { title: "Edit Transition Statement · DR. SparkPlay" };
 
 const TYPE_LABELS: Record<string, string> = {
   to_school: "Transition to School Statement",
