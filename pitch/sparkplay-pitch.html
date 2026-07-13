@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SparkPlay — Business Pitch</title>
+<style>
+  :root {
+    --ink: #2b2536;
+    --ink-soft: rgba(43, 37, 54, 0.62);
+    --ink-faint: rgba(43, 37, 54, 0.38);
+    --coral: #e8604c;
+    --coral-dark: #c94a38;
+    --coral-soft: #fdeae6;
+    --cream: #fdf9f3;
+    --card: #ffffff;
+    --gold: #f2b134;
+    --teal: #2a9d8f;
+    --line: rgba(43, 37, 54, 0.10);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  .slide {
+    display: none;
+    width: 100vw;
+    height: 100vh;
+    padding: clamp(28px, 5vh, 64px) clamp(32px, 7vw, 110px);
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+  }
+  .slide.active { display: flex; }
+
+  .kicker {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--coral-dark);
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: clamp(34px, 4.6vw, 58px);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    margin-bottom: 18px;
+  }
+  h1 .accent { color: var(--coral); }
+  .lede {
+    font-size: clamp(16px, 1.55vw, 21px);
+    color: var(--ink-soft);
+    max-width: 62ch;
+    line-height: 1.55;
+  }
+  .punch {
+    margin-top: 26px;
+    font-size: clamp(15px, 1.35vw, 18px);
+    font-style: italic;
+    color: var(--coral-dark);
+  }
+
+  /* ---------- title slide ---------- */
+  .title-slide { text-align: center; align-items: center; }
+  .logo {
+    font-size: clamp(52px, 7vw, 92px);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .logo .spark { color: var(--coral); }
+  .logo .bolt { color: var(--gold); }
+  .title-tag {
+    font-size: clamp(20px, 2.4vw, 32px);
+    font-weight: 700;
+    margin: 10px 0 22px;
+  }
+  .title-sub { font-size: clamp(15px, 1.5vw, 20px); color: var(--ink-soft); max-width: 58ch; line-height: 1.55; }
+  .title-badges { margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .badge {
+    background: var(--coral-soft);
+    color: var(--coral-dark);
+    border: 1px solid rgba(201, 74, 56, 0.25);
+    border-radius: 999px;
+    padding: 8px 18px;
+    font-size: 13.5px;
+    font-weight: 600;
+  }
+
+  /* ---------- card grids ---------- */
+  .grid { display: grid; gap: 16px; margin-top: 28px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 20px 22px;
+    box-shadow: 0 1px 3px rgba(43, 37, 54, 0.05);
+  }
+  .card .emoji { font-size: 26px; display: block; margin-bottom: 10px; }
+  .card h3 { font-size: clamp(15px, 1.35vw, 18px); margin-bottom: 7px; font-weight: 700; }
+  .card p { font-size: clamp(13px, 1.15vw, 15.5px); color: var(--ink-soft); line-height: 1.5; }
+  .card.hot { background: var(--coral-soft); border-color: rgba(201, 74, 56, 0.22); }
+
+  /* ---------- timeline ---------- */
+  .timeline { margin-top: 26px; display: grid; gap: 0; }
+  .t-row {
+    display: grid;
+    grid-template-columns: 76px 1fr;
+    gap: 18px;
+    padding: 11px 0;
+    border-bottom: 1px dashed var(--line);
+    align-items: baseline;
+  }
+  .t-row:last-child { border-bottom: none; }
+  .t-time { font-weight: 800; color: var(--coral-dark); font-size: clamp(14px, 1.25vw, 17px); white-space: nowrap; }
+  .t-body { font-size: clamp(13.5px, 1.25vw, 16.5px); line-height: 1.5; color: var(--ink); }
+  .t-body b { color: var(--ink); }
+  .t-body .aside { color: var(--ink-faint); font-style: italic; }
+
+  /* ---------- feature tour ---------- */
+  .tour { display: grid; grid-template-columns: repeat(3, 1fr); gap: 13px; margin-top: 24px; }
+  .tour .card { padding: 15px 17px; }
+  .tour h3 { font-size: clamp(13px, 1.15vw, 15.5px); color: var(--coral-dark); margin-bottom: 5px; }
+  .tour p { font-size: clamp(11.5px, 1vw, 13.5px); }
+  .footnote { margin-top: 20px; font-size: 13px; color: var(--ink-faint); font-style: italic; }
+
+  /* ---------- checklist ---------- */
+  .checks { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; }
+  .check {
+    display: flex; gap: 12px; align-items: baseline;
+    font-size: clamp(13.5px, 1.25vw, 16.5px); line-height: 1.5;
+  }
+  .check::before { content: "✓"; color: var(--teal); font-weight: 800; font-size: 1.05em; }
+  .check b { font-weight: 700; }
+  .check span { color: var(--ink-soft); }
+  .check span b { color: var(--ink); }
+
+  /* ---------- closing ---------- */
+  .cta {
+    display: inline-block;
+    margin-top: 34px;
+    background: var(--coral);
+    color: #fff;
+    font-weight: 700;
+    font-size: 17px;
+    padding: 15px 34px;
+    border-radius: 999px;
+    box-shadow: 0 6px 18px rgba(232, 96, 76, 0.35);
+  }
+
+  /* ---------- chrome ---------- */
+  .slide-num {
+    position: absolute; bottom: 22px; right: 30px;
+    font-size: 12px; color: var(--ink-faint); font-weight: 600;
+  }
+  .brand-mark {
+    position: absolute; bottom: 20px; left: 30px;
+    font-size: 13px; font-weight: 800; color: var(--ink-faint);
+  }
+  .brand-mark .spark { color: var(--coral); }
+  .nav-hint {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    font-size: 11.5px; color: var(--ink-faint);
+    background: rgba(255,255,255,0.85); border: 1px solid var(--line);
+    padding: 5px 14px; border-radius: 999px; z-index: 10;
+  }
+  .dots {
+    position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 7px; z-index: 10;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line); cursor: pointer; transition: background .15s; }
+  .dot.on { background: var(--coral); }
+
+  /* ---------- print: every slide = one landscape page ---------- */
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    body { overflow: visible; }
+    .slide { display: flex !important; height: 100vh; page-break-after: always; break-after: page; }
+    .slide:last-of-type { page-break-after: avoid; }
+    .nav-hint, .dots { display: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ 1 · TITLE ============ -->
+<section class="slide title-slide active">
+  <div class="logo"><span class="spark">Spark</span>Play<span class="bolt">⚡</span></div>
+  <div class="title-tag">Run the centre. Not the photocopier.</div>
+  <p class="title-sub">
+    The all-in-one platform for Australian early learning centres — front desk to family
+    messages to compliance paperwork — with an AI assistant that does the writing
+    nobody has time for.
+  </p>
+  <div class="title-badges">
+    <span class="badge">Built for the NQF &amp; EYLF</span>
+    <span class="badge">All 9 states &amp; territories</span>
+    <span class="badge">AI where it helps, humans in charge</span>
+  </div>
+  <div class="slide-num">1</div>
+</section>
+
+<!-- ============ 2 · PROBLEM ============ -->
+<section class="slide">
+  <div class="kicker">The Problem</div>
+  <h1>Educators are drowning.<br><span class="accent">And not in the water-play trough.</span></h1>
+  <div class="grid cols-2">
+    <div class="card">
+      <span class="emoji">📚</span>
+      <h3>The paperwork avalanche</h3>
+      <p>Observations, incident reports, sleep charts, nappy charts, medication logs, handover books — most of it handwritten, photocopied, and filed in a binder no one can find during an audit.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">😰</span>
+      <h3>Compliance anxiety</h3>
+      <p>Ratio rules, mandatory reporting, and regulations differ across every Australian state and territory. Getting it wrong isn't a typo — it's a notice from the regulator.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">📢</span>
+      <h3>Communication chaos</h3>
+      <p>Parents find out about the excursion the day after it happened, via a crumpled note excavated from a backpack. In 2026.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🕕</span>
+      <h3>The 6pm problem</h3>
+      <p>The children go home at six. The documentation doesn't. Educators finish their admin after close, unpaid, fuelled by cold coffee and dread.</p>
+    </div>
+  </div>
+  <p class="punch">You trained to shape young minds. Somehow you ended up shaping ring binders.</p>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">2</div>
+</section>
+
+<!-- ============ 3 · WHAT IS SPARKPLAY ============ -->
+<section class="slide">
+  <div class="kicker">The Solution</div>
+  <h1>Meet <span class="accent">SparkPlay</span>.</h1>
+  <p class="lede">
+    SparkPlay is a web platform that runs the entire day of an early learning centre —
+    sign-in, observations, programming, daily forms, compliance, and family communication —
+    in one place, with AI doing the heavy lifting on the writing.
+  </p>
+  <p class="lede" style="margin-top:14px;">
+    In other words: a very organised assistant director who never calls in sick, has memorised
+    the regulations of every state and territory, and lives in your browser.
+  </p>
+  <div class="grid cols-3">
+    <div class="card hot">
+      <span class="emoji">🌞</span>
+      <h3>Run the day</h3>
+      <p>Kiosk sign-in, roll call, day plans, activities, observations, handover — the daily rhythm of a centre, minus the paper cuts.</p>
+    </div>
+    <div class="card hot">
+      <span class="emoji">🛡️</span>
+      <h3>Stay compliant</h3>
+      <p>Ratios, medication logs, incident reports, NQS self-assessment, QIP — compliance built into the workflow, not stapled on after.</p>
+    </div>
+    <div class="card hot">
+      <span class="emoji">💬</span>
+      <h3>Keep families close</h3>
+      <p>Daily diaries, messages, community wall, broadcasts in 15 languages, invoices — parents in the loop, not in the dark.</p>
+    </div>
+  </div>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">3</div>
+</section>
+
+<!-- ============ 4 · A DAY WITH SPARKPLAY ============ -->
+<section class="slide">
+  <div class="kicker">Demo · How It Actually Works</div>
+  <h1>A day with SparkPlay</h1>
+  <div class="timeline">
+    <div class="t-row"><div class="t-time">7:30am</div><div class="t-body"><b>Families arrive.</b> Kiosk sign-in with a wellbeing check-in — no clipboard, no pen on a string.</div></div>
+    <div class="t-row"><div class="t-time">9:00am</div><div class="t-body"><b>Roll call.</b> Live ratio check against <i>your</i> state's rules. Allergy and EpiPen badges right on the room board — no memory tests with children's lives.</div></div>
+    <div class="t-row"><div class="t-time">10:15am</div><div class="t-body"><b>An educator snaps an observation.</b> One save and it's shared with the parent, the child's interests are updated, and a linked activity lands in next week's program. <span class="aside">Written once. Typed zero additional times.</span></div></div>
+    <div class="t-row"><div class="t-time">12:30pm</div><div class="t-body"><b>Medication given and logged</b> — dose, route, authorisation, witness. Regulation 93 compliant without anyone opening the regulations.</div></div>
+    <div class="t-row"><div class="t-time">2:00pm</div><div class="t-body"><b>Planning time.</b> The AI drafts an activity from the children's <i>actual current interests</i>, mapped to EYLF outcomes. The educator tweaks and approves. Ten minutes, not ninety.</div></div>
+    <div class="t-row"><div class="t-time">5:45pm</div><div class="t-body"><b>Shift handover</b> typed and acknowledged by the incoming educator. The sacred paper handover book retires with full honours.</div></div>
+    <div class="t-row"><div class="t-time">6:01pm</div><div class="t-body"><b>Everyone goes home.</b> On time. <span class="aside">Revolutionary, we know.</span></div></div>
+  </div>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">4</div>
+</section>
+
+<!-- ============ 5 · FEATURE TOUR ============ -->
+<section class="slide">
+  <div class="kicker">Feature Tour</div>
+  <h1>60+ tools. One login. <span class="accent">Zero laminating.*</span></h1>
+  <div class="tour">
+    <div class="card"><h3>🚪 Front Desk</h3><p>Kiosk sign in/out · On-site board · Roll call · Casual days · Visitor log</p></div>
+    <div class="card"><h3>📅 Today</h3><p>Dashboard · Daily digest · Follow-ups · Day plan · Shift handover</p></div>
+    <div class="card"><h3>🎨 Educator Tools</h3><p>AI activity generator · Observations · Programming workspace · Milestones · Transition statements · Brain breaks · Auslan dictionary · Poster maker</p></div>
+    <div class="card"><h3>👶 Enrolments</h3><p>Children &amp; rooms · Occupancy dashboard · Waiting list from enquiry to enrolled</p></div>
+    <div class="card"><h3>📋 Daily Forms</h3><p>Incidents · Medication log · Safety checks · Permission slips · Excursions · Health plans · Sleep, food &amp; nappy charts</p></div>
+    <div class="card"><h3>🏛️ Centre Information</h3><p>Policies · Safe work procedures · QIP &amp; check-ins · NQS self-assessment · Risk assessments · Document import &amp; AI review</p></div>
+    <div class="card"><h3>👨‍👩‍👧 Family</h3><p>Messages · Community wall · Parent diary · Absences · Casual bookings · Notifications</p></div>
+    <div class="card"><h3>🎓 Professional Development</h3><p>Guided staff reflections · PD hours tracking</p></div>
+    <div class="card"><h3>🗄️ Administration</h3><p>Staff &amp; roster · Compliance tracker · Broadcasts · Invoices · CCS estimator · Service settings</p></div>
+  </div>
+  <p class="footnote">*Some laminating may still occur. We know who you are, and we respect it.</p>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">5</div>
+</section>
+
+<!-- ============ 6 · AI ============ -->
+<section class="slide">
+  <div class="kicker">The AI Assistant</div>
+  <h1>It does the writing.<br><span class="accent">You do the teaching.</span></h1>
+  <div class="grid cols-3">
+    <div class="card">
+      <span class="emoji">✨</span>
+      <h3>Activity generator</h3>
+      <p>Turns the children's real, current interests into EYLF-mapped activity plans. "Dinosaurs and puddles" in, learning outcomes out.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">📄</span>
+      <h3>Document import &amp; review</h3>
+      <p>Upload the policy you wrote in 2019. Get a quality score, the gaps against NQS/EYLF standards, and specific fixes. The file isn't stored — read, reviewed, discarded.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🎒</span>
+      <h3>Transition statements</h3>
+      <p>Strengths-based, privacy-safe school transition drafts. The educator edits and finalises — the AI just does the blank-page part.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🌏</span>
+      <h3>Broadcasts in 15 languages</h3>
+      <p>Write the newsletter once; every family reads it in their own language. No more "hope Google Translate got that right."</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🪞</span>
+      <h3>Guided reflections</h3>
+      <p>Generates genuine reflection prompts (Gibbs &amp; Driscoll frameworks) so professional development is actual reflection, not creative box-ticking.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🖼️</span>
+      <h3>Posters &amp; Auslan</h3>
+      <p>A poster and flier maker with built-in image search, plus an Auslan dictionary linked to real Signbank videos.</p>
+    </div>
+  </div>
+  <p class="footnote">Every AI output is a draft. Educators review, edit, and approve — the human stays the author.</p>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">6</div>
+</section>
+
+<!-- ============ 7 · COMPLIANCE ============ -->
+<section class="slide">
+  <div class="kicker">Compliance</div>
+  <h1>Assessor visits: from cold sweat<br>to <span class="accent">mild, confident glow.</span></h1>
+  <p class="lede">Compliance in SparkPlay isn't a module you visit. It's baked into the tools educators already use every day.</p>
+  <div class="checks">
+    <div class="check"><span><b>Jurisdiction-aware ratios</b> for all 9 Australian states &amp; territories, checked live at roll call</span></div>
+    <div class="check"><span><b>Mandatory reporting guidance</b> — the correct legislation for your state, right on the incident report</span></div>
+    <div class="check"><span><b>NQS self-assessment</b> — all 7 quality areas and 15 standards, with ratings and evidence notes</span></div>
+    <div class="check"><span><b>QIP with regular check-ins</b>, so quality improvement is a habit, not a pre-assessment panic</span></div>
+    <div class="check"><span><b>Medication log</b> built to Regulation 93 — dose, route, authorisation, witness</span></div>
+    <div class="check"><span><b>Visitor log</b> with WWCC and ID checks (NQS Quality Area 2)</span></div>
+    <div class="check"><span><b>Staff compliance tracker</b> — WWCC, First Aid, Anaphylaxis, with expiry alerts before they lapse</span></div>
+    <div class="check"><span><b>Risk assessments &amp; safety checks</b> — templated, logged, findable in seconds</span></div>
+  </div>
+  <p class="punch">"Where's your documentation?" — "One second, I'll search for it." <i>*audible gasp from the assessor*</i></p>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">7</div>
+</section>
+
+<!-- ============ 8 · FAMILIES ============ -->
+<section class="slide">
+  <div class="kicker">For Families</div>
+  <h1>Parents: informed, involved,<br>and <span class="accent">pleasantly surprised.</span></h1>
+  <div class="grid cols-3">
+    <div class="card">
+      <span class="emoji">📖</span>
+      <h3>The daily diary</h3>
+      <p>Sleep, meals, nappies, and shared observations with photos. "What did you do today?" — "Nothing" — finally has a rebuttal.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🤒</span>
+      <h3>Absences &amp; casual days</h3>
+      <p>Report an absence or book an extra day from the couch at 6am. No phone queue, no answering machine.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🔔</span>
+      <h3>Notifications that arrive</h3>
+      <p>In-app and email alerts for the things that matter — not a note dissolving at the bottom of a school bag.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🧱</span>
+      <h3>Community wall</h3>
+      <p>Two-way posting between the centre and families. A noticeboard people actually read, because it's in their pocket.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">🌐</span>
+      <h3>Every language, every family</h3>
+      <p>Broadcasts translated into 15 languages so no family is left guessing what "crazy hair day" means.</p>
+    </div>
+    <div class="card">
+      <span class="emoji">💰</span>
+      <h3>Money, minus the mystery</h3>
+      <p>Clear invoices with line items, plus a CCS gap-fee estimator so families know the real cost before they commit.</p>
+    </div>
+  </div>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">8</div>
+</section>
+
+<!-- ============ 9 · WHY SPARKPLAY ============ -->
+<section class="slide">
+  <div class="kicker">Why SparkPlay Wins</div>
+  <h1>Not another app.<br><span class="accent">The last one you'll need to open.</span></h1>
+  <div class="grid cols-2">
+    <div class="card hot">
+      <span class="emoji">🔁</span>
+      <h3>Write once, propagate everywhere</h3>
+      <p>One observation feeds the parent update, the child's interest profile, and next week's program. Most competitors make you type it three times and call that "integration".</p>
+    </div>
+    <div class="card hot">
+      <span class="emoji">🇦🇺</span>
+      <h3>Built for Australia, not translated to it</h3>
+      <p>NQF, EYLF, CCS, WWCC, and state-by-state ratio rules are native concepts — not a US import that asks about your "diaper schedule".</p>
+    </div>
+    <div class="card hot">
+      <span class="emoji">🧠</span>
+      <h3>AI-native, not AI-stapled</h3>
+      <p>The AI is woven into the daily workflow — planning, documentation, translation, review — not a chatbot bolted to the side to impress investors.</p>
+    </div>
+    <div class="card hot">
+      <span class="emoji">🧾</span>
+      <h3>One platform, one bill</h3>
+      <p>Replaces the sticky-taped stack of a sign-in app, a programming tool, a parent app, a poster site, and four spreadsheets named "FINAL_v7".</p>
+    </div>
+  </div>
+  <p class="lede" style="margin-top:24px;"><b>Next up:</b> an expanded parent portal, deeper AI document workflows, and a companion experience for families beyond the centre gate.</p>
+  <div class="brand-mark"><span class="spark">Spark</span>Play</div>
+  <div class="slide-num">9</div>
+</section>
+
+<!-- ============ 10 · CLOSE ============ -->
+<section class="slide title-slide">
+  <div class="kicker">The Ask</div>
+  <h1>Let's give educators<br>their <span class="accent">evenings back.</span></h1>
+  <p class="title-sub">
+    Every hour SparkPlay saves on paperwork is an hour that goes back into the reason
+    everyone got into this profession: the children. (And, occasionally, a hot coffee.)
+  </p>
+  <a class="cta" href="#">Book a live demo →</a>
+  <p class="title-sub" style="margin-top:28px; font-size:14px;">
+    <b>SparkPlay</b> · The all-in-one platform for Australian early learning centres
+  </p>
+  <div class="slide-num">10</div>
+</section>
+
+<div class="dots" id="dots"></div>
+<div class="nav-hint">← → arrow keys, click, or space to navigate · Ctrl+P to print / save as PDF</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll(".slide"));
+  const dotsEl = document.getElementById("dots");
+  let idx = 0;
+
+  slides.forEach((_, i) => {
+    const d = document.createElement("div");
+    d.className = "dot" + (i === 0 ? " on" : "");
+    d.addEventListener("click", e => { e.stopPropagation(); go(i); });
+    dotsEl.appendChild(d);
+  });
+  const dots = Array.from(dotsEl.children);
+
+  function go(n) {
+    idx = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach((s, i) => s.classList.toggle("active", i === idx));
+    dots.forEach((d, i) => d.classList.toggle("on", i === idx));
+    history.replaceState(null, "", "#" + (idx + 1));
+  }
+
+  const hash = parseInt(location.hash.slice(1), 10);
+  if (hash >= 1 && hash <= slides.length) go(hash - 1);
+
+  document.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") go(idx + 1);
+    if (e.key === "ArrowLeft" || e.key === "PageUp") go(idx - 1);
+    if (e.key === "Home") go(0);
+    if (e.key === "End") go(slides.length - 1);
+  });
+  document.addEventListener("click", e => {
+    if (e.target.closest("a")) return;
+    go(idx + 1);
+  });
+</script>
+</body>
+</html>
