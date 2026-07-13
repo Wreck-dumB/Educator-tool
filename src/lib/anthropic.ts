@@ -1471,3 +1471,156 @@ Propose ${count} digital Brain Break ideas using the propose_brain_breaks tool.`
   const result = toolUse.input as { brain_breaks?: RawBrainBreak[] };
   return result.brain_breaks ?? [];
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Transition statement generator
+// Produces a structured, professional transition statement for a child moving
+// to school, to a new room, or between services. Observations are anonymised
+// before being sent to the API.
+// ────────────────────────────────────────────────────────────────────────────
+
+export interface TransitionStatementInput {
+  transitionType: "to_school" | "between_rooms" | "between_services";
+  childAgeMonths?: number | null;
+  childInterests?: string | null;
+  recentObservations?: ChildObservationSummary[];
+  additionalContext?: string;
+}
+
+export interface RawTransitionStatement {
+  opening: string;
+  strengths: string;
+  interests_and_learning_style: string;
+  social_and_emotional: string;
+  next_steps: string;
+  family_note: string;
+}
+
+export async function generateTransitionStatement(
+  input: TransitionStatementInput,
+): Promise<RawTransitionStatement> {
+  const client = new Anthropic();
+
+  const typeLabel =
+    input.transitionType === "to_school"
+      ? "transitioning to primary school"
+      : input.transitionType === "between_rooms"
+        ? "moving between rooms within the same service"
+        : "moving to a different early childhood service";
+
+  const observationContext =
+    input.recentObservations && input.recentObservations.length > 0
+      ? input.recentObservations
+          .slice(0, 6)
+          .map((o) => `- ${o.noteText} (${o.observedAt})${o.eylfCodes.length > 0 ? ` [EYLF: ${o.eylfCodes.join(", ")}]` : ""}`)
+          .join("\n")
+      : "No recent observations available.";
+
+  const systemPrompt = `You are an experienced early childhood educator in Australia helping write professional, warm, and strengths-based transition statements for children. Transition statements support continuity of learning when a child moves to a new setting.
+
+Write in Australian English. Be warm, specific, and professional. Focus on strengths, interests, and what helps this child learn best. Avoid deficit language. Reference the Early Years Learning Framework (EYLF) where relevant.
+
+PRIVACY REQUIREMENT: Never use the child's name, date of birth, or any identifying information in your output. Refer to "the child" or "they/them".`;
+
+  const userPrompt = `Write a transition statement for a child who is ${typeLabel}.
+
+Child age: ${input.childAgeMonths ? `${Math.floor(input.childAgeMonths / 12)} years ${input.childAgeMonths % 12} months` : "Not specified"}
+Child interests: ${input.childInterests || "Not specified"}
+${input.additionalContext ? `Additional context: ${input.additionalContext}` : ""}
+
+Recent observations:
+${observationContext}
+
+Use the write_transition_statement tool to produce the statement.`;
+
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    system: systemPrompt,
+    messages: [{ role: "user", content: userPrompt }],
+    tools: [
+      {
+        name: "write_transition_statement",
+        description: "Write a structured transition statement for a child moving to a new learning environment.",
+        input_schema: {
+          type: "object" as const,
+          required: ["opening", "strengths", "interests_and_learning_style", "social_and_emotional", "next_steps", "family_note"],
+          properties: {
+            opening: { type: "string", description: "One or two sentences introducing the child's time at the service." },
+            strengths: { type: "string", description: "2-3 sentences describing the child's key strengths and achievements." },
+            interests_and_learning_style: { type: "string", description: "2-3 sentences on the child's current interests and how they learn best." },
+            social_and_emotional: { type: "string", description: "2-3 sentences on the child's social skills, friendships, and emotional regulation." },
+            next_steps: { type: "string", description: "1-2 sentences on what the receiving educator might focus on to support continued growth." },
+            family_note: { type: "string", description: "One warm sentence acknowledging the family's partnership in the child's learning." },
+          },
+        },
+      },
+    ],
+    tool_choice: { type: "tool", name: "write_transition_statement" },
+  });
+
+  const toolUse = message.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  );
+  if (!toolUse) throw new Error("Model did not return a tool call");
+
+  return toolUse.input as RawTransitionStatement;
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Text translation
+// Used for multilingual broadcast notices. Returns the translated text only.
+// ────────────────────────────────────────────────────────────────────────────
+
+const SUPPORTED_LANGUAGES: Record<string, string> = {
+  arabic: "Arabic",
+  cantonese: "Cantonese (Traditional Chinese)",
+  hindi: "Hindi",
+  italian: "Italian",
+  japanese: "Japanese",
+  korean: "Korean",
+  mandarin: "Mandarin (Simplified Chinese)",
+  punjabi: "Punjabi",
+  somali: "Somali",
+  spanish: "Spanish",
+  tagalog: "Tagalog (Filipino)",
+  thai: "Thai",
+  turkish: "Turkish",
+  urdu: "Urdu",
+  vietnamese: "Vietnamese",
+};
+
+export { SUPPORTED_LANGUAGES };
+
+export async function translateBroadcast(
+  title: string,
+  body: string,
+  targetLanguageKey: string,
+): Promise<{ title: string; body: string }> {
+  const client = new Anthropic();
+  const languageName = SUPPORTED_LANGUAGES[targetLanguageKey] ?? targetLanguageKey;
+
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: `Translate the following childcare service announcement into ${languageName}. Preserve the meaning exactly. Return ONLY the translated text with no introduction or commentary. Separate the translated title and body with the delimiter "|||".
+
+TITLE:
+${title}
+
+BODY:
+${body}`,
+      },
+    ],
+  });
+
+  const raw = message.content.find((b) => b.type === "text")?.text ?? "";
+  const parts = raw.split("|||");
+  return {
+    title: (parts[0] ?? title).trim(),
+    body: (parts[1] ?? body).trim(),
+  };
+}

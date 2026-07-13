@@ -1932,6 +1932,100 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["staff_pd_hours"]["Insert"]>;
         Relationships: [];
       };
+      transition_statements: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          transition_type: "to_school" | "between_rooms" | "between_services";
+          draft_text: string | null;
+          finalized_at: string | null;
+          finalized_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          transition_type?: "to_school" | "between_rooms" | "between_services";
+          draft_text?: string | null;
+          finalized_at?: string | null;
+          finalized_by?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["transition_statements"]["Insert"]>;
+        Relationships: [];
+      };
+      nqs_self_assessments: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          period_label: string;
+          notes: string | null;
+          finalized_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          period_label?: string;
+          notes?: string | null;
+          finalized_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["nqs_self_assessments"]["Insert"]>;
+        Relationships: [];
+      };
+      nqs_standard_ratings: {
+        Row: {
+          id: string;
+          assessment_id: string;
+          owner_user_id: string;
+          standard_code: string;
+          rating: "working_towards" | "meeting" | "exceeding";
+          evidence_notes: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          assessment_id: string;
+          owner_user_id: string;
+          standard_code: string;
+          rating?: "working_towards" | "meeting" | "exceeding";
+          evidence_notes?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["nqs_standard_ratings"]["Insert"]>;
+        Relationships: [];
+      };
+      child_milestone_observations: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          milestone_id: string | null;
+          custom_milestone_text: string | null;
+          observed_at: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          milestone_id?: string | null;
+          custom_milestone_text?: string | null;
+          observed_at?: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_milestone_observations"]["Insert"]>;
+        Relationships: [];
+      };
       broadcast_messages: {
         Row: {
           id: string;

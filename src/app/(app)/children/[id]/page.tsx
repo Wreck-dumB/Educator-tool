@@ -22,6 +22,8 @@ import { assignChildToRoom } from "@/app/(app)/rooms/actions";
 import { inputClass, cardClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
 import { logAuditEvent } from "@/lib/supabase/auditLog";
+import { getDevelopmentalMilestones } from "@/lib/supabase/milestones";
+import MilestoneObservations from "./MilestoneObservations";
 
 const AUTHORISATION_LABELS: Record<string, string> = {
   is_parent_guardian: "Parent/guardian",
@@ -53,13 +55,15 @@ export default async function ChildDetailPage({
   if (!child) notFound();
 
   const supabase = await createClient();
-  const [observations, invites, contacts, rooms, myRole, { data: attendanceDays }] = await Promise.all([
+  const [observations, invites, contacts, rooms, myRole, { data: attendanceDays }, milestones, { data: milestoneObs }] = await Promise.all([
     getObservations(id),
     getChildInvites(id),
     getChildContacts(id),
     getRooms(),
     getMyStaffRole(),
     supabase.from("child_attendance_days").select("day_of_week, session_type").eq("child_id", id),
+    getDevelopmentalMilestones(),
+    supabase.from("child_milestone_observations").select("*").eq("child_id", id).order("observed_at", { ascending: false }),
   ]);
   const canManage = myRole === "director" || myRole === "2ic";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -597,6 +601,23 @@ export default async function ChildDetailPage({
             childContextMap={new Map([[child.id, { id: child.id, interests: child.current_interests }]])}
           />
         )}
+      </div>
+
+      {/* Milestone observations */}
+      <div className={`mt-6 p-5 ${cardClass} print:hidden`}>
+        <h2 className="font-display text-lg font-semibold text-ink mb-1">Milestone observations</h2>
+        <p className="text-xs text-ink/50 mb-4">
+          Record developmental milestones you&apos;ve observed for {child.first_name}. Supports transition
+          statement writing and family communication.{" "}
+          <a href="/transitions" className="text-coral-dark hover:underline">
+            Write a transition statement →
+          </a>
+        </p>
+        <MilestoneObservations
+          childId={child.id}
+          initialObservations={(milestoneObs ?? []) as Parameters<typeof MilestoneObservations>[0]["initialObservations"]}
+          milestones={milestones}
+        />
       </div>
 
       <form action={deleteChild} className="mt-6 print:hidden">

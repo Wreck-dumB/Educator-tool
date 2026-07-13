@@ -4,6 +4,7 @@ import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { getMyStaffRole } from "@/lib/supabase/staff";
 import { sendBroadcast, deleteBroadcast } from "./actions";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
+import TranslatePanel from "./TranslatePanel";
 
 export default async function BroadcastsPage({
   searchParams,
@@ -103,6 +104,11 @@ export default async function BroadcastsPage({
                     <p className="mt-1 text-xs text-ink/40">
                       {new Date(b.created_at).toLocaleString("en-AU")}
                     </p>
+                    <TranslatePanel
+                      broadcastId={b.id}
+                      title={b.title}
+                      body={b.body}
+                    />
                   </div>
                   {myRole === "director" && (
                     <form action={async () => { "use server"; await deleteBroadcast(b.id); }}>
