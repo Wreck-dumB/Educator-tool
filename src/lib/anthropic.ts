@@ -2,6 +2,13 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { EylfOutcome, GeneratedActivity, NqsStandard } from "@/lib/types/domain";
 import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/types/database.types";
 
+export interface MealPlanAssignment {
+  slot_date: string;
+  meal_type: string;
+  recipe_id: string | null;
+  custom_title: string | null;
+}
+
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
 export interface ChildObservationSummary {
@@ -1623,4 +1630,87 @@ ${body}`,
     title: (parts[0] ?? title).trim(),
     body: (parts[1] ?? body).trim(),
   };
+}
+
+export async function generateMealPlanAssignments(input: {
+  weekStartDate: string;
+  emptySlots: { slot_date: string; meal_type: string }[];
+  children: { first_name: string; dietary_restrictions: string | null; medical_conditions: string | null; is_anaphylaxis_risk: boolean }[];
+  recipes: { id: string; title: string; dietary_tags: string[]; allergens_present: string[]; age_range: string | null }[];
+}): Promise<MealPlanAssignment[]> {
+  const client = new Anthropic();
+
+  const restrictions = input.children
+    .flatMap((c) => {
+      const parts: string[] = [];
+      if (c.is_anaphylaxis_risk) parts.push(`${c.first_name}: ANAPHYLAXIS RISK — check allergens carefully`);
+      if (c.dietary_restrictions) parts.push(`${c.first_name}: ${c.dietary_restrictions}`);
+      if (c.medical_conditions) parts.push(`${c.first_name} (medical): ${c.medical_conditions}`);
+      return parts;
+    })
+    .filter(Boolean);
+
+  const message = await client.messages.create({
+    model: MODEL,
+    max_tokens: 2048,
+    tools: [
+      {
+        name: "assign_meal_plan",
+        description: "Assign a saved recipe or custom meal title to each provided slot",
+        input_schema: {
+          type: "object" as const,
+          properties: {
+            assignments: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  slot_date: { type: "string", description: "YYYY-MM-DD" },
+                  meal_type: { type: "string" },
+                  recipe_id: { type: "string", description: "ID of a saved recipe, or null" },
+                  custom_title: { type: "string", description: "Short meal title when no saved recipe fits, or null" },
+                },
+                required: ["slot_date", "meal_type"],
+              },
+            },
+          },
+          required: ["assignments"],
+        },
+      },
+    ],
+    tool_choice: { type: "tool" as const, name: "assign_meal_plan" },
+    messages: [
+      {
+        role: "user",
+        content: `Plan meals for a childcare centre for the week starting ${input.weekStartDate}.
+
+ENROLLED CHILDREN — DIETARY RESTRICTIONS / ALLERGENS:
+${restrictions.length > 0 ? restrictions.join("\n") : "None recorded — always apply standard childcare food safety."}
+
+SAVED RECIPES (prefer these; use recipe_id where appropriate):
+${
+  input.recipes.length > 0
+    ? input.recipes
+        .map((r) => `ID: ${r.id} | ${r.title} | allergens: ${r.allergens_present.join(", ") || "none"} | tags: ${r.dietary_tags.join(", ") || "none"}`)
+        .join("\n")
+    : "None saved yet — use custom_title for all slots."
+}
+
+SLOTS TO FILL:
+${input.emptySlots.map((s) => `${s.slot_date} ${s.meal_type}`).join("\n")}
+
+Rules:
+- NEVER use a recipe whose allergens conflict with any child's restrictions
+- Prefer saved recipes (recipe_id). Use custom_title only if no saved recipe is appropriate
+- Vary across the week — avoid repeating the same recipe on consecutive days
+- Match meal weight to type: light snack for morning_tea/afternoon_tea, substantial for lunch
+- Keep it practical and child-friendly`,
+      },
+    ],
+  });
+
+  const toolUse = message.content.find((b) => b.type === "tool_use");
+  if (!toolUse || toolUse.type !== "tool_use") return [];
+  const data = toolUse.input as { assignments: MealPlanAssignment[] };
+  return data.assignments ?? [];
 }

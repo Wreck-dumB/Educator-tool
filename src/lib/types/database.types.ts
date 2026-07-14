@@ -2122,6 +2122,46 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["material_order_alerts"]["Insert"]>;
         Relationships: [];
       };
+      meal_plans: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          week_start_date: string;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          week_start_date: string;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      meal_plan_slots: {
+        Row: {
+          id: string;
+          plan_id: string;
+          slot_date: string;
+          meal_type: "breakfast" | "morning_tea" | "lunch" | "afternoon_tea" | "late_snack";
+          recipe_id: string | null;
+          custom_title: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          slot_date: string;
+          meal_type: "breakfast" | "morning_tea" | "lunch" | "afternoon_tea" | "late_snack";
+          recipe_id?: string | null;
+          custom_title?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["meal_plan_slots"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

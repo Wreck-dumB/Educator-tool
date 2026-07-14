@@ -40,6 +40,7 @@ const NAV_GROUPS = [
       { href: "/transitions", label: "Transition Statements" },
       { href: "/materials", label: "Materials" },
       { href: "/recipes", label: "Recipes" },
+      { href: "/recipes/meal-planner", label: "Meal Planner" },
       { href: "/auslan", label: "Auslan Dictionary" },
       { href: "/posters", label: "Posters & Fliers" },
       { href: "/white-noise", label: "White Noise" },
