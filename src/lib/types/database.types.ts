@@ -1830,7 +1830,7 @@ export interface Database {
         Row: {
           id: string;
           recipient_user_id: string;
-          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update";
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update" | "daily_summary";
           title: string;
           body: string | null;
           href: string | null;
@@ -1840,7 +1840,7 @@ export interface Database {
         Insert: {
           id?: string;
           recipient_user_id: string;
-          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update";
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update" | "daily_summary";
           title: string;
           body?: string | null;
           href?: string | null;

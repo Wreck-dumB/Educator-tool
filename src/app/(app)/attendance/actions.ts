@@ -61,6 +61,30 @@ export async function signOut(formData: FormData) {
     .eq("child_id", childId)
     .eq("date", date);
 
+  // Notify linked parents with a day recap link
+  const [childRes, linksRes] = await Promise.all([
+    supabase.from("children").select("first_name").eq("id", childId).maybeSingle(),
+    supabase
+      .from("parent_child_links")
+      .select("parent_user_id")
+      .eq("child_id", childId)
+      .eq("educator_user_id", ownerUserId),
+  ]);
+
+  const childName = childRes.data?.first_name ?? "Your child";
+  const links = linksRes.data ?? [];
+  if (links.length > 0) {
+    await supabase.from("parent_notifications").insert(
+      links.map((link) => ({
+        recipient_user_id: link.parent_user_id,
+        type: "daily_summary" as const,
+        title: `${childName}'s day recap is ready`,
+        body: `See what ${childName} got up to today — meals, nappy changes, activities and more.`,
+        href: `/parent/diary?child=${childId}&date=${date}`,
+      })),
+    );
+  }
+
   revalidatePath("/attendance");
 }
 

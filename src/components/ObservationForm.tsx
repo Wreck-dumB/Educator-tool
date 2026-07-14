@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { inputClass, primaryButtonClass } from "@/lib/ui";
 
 interface Child {
@@ -147,13 +147,28 @@ export default function ObservationForm({
 }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(defaultChildId ? [defaultChildId] : []),
   );
   const [obsType, setObsType] = useState<ObservationTypeName>("anecdotal");
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [childSearch, setChildSearch] = useState("");
 
   const visibleTypes = enabledTypes ?? ALL_TYPES;
   const typeConfig = OBSERVATION_TYPES[obsType];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [dropdownOpen]);
 
   function toggleChild(id: string) {
     setSelectedIds((prev) => {
@@ -177,6 +192,20 @@ export default function ObservationForm({
     setPreview(null);
     if (fileRef.current) fileRef.current.value = "";
   }
+
+  const selectedChildren = children.filter((c) => selectedIds.has(c.id));
+  const filteredChildren = childSearch
+    ? children.filter((c) =>
+        c.first_name.toLowerCase().includes(childSearch.toLowerCase()),
+      )
+    : children;
+
+  const selectionLabel =
+    selectedIds.size === 0
+      ? "Select children…"
+      : selectedIds.size === children.length
+      ? `All ${children.length} children`
+      : selectedChildren.map((c) => c.first_name).join(", ");
 
   return (
     <form action={action} encType="multipart/form-data" className="space-y-4">
@@ -206,63 +235,103 @@ export default function ObservationForm({
         <input type="hidden" name="observation_type" value={obsType} />
       </div>
 
-      {/* ── Children ──────────────────────────────────────────────────── */}
-      <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <p className="text-sm font-medium text-ink/70">
-            {selectedIds.size > 1
-              ? `Children (${selectedIds.size} selected — group observation)`
-              : "Child"}
-          </p>
-          <div className="flex gap-2">
-            {children.length > 1 && selectedIds.size < children.length && (
-              <button
-                type="button"
-                onClick={() => setSelectedIds(new Set(children.map((c) => c.id)))}
-                className="text-xs text-coral-dark hover:underline"
-              >
-                Select all
-              </button>
-            )}
-            {selectedIds.size > 1 && (
-              <button
-                type="button"
-                onClick={() =>
-                  setSelectedIds(new Set(defaultChildId ? [defaultChildId] : []))
-                }
-                className="text-xs text-ink/40 hover:text-coral-dark"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {children.map((c) => {
-            const checked = selectedIds.has(c.id);
-            return (
-              <label
-                key={c.id}
-                className={`flex cursor-pointer items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ${
-                  checked
-                    ? "border-coral bg-coral text-white"
-                    : "border-coral-light bg-white text-ink/70 hover:border-coral hover:text-ink"
-                }`}
-              >
+      {/* ── Children dropdown ─────────────────────────────────────────── */}
+      <div ref={dropdownRef} className="relative">
+        <p className="mb-1.5 text-sm font-medium text-ink/70">
+          {selectedIds.size > 1
+            ? `Children (${selectedIds.size} selected — group observation)`
+            : "Child"}
+        </p>
+
+        {/* Trigger button */}
+        <button
+          type="button"
+          onClick={() => setDropdownOpen((v) => !v)}
+          className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm transition-colors ${
+            selectedIds.size > 0
+              ? "border-coral text-ink"
+              : "border-coral-light text-ink/40"
+          } hover:border-coral focus:border-coral focus:outline-none`}
+        >
+          <span className="truncate">{selectionLabel}</span>
+          <svg
+            className={`h-4 w-4 shrink-0 text-ink/40 transition-transform ${dropdownOpen ? "rotate-180" : ""}`}
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        {/* Dropdown panel */}
+        {dropdownOpen && (
+          <div className="absolute z-30 mt-1 w-full rounded-xl border border-coral-light bg-white shadow-lg">
+            {/* Search */}
+            {children.length > 5 && (
+              <div className="border-b border-coral-light p-2">
                 <input
-                  type="checkbox"
-                  name="child_id"
-                  value={c.id}
-                  checked={checked}
-                  onChange={() => toggleChild(c.id)}
-                  className="sr-only"
+                  type="text"
+                  placeholder="Search children…"
+                  value={childSearch}
+                  onChange={(e) => setChildSearch(e.target.value)}
+                  className="w-full rounded-lg border border-coral-light px-2.5 py-1.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none"
+                  autoFocus
                 />
-                {c.first_name}
-              </label>
-            );
-          })}
-        </div>
-        {selectedIds.size === 0 && (
+              </div>
+            )}
+
+            {/* List */}
+            <div className="max-h-52 overflow-y-auto p-1">
+              {children.length > 1 && !childSearch && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedIds(new Set(children.map((c) => c.id)))}
+                  className="w-full rounded-lg px-3 py-1.5 text-left text-xs font-semibold text-coral-dark hover:bg-coral-light/50"
+                >
+                  Select all ({children.length})
+                </button>
+              )}
+              {filteredChildren.map((c) => {
+                const checked = selectedIds.has(c.id);
+                return (
+                  <label
+                    key={c.id}
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-coral-light/30"
+                  >
+                    <input
+                      type="checkbox"
+                      name="child_id"
+                      value={c.id}
+                      checked={checked}
+                      onChange={() => toggleChild(c.id)}
+                      className="h-4 w-4 rounded border-coral-light accent-coral"
+                    />
+                    <span className={checked ? "font-semibold text-ink" : "text-ink/70"}>
+                      {c.first_name}
+                    </span>
+                  </label>
+                );
+              })}
+              {filteredChildren.length === 0 && (
+                <p className="px-3 py-2 text-sm text-ink/40">No children match</p>
+              )}
+            </div>
+
+            {/* Done */}
+            <div className="border-t border-coral-light p-2">
+              <button
+                type="button"
+                onClick={() => { setDropdownOpen(false); setChildSearch(""); }}
+                className="w-full rounded-lg bg-coral px-3 py-1.5 text-sm font-semibold text-white hover:bg-coral-dark"
+              >
+                Done{selectedIds.size > 0 ? ` (${selectedIds.size} selected)` : ""}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {selectedIds.size === 0 && !dropdownOpen && (
           <p className="mt-1 text-xs text-coral-dark">Select at least one child</p>
         )}
       </div>
