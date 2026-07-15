@@ -2162,6 +2162,66 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["meal_plan_slots"]["Insert"]>;
         Relationships: [];
       };
+      physical_activity_logs: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          logged_at: string;
+          activity_category: "fundamental_movement" | "structured_game" | "dance" | "outdoor_play" | "yoga_mindfulness" | "water_play" | "other";
+          movement_skills: string[];
+          duration_minutes: number;
+          group_context: "individual" | "small_group" | "whole_group";
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          logged_at?: string;
+          activity_category: "fundamental_movement" | "structured_game" | "dance" | "outdoor_play" | "yoga_mindfulness" | "water_play" | "other";
+          movement_skills?: string[];
+          duration_minutes: number;
+          group_context?: "individual" | "small_group" | "whole_group";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["physical_activity_logs"]["Insert"]>;
+        Relationships: [];
+      };
+      nutrition_education_logs: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          logged_at: string;
+          activity_type: "cooking" | "growing" | "tasting" | "food_art" | "nutrition_discussion" | "sensory_exploration" | "other";
+          food_focus: string;
+          duration_minutes: number;
+          group_context: "individual" | "small_group" | "whole_group";
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          date: string;
+          logged_at?: string;
+          activity_type: "cooking" | "growing" | "tasting" | "food_art" | "nutrition_discussion" | "sensory_exploration" | "other";
+          food_focus: string;
+          duration_minutes: number;
+          group_context?: "individual" | "small_group" | "whole_group";
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["nutrition_education_logs"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

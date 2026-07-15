@@ -69,6 +69,7 @@ const NAV_GROUPS = [
       { href: "/sleep", label: "Sleep Chart" },
       { href: "/food", label: "Food Chart" },
       { href: "/nappy", label: "Nappy Chart" },
+      { href: "/physical-activity", label: "Physical Activity & Nutrition" },
     ],
   },
   {

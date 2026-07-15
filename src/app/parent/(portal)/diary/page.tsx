@@ -3,6 +3,12 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getChildren } from "@/lib/supabase/children";
 import { getSharedObservationsForParent, getSignedPhotoUrl } from "@/lib/supabase/observations";
+import {
+  getPhysicalActivityForParent,
+  getNutritionEducationForParent,
+  ACTIVITY_CATEGORY_LABELS,
+  NUTRITION_TYPE_LABELS,
+} from "@/lib/supabase/physical-activity";
 import { cardClass } from "@/lib/ui";
 import type { Metadata } from "next";
 
@@ -95,33 +101,36 @@ export default async function ParentDiaryPage({
     );
   }
 
-  const [sleepRes, foodRes, nappyRes, attendanceRes, allSharedObs] = await Promise.all([
-    supabase
-      .from("daily_sleep")
-      .select("id, sleep_start, sleep_end, notes")
-      .eq("child_id", selectedChild.id)
-      .eq("date", selectedDate)
-      .order("sleep_start"),
-    supabase
-      .from("daily_food")
-      .select("id, meal_type, food_offered, amount_eaten, notes")
-      .eq("child_id", selectedChild.id)
-      .eq("date", selectedDate)
-      .order("created_at"),
-    supabase
-      .from("daily_nappy")
-      .select("id, changed_at, nappy_type, notes")
-      .eq("child_id", selectedChild.id)
-      .eq("date", selectedDate)
-      .order("changed_at"),
-    supabase
-      .from("attendance_records")
-      .select("signed_in_at, signed_out_at, wellbeing_level, wellbeing_note")
-      .eq("child_id", selectedChild.id)
-      .eq("date", selectedDate)
-      .maybeSingle(),
-    getSharedObservationsForParent(selectedChild.id),
-  ]);
+  const [sleepRes, foodRes, nappyRes, attendanceRes, allSharedObs, physicalActivity, nutritionEd] =
+    await Promise.all([
+      supabase
+        .from("daily_sleep")
+        .select("id, sleep_start, sleep_end, notes")
+        .eq("child_id", selectedChild.id)
+        .eq("date", selectedDate)
+        .order("sleep_start"),
+      supabase
+        .from("daily_food")
+        .select("id, meal_type, food_offered, amount_eaten, notes")
+        .eq("child_id", selectedChild.id)
+        .eq("date", selectedDate)
+        .order("created_at"),
+      supabase
+        .from("daily_nappy")
+        .select("id, changed_at, nappy_type, notes")
+        .eq("child_id", selectedChild.id)
+        .eq("date", selectedDate)
+        .order("changed_at"),
+      supabase
+        .from("attendance_records")
+        .select("signed_in_at, signed_out_at, wellbeing_level, wellbeing_note")
+        .eq("child_id", selectedChild.id)
+        .eq("date", selectedDate)
+        .maybeSingle(),
+      getSharedObservationsForParent(selectedChild.id),
+      getPhysicalActivityForParent(selectedChild.id, selectedDate),
+      getNutritionEducationForParent(selectedChild.id, selectedDate),
+    ]);
 
   const sleep = sleepRes.data ?? [];
   const food = foodRes.data ?? [];
@@ -153,6 +162,8 @@ export default async function ParentDiaryPage({
     food.length > 0 ||
     nappy.length > 0 ||
     observations.length > 0 ||
+    physicalActivity.length > 0 ||
+    nutritionEd.length > 0 ||
     attendance !== null;
 
   const displayDate = new Date(selectedDate + "T00:00:00").toLocaleDateString("en-AU", {
@@ -263,6 +274,12 @@ export default async function ParentDiaryPage({
                   {sleep.length > 0 && <span>😴 {sleep.length} rest period{sleep.length !== 1 ? "s" : ""}</span>}
                   {observations.length > 0 && (
                     <span>📸 {observations.length} observation{observations.length !== 1 ? "s" : ""} shared</span>
+                  )}
+                  {physicalActivity.length > 0 && (
+                    <span>🏃 {physicalActivity.reduce((s, l) => s + l.duration_minutes, 0)} min active</span>
+                  )}
+                  {nutritionEd.length > 0 && (
+                    <span>🥦 {nutritionEd.length} nutrition session{nutritionEd.length !== 1 ? "s" : ""}</span>
                   )}
                 </div>
               </div>
@@ -433,6 +450,68 @@ export default async function ParentDiaryPage({
                     <span className="shrink-0 rounded-full bg-ink/5 px-2.5 py-0.5 text-xs font-semibold text-ink/60">
                       {NAPPY_LABELS[n.nappy_type] ?? n.nappy_type}
                     </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Physical Activity */}
+          {physicalActivity.length > 0 && (
+            <div className={cardClass}>
+              <div className="border-b border-coral-light px-4 py-3">
+                <h2 className="font-display text-sm font-semibold text-ink">
+                  Physical Activity 🏃
+                </h2>
+                <p className="mt-0.5 text-xs text-ink/40">
+                  {physicalActivity.reduce((s, l) => s + l.duration_minutes, 0)} min total today
+                </p>
+              </div>
+              <ul className="divide-y divide-coral-light">
+                {physicalActivity.map((log) => (
+                  <li key={log.id} className="px-4 py-3">
+                    <p className="text-sm font-medium text-ink">
+                      {ACTIVITY_CATEGORY_LABELS[log.activity_category]} · {log.duration_minutes} min
+                    </p>
+                    {log.movement_skills.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {log.movement_skills.map((skill) => (
+                          <span
+                            key={skill}
+                            className="rounded-full bg-sage-light px-2 py-0.5 text-[10px] font-medium capitalize text-sage-dark"
+                          >
+                            {skill}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {log.notes && (
+                      <p className="mt-0.5 text-sm text-ink/60">{log.notes}</p>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Nutrition Education */}
+          {nutritionEd.length > 0 && (
+            <div className={cardClass}>
+              <div className="border-b border-coral-light px-4 py-3">
+                <h2 className="font-display text-sm font-semibold text-ink">
+                  Nutrition Education 🥦
+                </h2>
+              </div>
+              <ul className="divide-y divide-coral-light">
+                {nutritionEd.map((log) => (
+                  <li key={log.id} className="px-4 py-3">
+                    <p className="text-sm font-medium text-ink">
+                      {NUTRITION_TYPE_LABELS[log.activity_type]} · {log.duration_minutes} min
+                    </p>
+                    <p className="mt-0.5 text-sm font-medium text-ink/70">{log.food_focus}</p>
+                    {log.notes && (
+                      <p className="mt-0.5 text-sm text-ink/60">{log.notes}</p>
+                    )}
                   </li>
                 ))}
               </ul>
