@@ -70,6 +70,7 @@ const NAV_GROUPS = [
       { href: "/food", label: "Food Chart" },
       { href: "/nappy", label: "Nappy Chart" },
       { href: "/physical-activity", label: "Physical Activity & Nutrition" },
+      { href: "/behaviour-support", label: "Behaviour Support Plans" },
     ],
   },
   {

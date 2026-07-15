@@ -41,6 +41,7 @@ export default async function ParentPortalLayout({
     { href: "/parent/permission-slips", label: "Permission Slips" },
     { href: "/parent/absences", label: "Absences" },
     { href: "/parent/casual-days", label: "Casual Days" },
+    { href: "/parent/behaviour-support", label: "Support Plans" },
   ];
 
   return (

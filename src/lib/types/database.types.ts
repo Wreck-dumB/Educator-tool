@@ -2222,6 +2222,82 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["nutrition_education_logs"]["Insert"]>;
         Relationships: [];
       };
+      behaviour_support_plans: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          child_id: string;
+          created_by: string;
+          status: "draft" | "active" | "under_review" | "archived";
+          child_strengths: string;
+          child_interests: string;
+          behaviour_description: string;
+          behaviour_triggers: string;
+          behaviour_frequency: "rarely" | "sometimes" | "daily" | "multiple_daily";
+          behaviour_function: string;
+          educator_strategies: string;
+          suggested_family_strategies: string;
+          environment_adjustments: string;
+          external_support_notes: string;
+          review_date: string | null;
+          last_reviewed_at: string | null;
+          review_notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          child_id: string;
+          created_by: string;
+          status?: "draft" | "active" | "under_review" | "archived";
+          child_strengths?: string;
+          child_interests?: string;
+          behaviour_description: string;
+          behaviour_triggers?: string;
+          behaviour_frequency?: "rarely" | "sometimes" | "daily" | "multiple_daily";
+          behaviour_function?: string;
+          educator_strategies?: string;
+          suggested_family_strategies?: string;
+          environment_adjustments?: string;
+          external_support_notes?: string;
+          review_date?: string | null;
+          last_reviewed_at?: string | null;
+          review_notes?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["behaviour_support_plans"]["Insert"]>;
+        Relationships: [];
+      };
+      behaviour_plan_family_responses: {
+        Row: {
+          id: string;
+          plan_id: string;
+          child_id: string;
+          parent_user_id: string;
+          family_strategies: string;
+          home_context: string;
+          acknowledged: boolean;
+          acknowledged_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          child_id: string;
+          parent_user_id: string;
+          family_strategies?: string;
+          home_context?: string;
+          acknowledged?: boolean;
+          acknowledged_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["behaviour_plan_family_responses"]["Insert"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
