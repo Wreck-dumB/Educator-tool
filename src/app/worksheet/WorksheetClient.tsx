@@ -2,13 +2,19 @@
 
 import { useState, useMemo } from "react";
 
-type TemplateType = "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet";
+type TemplateType = "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions";
 
 interface Props {
   type: TemplateType;
   initialName: string;
   title: string;
+  summary?: string;
   materials?: string[];
+  steps?: string[];
+  eylfCodes?: string[];
+  duration?: string;
+  age?: string;
+  group?: string;
 }
 
 // Andika Bold average char width ≈ 0.62× font size (wider than Arial Bold 0.58×)
@@ -271,8 +277,75 @@ function DrawingFrameTemplate({ title, name, imageUrl, imageStyle }: {
   );
 }
 
+// ─── Instructions Template ────────────────────────────────────────────────────
+function InstructionsTemplate({
+  title, summary, materials, steps, eylfCodes, duration, age, group,
+}: {
+  title: string; summary?: string; materials: string[]; steps: string[];
+  eylfCodes: string[]; duration?: string; age?: string; group?: string;
+}) {
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+        <div className="mt-2 flex flex-wrap gap-3 text-xs text-ink/60">
+          {duration && <span>⏱ {duration} min</span>}
+          {age && <span>· {age}</span>}
+          {group && <span>· {group.replace("_", " ")}</span>}
+        </div>
+      </div>
+
+      {summary && (
+        <p className="mb-5 text-sm text-ink/70">{summary}</p>
+      )}
+
+      {materials.length > 0 && (
+        <div className="mb-5 rounded-xl border border-ink/10 px-5 py-4">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">You will need:</p>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+            {materials.map((m, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="h-4 w-4 shrink-0 rounded border border-ink/30" aria-hidden />
+                <span className="text-sm text-ink">{m}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {steps.length > 0 && (
+        <div className="mb-5">
+          <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">Steps:</p>
+          <ol className="space-y-3">
+            {steps.map((s, i) => (
+              <li key={i} className="flex gap-3 text-sm text-ink">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-coral-light text-xs font-bold text-coral-dark">
+                  {i + 1}
+                </span>
+                <span className="pt-0.5">{s}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {eylfCodes.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {eylfCodes.map((code) => (
+            <span key={code} className="rounded-full border border-sage-light px-2.5 py-0.5 text-xs font-medium text-sage-dark">
+              EYLF {code}
+            </span>
+          ))}
+        </div>
+      )}
+
+      <p className="mt-6 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialName, title, materials = [] }: Props) {
+export default function WorksheetClient({ type, initialName, title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>([initialName]);
 
   // Image generation state
@@ -489,6 +562,20 @@ export default function WorksheetClient({ type, initialName, title, materials = 
       {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
       {type === "activity_sheet" && (
         <ActivitySheetTemplate name={initialName} title={title} materials={materials} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />
+      )}
+
+      {/* ── Instructions flow (no image generation — print only) ─────────── */}
+      {type === "instructions" && (
+        <InstructionsTemplate
+          title={title}
+          summary={summary}
+          materials={materials}
+          steps={steps}
+          eylfCodes={eylfCodes}
+          duration={duration}
+          age={age}
+          group={group}
+        />
       )}
     </div>
   );
