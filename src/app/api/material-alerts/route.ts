@@ -8,7 +8,7 @@ import type { Material } from "@/lib/types/domain";
 // Creates in-app staff_notifications AND sends Resend emails to director + 2IC.
 // Requires SUPABASE_SERVICE_ROLE_KEY and optionally RESEND_API_KEY.
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization");
   const cronSecret = process.env.CRON_SECRET;
 
