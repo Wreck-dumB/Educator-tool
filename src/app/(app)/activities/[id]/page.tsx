@@ -18,6 +18,7 @@ import PersonalisePanel from "./PersonalisePanel";
 import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
 import ObservationList from "@/components/ObservationList";
 import { detectPrintTemplate, buildWorksheetUrl, TEMPLATE_LABELS } from "@/lib/utils/printable";
+import DeleteActivityButton from "./DeleteActivityButton";
 
 export default async function ActivityDetailPage({
   params,
@@ -50,12 +51,15 @@ export default async function ActivityDetailPage({
     <div className="mx-auto max-w-2xl">
       <div className="flex items-start justify-between gap-3">
         <h1 className="font-display text-3xl font-semibold text-coral-dark">{activity.title}</h1>
-        <form action={activity.is_archived ? unarchiveActivity : archiveActivity} className="mt-1 shrink-0">
-          <input type="hidden" name="id" value={activity.id} />
-          <button type="submit" className="rounded-full border border-ink/20 px-3 py-1.5 text-sm text-ink/50 hover:text-ink/70">
-            {activity.is_archived ? "Unarchive" : "Archive"}
-          </button>
-        </form>
+        <div className="mt-1 flex shrink-0 items-center gap-2">
+          <form action={activity.is_archived ? unarchiveActivity : archiveActivity}>
+            <input type="hidden" name="id" value={activity.id} />
+            <button type="submit" className="rounded-full border border-ink/20 px-3 py-1.5 text-sm text-ink/50 hover:text-ink/70">
+              {activity.is_archived ? "Unarchive" : "Archive"}
+            </button>
+          </form>
+          <DeleteActivityButton id={activity.id} />
+        </div>
       </div>
       {activity.is_archived && (
         <p className="mt-1 rounded-xl bg-ink/5 px-3 py-2 text-xs text-ink/50">

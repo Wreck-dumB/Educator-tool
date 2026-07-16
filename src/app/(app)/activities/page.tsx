@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getActivities } from "@/lib/supabase/activities";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getEnergyIcon } from "@/lib/icons";
+import { archiveActivity, unarchiveActivity, deleteActivity } from "./actions";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
@@ -128,37 +129,62 @@ export default async function ActivitiesPage({
           </p>
         )}
         {sorted.map((activity) => (
-          <Link
-            key={activity.id}
-            href={`/activities/${activity.id}`}
-            className="block rounded-2xl border border-coral-light bg-white p-4 shadow-sm transition-colors hover:border-coral"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <h2 className="font-display font-semibold text-ink">{activity.title}</h2>
-              {activity.is_archived && (
-                <span className="shrink-0 rounded-full bg-ink/10 px-2 py-0.5 text-xs font-medium text-ink/50">
-                  Archived
-                </span>
-              )}
-            </div>
-            <p className="mt-1 text-sm text-ink/70">{activity.summary}</p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink/50">
-              {activity.energy_level && (
-                <span className="text-base" title={activity.energy_level}>
-                  {getEnergyIcon(activity.energy_level)}
-                </span>
-              )}
-              {activity.duration_minutes && <span>{activity.duration_minutes} min</span>}
-              {activity.eylf_codes.map((code) => (
-                <span
-                  key={code}
-                  className="rounded-full bg-sage-light px-2 py-0.5 font-medium text-sage-dark"
+          <div key={activity.id} className="flex items-stretch gap-2">
+            <Link
+              href={`/activities/${activity.id}`}
+              className="min-w-0 flex-1 rounded-2xl border border-coral-light bg-white p-4 shadow-sm transition-colors hover:border-coral"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <h2 className="font-display font-semibold text-ink">{activity.title}</h2>
+                {activity.is_archived && (
+                  <span className="shrink-0 rounded-full bg-ink/10 px-2 py-0.5 text-xs font-medium text-ink/50">
+                    Archived
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-ink/70">{activity.summary}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink/50">
+                {activity.energy_level && (
+                  <span className="text-base" title={activity.energy_level}>
+                    {getEnergyIcon(activity.energy_level)}
+                  </span>
+                )}
+                {activity.duration_minutes && <span>{activity.duration_minutes} min</span>}
+                {activity.eylf_codes.map((code) => (
+                  <span
+                    key={code}
+                    className="rounded-full bg-sage-light px-2 py-0.5 font-medium text-sage-dark"
+                  >
+                    {code}
+                  </span>
+                ))}
+              </div>
+            </Link>
+
+            {/* Quick actions — archive/unarchive + delete without opening the activity */}
+            <div className="flex flex-col justify-center gap-1.5">
+              <form action={activity.is_archived ? unarchiveActivity : archiveActivity}>
+                <input type="hidden" name="id" value={activity.id} />
+                <button
+                  type="submit"
+                  title={activity.is_archived ? "Unarchive" : "Archive"}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink/15 text-sm text-ink/40 hover:border-ink/30 hover:text-ink/60"
                 >
-                  {code}
-                </span>
-              ))}
+                  {activity.is_archived ? "↩" : "📦"}
+                </button>
+              </form>
+              <form action={deleteActivity} onSubmit={(e) => { if (!confirm("Permanently delete this activity?")) e.preventDefault(); }}>
+                <input type="hidden" name="id" value={activity.id} />
+                <button
+                  type="submit"
+                  title="Delete permanently"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink/15 text-sm text-ink/40 hover:border-coral/40 hover:text-coral-dark"
+                >
+                  ✕
+                </button>
+              </form>
             </div>
-          </Link>
+          </div>
         ))}
       </div>
     </div>
