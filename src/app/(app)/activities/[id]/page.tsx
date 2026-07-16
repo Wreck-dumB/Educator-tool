@@ -17,32 +17,7 @@ import RiskAssessmentPanel from "./RiskAssessmentPanel";
 import PersonalisePanel from "./PersonalisePanel";
 import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
 import ObservationList from "@/components/ObservationList";
-import type { ActivityWithOutcomes } from "@/lib/supabase/activities";
-
-const HANDS_ON_KEYWORDS = /\b(draw|drawing|cut|cutting|paste|glue|gluing|paint|painting|colour|colou?r|collage|craft|build|building|make|making|create|creating|write|writing|trace|tracing|stamp|mould|moulding|sculpt|sculpting|fold|folding|weave|weaving|sew|bake|baking|cook|cooking|grow|growing|plant|planting|dig|digging|clay|dough|construct|constructing|assemble|assembling|stick|sticking|tear|tearing|print|printing|pour|pouring|mix|mixing|explore|exploring)\b/i;
-
-function isHandsOnActivity(activity: ActivityWithOutcomes): boolean {
-  if (activity.generation_mode === "materials") return true;
-  if (activity.materials_used.length > 0) return true;
-  if (HANDS_ON_KEYWORDS.test(activity.title)) return true;
-  if (activity.steps.some((s) => HANDS_ON_KEYWORDS.test(s))) return true;
-  return false;
-}
-
-function buildInstructionsUrl(activity: ActivityWithOutcomes): string {
-  const params = new URLSearchParams({
-    type: "instructions",
-    title: activity.title,
-    summary: activity.summary ?? "",
-  });
-  if (activity.duration_minutes) params.set("duration", String(activity.duration_minutes));
-  if (activity.age_range) params.set("age", activity.age_range);
-  if (activity.group_size_fit) params.set("group", activity.group_size_fit);
-  activity.materials_used.forEach((m) => params.append("material", m));
-  activity.steps.forEach((s) => params.append("step", s));
-  activity.eylf_codes.forEach((e) => params.append("eylf", e));
-  return `/worksheet?${params.toString()}`;
-}
+import { detectPrintTemplate, buildWorksheetUrl, TEMPLATE_LABELS } from "@/lib/utils/printable";
 
 export default async function ActivityDetailPage({
   params,
@@ -119,25 +94,19 @@ export default async function ActivityDetailPage({
         </div>
       )}
 
-      {isHandsOnActivity(activity) ? (
-        <a
-          href={`/worksheet?type=activity_sheet&title=${encodeURIComponent(activity.title)}${activity.materials_used.map((m) => `&material=${encodeURIComponent(m)}`).join("")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
-        >
-          🖨 Print activity sheet
-        </a>
-      ) : (
-        <a
-          href={buildInstructionsUrl(activity)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
-        >
-          🖨 Print instructions
-        </a>
-      )}
+      {(() => {
+        const tpl = detectPrintTemplate(activity);
+        return (
+          <a
+            href={buildWorksheetUrl(tpl, activity)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
+          >
+            🖨 Print {TEMPLATE_LABELS[tpl].toLowerCase()}
+          </a>
+        );
+      })()}
 
       {activity.steps.length > 0 && (
         <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-ink/80">

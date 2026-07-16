@@ -41,6 +41,7 @@ const NAV_GROUPS = [
       { href: "/materials", label: "Materials" },
       { href: "/recipes", label: "Recipes" },
       { href: "/recipes/meal-planner", label: "Meal Planner" },
+      { href: "/worksheets", label: "Printable Sheets" },
       { href: "/auslan", label: "Auslan Dictionary" },
       { href: "/posters", label: "Posters & Fliers" },
       { href: "/white-noise", label: "White Noise" },

@@ -12,6 +12,7 @@ import {
   getEnergyBadgeClass,
   getMilestoneDomainIcon,
 } from "@/lib/icons";
+import { detectPrintTemplate, buildWorksheetUrl } from "@/lib/utils/printable";
 
 const inputClass =
   "mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral";
@@ -730,16 +731,29 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                 <button
                   type="button"
                   onClick={() => {
-                    const templateType = s.suggestedTemplate ?? "drawing_frame";
-                    const params = new URLSearchParams({ type: templateType, title: s.title });
-                    if (templateType === "name_trace" && selectedChild?.first_name) {
-                      params.set("name", selectedChild.first_name);
-                    }
-                    window.open(`/worksheet?${params.toString()}`, "_blank");
+                    const tpl =
+                      (s.suggestedTemplate as Parameters<typeof buildWorksheetUrl>[0] | null) ??
+                      detectPrintTemplate({
+                        generation_mode: mode,
+                        materials_used: s.materialsUsed,
+                        title: s.title,
+                        steps: s.steps,
+                      });
+                    const url = buildWorksheetUrl(tpl, {
+                      title: s.title,
+                      summary: s.summary,
+                      materials_used: s.materialsUsed,
+                      steps: s.steps,
+                      eylf_codes: s.eylfCodes,
+                      duration_minutes: s.durationMinutes,
+                      age_range: s.ageRange,
+                      group_size_fit: s.groupSizeFit,
+                    }, selectedChild?.first_name ?? undefined);
+                    window.open(url, "_blank");
                   }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark transition-colors hover:bg-coral-light"
                 >
-                  🖨 Print stencil
+                  🖨 Print sheet
                 </button>
                 {saveStates[i] === "error" && (
                   <span className="text-sm text-coral-dark">Could not save, try again.</span>
