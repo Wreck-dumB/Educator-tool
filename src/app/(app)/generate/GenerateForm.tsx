@@ -60,6 +60,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
   const [ageBracketFocused, setAgeBracketFocused] = useState(false);
   const [targetMilestone, setTargetMilestone] = useState("");
   const [milestoneFocused, setMilestoneFocused] = useState(false);
+  const [ideaDescription, setIdeaDescription] = useState("");
 
   const selectedChild = childProfiles.find((c) => c.id === childId);
   const childMatches =
@@ -182,6 +183,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
           additionalNeeds: trimmedNeeds || undefined,
           targetAgeBracket: targetAgeBracket.trim() || undefined,
           targetMilestone: targetMilestone.trim() || undefined,
+          ideaDescription: ideaDescription.trim() || undefined,
           count,
         }),
       });
@@ -212,6 +214,40 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
 
   return (
     <div>
+      {/* ── Already have an idea? ────────────────────────────────────────── */}
+      <div className="mb-4 rounded-2xl border border-sage-light bg-sage-light/20 p-5">
+        <h2 className="font-display text-lg font-semibold text-sage-dark">Already have an activity in mind?</h2>
+        <p className="mt-0.5 text-xs text-ink/50">
+          Describe it and we&apos;ll build it out — steps, materials, EYLF links, and the right printable sheet.
+          Leave blank to use the generator below.
+        </p>
+        <div className="mt-3 flex gap-2">
+          <textarea
+            value={ideaDescription}
+            onChange={(e) => setIdeaDescription(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="e.g. Torn Paper Colour Collage — 'This Is Me' · mindful breathing circle · name writing practice with sand trays"
+            className="flex-1 resize-none rounded-xl border border-sage-light bg-white px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-sage focus:outline-none focus:ring-1 focus:ring-sage"
+          />
+          {ideaDescription.trim() && (
+            <button
+              type="button"
+              onClick={() => setIdeaDescription("")}
+              className="self-start rounded-xl border border-sage-light px-3 py-2.5 text-xs font-medium text-sage-dark hover:bg-sage-light"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+        {ideaDescription.trim() && (
+          <p className="mt-2 text-xs text-sage-dark/70">
+            ✓ We&apos;ll expand your idea into one structured activity — ready to save and print.
+            You can still add time, group size, or EYLF targets below if helpful.
+          </p>
+        )}
+      </div>
+
       <div className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
         <h2 className="font-display text-lg font-semibold text-coral-dark">What do you have?</h2>
 
@@ -588,16 +624,18 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
             disabled={loading}
             className="rounded-full bg-coral px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-coral-dark disabled:opacity-50"
           >
-            {loading ? "Generating…" : "Generate"}
+            {loading ? "Generating…" : ideaDescription.trim() ? "Build this activity" : "Generate"}
           </button>
-          <button
-            type="button"
-            onClick={() => generate(true)}
-            disabled={loading}
-            className="rounded-full border-2 border-sage px-5 py-2.5 text-sm font-semibold text-sage-dark transition-colors hover:bg-sage-light disabled:opacity-50"
-          >
-            ✨ Surprise me
-          </button>
+          {!ideaDescription.trim() && (
+            <button
+              type="button"
+              onClick={() => generate(true)}
+              disabled={loading}
+              className="rounded-full border-2 border-sage px-5 py-2.5 text-sm font-semibold text-sage-dark transition-colors hover:bg-sage-light disabled:opacity-50"
+            >
+              ✨ Surprise me
+            </button>
+          )}
         </div>
       </div>
 

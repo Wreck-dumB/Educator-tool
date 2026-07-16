@@ -81,8 +81,15 @@ export async function POST(request: Request) {
     input.targetMilestone = body.targetMilestone.trim().slice(0, 300) || undefined;
   }
 
-  const count =
-    typeof body.count === "number" && body.count >= 1
+  if (typeof body.ideaDescription === "string") {
+    input.ideaDescription = body.ideaDescription.trim().slice(0, 500) || undefined;
+  }
+
+  // When expanding a specific idea we always produce one result — the educator
+  // told us what the activity is, we just need to flesh it out.
+  const count = input.ideaDescription
+    ? 1
+    : typeof body.count === "number" && body.count >= 1
       ? Math.min(Math.round(body.count), 10)
       : 5;
 

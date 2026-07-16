@@ -31,6 +31,8 @@ export interface GenerationInput {
   additionalNeeds?: string;
   targetAgeBracket?: string;
   targetMilestone?: string;
+  /** Educator already has an activity idea — expand it into a full structured activity. */
+  ideaDescription?: string;
 }
 
 export interface RawActivitySuggestion {
@@ -163,6 +165,12 @@ function buildUserPrompt(input: GenerationInput, count: number): string {
       .join("\n");
     lines.push(
       `Recent observations logged about this child, most recent first:\n${summary}\nUse this real history to inform the activity — build on what this child has been doing or vary it meaningfully (e.g. extend a skill that's emerging, target an EYLF outcome not in this recent list, or revisit an interest from a fresh angle) rather than proposing something disconnected from their actual recent experience.`,
+    );
+  }
+
+  if (input.ideaDescription) {
+    lines.unshift(
+      `The educator already has a specific activity idea: "${input.ideaDescription}". Your job is to expand this into one fully structured activity — add clear step-by-step instructions, a materials list, reflection prompts, EYLF links, estimated duration, energy level, and group size. Keep the spirit of their idea intact; do not replace it with a different activity.`,
     );
   }
 
