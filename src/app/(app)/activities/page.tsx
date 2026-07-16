@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getActivities } from "@/lib/supabase/activities";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getEnergyIcon } from "@/lib/icons";
-import { archiveActivity, unarchiveActivity, deleteActivity } from "./actions";
+import ActivityCardActions from "./ActivityCardActions";
 
 const SORT_OPTIONS = [
   { value: "newest", label: "Newest" },
@@ -161,29 +161,7 @@ export default async function ActivitiesPage({
               </div>
             </Link>
 
-            {/* Quick actions — archive/unarchive + delete without opening the activity */}
-            <div className="flex flex-col justify-center gap-1.5">
-              <form action={activity.is_archived ? unarchiveActivity : archiveActivity}>
-                <input type="hidden" name="id" value={activity.id} />
-                <button
-                  type="submit"
-                  title={activity.is_archived ? "Unarchive" : "Archive"}
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink/15 text-sm text-ink/40 hover:border-ink/30 hover:text-ink/60"
-                >
-                  {activity.is_archived ? "↩" : "📦"}
-                </button>
-              </form>
-              <form action={deleteActivity} onSubmit={(e) => { if (!confirm("Permanently delete this activity?")) e.preventDefault(); }}>
-                <input type="hidden" name="id" value={activity.id} />
-                <button
-                  type="submit"
-                  title="Delete permanently"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-ink/15 text-sm text-ink/40 hover:border-coral/40 hover:text-coral-dark"
-                >
-                  ✕
-                </button>
-              </form>
-            </div>
+            <ActivityCardActions id={activity.id} isArchived={activity.is_archived} />
           </div>
         ))}
       </div>
