@@ -6,6 +6,8 @@ import { getServiceObservationTypes } from "@/lib/supabase/services";
 import { logObservation, shareObservation, unshareObservation } from "@/app/(app)/observations/actions";
 import { cardClass, errorBannerClass } from "@/lib/ui";
 import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
+import { getShiftAccess } from "@/lib/supabase/shiftAccess";
+import ShiftLockedNotice from "@/components/ShiftLockedNotice";
 
 const OBS_TYPE_LABELS: Record<string, string> = {
   anecdotal: "Anecdotal",
@@ -23,6 +25,10 @@ export default async function ObservationsPage({
   searchParams: Promise<{ child?: string; error?: string }>;
 }) {
   const { child: childFilter, error } = await searchParams;
+
+  const access = await getShiftAccess();
+  if (access.restricted && !access.allowed) return <ShiftLockedNotice />;
+
   const [observations, children, outcomes, enabledObsTypes] = await Promise.all([
     getObservations(childFilter),
     getChildren(),

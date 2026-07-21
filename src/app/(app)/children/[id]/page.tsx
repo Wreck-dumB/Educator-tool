@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getChild, getChildInvites, getChildContacts } from "@/lib/supabase/children";
+import { getShiftAccess } from "@/lib/supabase/shiftAccess";
+import ShiftLockedNotice from "@/components/ShiftLockedNotice";
 import {
   updateChild,
   deleteChild,
@@ -51,6 +53,10 @@ export default async function ChildDetailPage({
 }) {
   const { id } = await params;
   const { error } = await searchParams;
+
+  const access = await getShiftAccess();
+  if (access.restricted && !access.allowed) return <ShiftLockedNotice />;
+
   const child = await getChild(id);
 
   if (!child) notFound();

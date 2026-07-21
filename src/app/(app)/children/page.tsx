@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { getChildren } from "@/lib/supabase/children";
+import { getShiftAccess } from "@/lib/supabase/shiftAccess";
+import ShiftLockedNotice from "@/components/ShiftLockedNotice";
 import { createChild } from "@/app/(app)/children/actions";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 
@@ -9,6 +11,10 @@ export default async function ChildrenPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+
+  const access = await getShiftAccess();
+  if (access.restricted && !access.allowed) return <ShiftLockedNotice />;
+
   const children = await getChildren();
   const currentChildren = children.filter((c) => !c.enrolment_ended_at);
   const ceasedChildren = children.filter((c) => c.enrolment_ended_at);
