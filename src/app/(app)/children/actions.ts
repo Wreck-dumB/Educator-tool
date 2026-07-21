@@ -132,6 +132,29 @@ export async function revokeChildInvite(formData: FormData) {
   redirect(`/children/${childId}`);
 }
 
+// Remove an already-linked family's access (a family that accepted their invite).
+// This only revokes the family's login/view access — every record about the child
+// (observations, incidents, medical history) is left exactly as it was.
+export async function removeFamilyAccess(formData: FormData) {
+  const supabase = await createClient();
+  const childId = formData.get("child_id") as string;
+  const inviteId = formData.get("invite_id") as string;
+
+  // Delete the access grant. RLS ("Educator can delete links for own children")
+  // ensures only the child's owning service can do this; a forged id affects zero rows.
+  await supabase
+    .from("parent_child_links")
+    .delete()
+    .eq("child_id", childId)
+    .eq("created_via_invite_id", inviteId);
+
+  // Mark the originating invite revoked so the old accept-link can't be reused to rejoin.
+  await supabase.from("child_invites").update({ status: "revoked" }).eq("id", inviteId);
+
+  revalidatePath(`/children/${childId}`);
+  redirect(`/children/${childId}`);
+}
+
 export async function updateChildEnrolment(formData: FormData) {
   const supabase = await createClient();
   const id = formData.get("id") as string;

@@ -6,6 +6,7 @@ import {
   deleteChild,
   createChildInvite,
   revokeChildInvite,
+  removeFamilyAccess,
   updateChildEnrolment,
   updateEnrolmentEndDate,
   createChildContact,
@@ -537,7 +538,9 @@ export default async function ChildDetailPage({
         <div className="px-4 py-4">
           <p className="text-sm text-ink/60">
             Invite {child.first_name}&apos;s family to a linked view where they can see what you
-            explicitly choose to share, message you, and upload documents.
+            explicitly choose to share, message you, and upload documents. You can remove a
+            family&apos;s access at any time (e.g. if they leave the centre) — it only revokes
+            their login and keeps all of {child.first_name}&apos;s records.
           </p>
           <form action={createChildInvite} className="mt-3 flex gap-2">
             <input type="hidden" name="child_id" value={child.id} />
@@ -575,6 +578,15 @@ export default async function ChildDetailPage({
                         <input type="hidden" name="child_id" value={child.id} />
                         <button type="submit" className="text-xs font-medium text-coral-dark hover:underline">
                           Revoke
+                        </button>
+                      </form>
+                    )}
+                    {invite.status === "accepted" && (
+                      <form action={removeFamilyAccess}>
+                        <input type="hidden" name="invite_id" value={invite.id} />
+                        <input type="hidden" name="child_id" value={child.id} />
+                        <button type="submit" className="text-xs font-medium text-coral-dark hover:underline">
+                          Remove access
                         </button>
                       </form>
                     )}
