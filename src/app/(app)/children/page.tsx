@@ -10,6 +10,8 @@ export default async function ChildrenPage({
 }) {
   const { error } = await searchParams;
   const children = await getChildren();
+  const currentChildren = children.filter((c) => !c.enrolment_ended_at);
+  const ceasedChildren = children.filter((c) => c.enrolment_ended_at);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -23,13 +25,17 @@ export default async function ChildrenPage({
 
       <div className={`mt-6 ${cardClass}`}>
         <div className="border-b border-coral-light px-4 py-3">
-          <h2 className="font-display text-sm font-semibold text-ink">All children</h2>
+          <h2 className="font-display text-sm font-semibold text-ink">Currently enrolled</h2>
         </div>
-        {children.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-ink/50">No children added yet.</p>
+        {currentChildren.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-ink/50">
+            {ceasedChildren.length > 0
+              ? "No currently enrolled children."
+              : "No children added yet."}
+          </p>
         ) : (
           <ul className="divide-y divide-coral-light">
-            {children.map((child) => (
+            {currentChildren.map((child) => (
               <li key={child.id} className="px-4 py-3">
                 <Link
                   href={`/children/${child.id}`}
@@ -45,6 +51,30 @@ export default async function ChildrenPage({
           </ul>
         )}
       </div>
+
+      {ceasedChildren.length > 0 && (
+        <details className={`mt-6 ${cardClass}`}>
+          <summary className="cursor-pointer list-none border-b border-coral-light px-4 py-3 font-display text-sm font-semibold text-ink/70">
+            No longer enrolled ({ceasedChildren.length})
+            <span className="ml-2 font-normal text-ink/40">— records kept for retention; click to view</span>
+          </summary>
+          <ul className="divide-y divide-coral-light">
+            {ceasedChildren.map((child) => (
+              <li key={child.id} className="px-4 py-3">
+                <Link
+                  href={`/children/${child.id}`}
+                  className="font-medium text-ink/60 hover:text-coral-dark"
+                >
+                  🧒 {child.first_name}
+                </Link>
+                <p className="mt-0.5 text-xs text-ink/40">
+                  Left {new Date(child.enrolment_ended_at as string).toLocaleDateString("en-AU")}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
 
       <div className={`mt-6 p-5 ${cardClass}`}>
         <h2 className="font-display text-sm font-semibold text-ink">Add a child</h2>

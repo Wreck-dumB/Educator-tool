@@ -632,12 +632,21 @@ export default async function ChildDetailPage({
         />
       </div>
 
-      <form action={deleteChild} className="mt-6 print:hidden">
-        <input type="hidden" name="id" value={child.id} />
-        <button type="submit" className="text-sm font-medium text-coral-dark hover:underline">
-          Delete this child profile
-        </button>
-      </form>
+      <div className="mt-6 rounded-2xl border border-coral-light bg-coral-light/20 p-4 print:hidden">
+        <h2 className="font-display text-sm font-semibold text-coral-dark">Permanently delete</h2>
+        <p className="mt-1 text-xs text-ink/60">
+          If {child.first_name} has left the centre, use <strong>Enrolment status</strong> above
+          instead — that keeps the records you&apos;re legally required to retain. Only permanently
+          delete a profile created by mistake. This erases {child.first_name}&apos;s observations,
+          incidents, and medical history and cannot be undone.
+        </p>
+        <form action={deleteChild} className="mt-3">
+          <input type="hidden" name="id" value={child.id} />
+          <button type="submit" className="text-xs font-medium text-coral-dark hover:underline">
+            Permanently delete this profile and all its records
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
