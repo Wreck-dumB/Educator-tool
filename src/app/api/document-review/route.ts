@@ -6,7 +6,11 @@ import { isRateLimited } from "@/lib/rateLimit";
 export const runtime = "nodejs";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
-const MAX_TEXT_CHARS = 15000;
+// The model has a 1M-token (~4M character) context window, so this cap exists only
+// to keep any single review's cost and latency bounded — not because of a model limit.
+// 200,000 chars is ~40-50 pages of dense text, comfortably larger than any single
+// childcare policy or procedures manual, while using only ~5% of the context window.
+const MAX_TEXT_CHARS = 200000;
 
 const REVIEW_TOOL: Anthropic.Tool = {
   name: "review_document",
@@ -142,7 +146,7 @@ export async function POST(request: Request) {
 - Focused on what matters for ACECQA assessment and real operational use`;
 
   const userPrompt = `Document filename: ${file.name}
-Document category the educator selected: ${category}${truncated ? "\n\n[Note: This document was truncated to fit — only the first ~15,000 characters are shown]" : ""}
+Document category the educator selected: ${category}${truncated ? `\n\n[Note: This document was truncated to fit — only the first ~${MAX_TEXT_CHARS.toLocaleString()} characters are shown]` : ""}
 
 --- DOCUMENT TEXT START ---
 ${documentText}
@@ -160,7 +164,7 @@ Please review this document using the review_document tool.`;
     const client = new Anthropic({ apiKey });
     const message = await client.messages.create({
       model: MODEL,
-      max_tokens: 2048,
+      max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
       tools: [REVIEW_TOOL],

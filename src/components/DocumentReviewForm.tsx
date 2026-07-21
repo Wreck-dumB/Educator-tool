@@ -181,7 +181,7 @@ export default function DocumentReviewForm() {
             </div>
             {result.truncated && (
               <p className="mt-3 text-xs text-amber-dark">
-                ⚠ This document was larger than our review limit — only the first ~15,000 characters were analysed. Very long documents may have gaps not reflected above.
+                ⚠ This document was very large, so only the earlier portion was analysed and there may be gaps not reflected above. For an unusually long manual, consider splitting it into its individual policies and reviewing each one separately.
               </p>
             )}
           </div>
