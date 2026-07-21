@@ -19,9 +19,20 @@ export default async function ParentPortalLayout({
 
   // Defense-in-depth alongside proxy.ts's UX-only redirect -- this layout
   // itself refuses to render educator-role content for a parent route.
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, media_consent_at")
+    .eq("id", user.id)
+    .single();
   if (profile?.role !== "parent") {
     redirect("/generate");
+  }
+
+  // Gate on photo/media consent. /accept-media-consent lives outside the
+  // portal so this never runs on that page itself (and is proxy-public so a
+  // parent isn't bounced back here before accepting).
+  if (!profile.media_consent_at) {
+    redirect("/accept-media-consent");
   }
 
   const { count: unreadCount } = await supabase

@@ -17,16 +17,21 @@ export default async function AppLayout({
     redirect("/login");
   }
 
-  // Gate on terms acceptance. /accept-terms lives outside this route group
-  // so this check never runs on that page itself.
+  // Gate on terms acceptance and photo/media consent. /accept-terms and
+  // /accept-media-consent live outside this route group so these checks
+  // never run on those pages themselves.
   const { data: profile } = await supabase
     .from("profiles")
-    .select("terms_accepted_at")
+    .select("terms_accepted_at, media_consent_at")
     .eq("id", user.id)
     .maybeSingle();
 
   if (profile && !profile.terms_accepted_at) {
     redirect("/accept-terms");
+  }
+
+  if (profile && !profile.media_consent_at) {
+    redirect("/accept-media-consent");
   }
 
   return (

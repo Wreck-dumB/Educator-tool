@@ -575,6 +575,8 @@ export interface Database {
           created_at: string;
           terms_accepted_at: string | null;
           terms_version: string | null;
+          media_consent_at: string | null;
+          media_consent_version: string | null;
         };
         Insert: {
           id: string;
@@ -583,6 +585,8 @@ export interface Database {
           created_at?: string;
           terms_accepted_at?: string | null;
           terms_version?: string | null;
+          media_consent_at?: string | null;
+          media_consent_version?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
         Relationships: [];
@@ -2302,6 +2306,10 @@ export interface Database {
     Views: Record<string, never>;
     Functions: {
       accept_terms: {
+        Args: { _version?: string };
+        Returns: void;
+      };
+      accept_media_consent: {
         Args: { _version?: string };
         Returns: void;
       };
