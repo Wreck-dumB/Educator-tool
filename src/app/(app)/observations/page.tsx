@@ -4,6 +4,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getServiceObservationTypes } from "@/lib/supabase/services";
 import { logObservation, shareObservation, unshareObservation } from "@/app/(app)/observations/actions";
+import { addFollowUp } from "@/app/(app)/follow-ups/actions";
 import { cardClass, errorBannerClass } from "@/lib/ui";
 import ObservationForm, { ObservationTypeName } from "@/components/ObservationForm";
 import { getShiftAccess } from "@/lib/supabase/shiftAccess";
@@ -148,25 +149,50 @@ export default async function ObservationsPage({
                       ))}
                     </div>
                   )}
-                  <div className="mt-3 flex items-center gap-3 border-t border-coral-light/50 pt-2">
-                    {o.shared_with_parent_at ? (
-                      <>
-                        <span className="text-xs text-sage-dark">Shared with parent</span>
-                        <form action={unshareObservation}>
+                  <div className="mt-3 border-t border-coral-light/50 pt-2">
+                    <div className="flex items-center gap-3">
+                      {o.shared_with_parent_at ? (
+                        <>
+                          <span className="text-xs text-sage-dark">Shared with parent</span>
+                          <form action={unshareObservation}>
+                            <input type="hidden" name="id" value={o.id} />
+                            <button type="submit" className="text-xs text-ink/40 hover:text-coral-dark">
+                              Unshare
+                            </button>
+                          </form>
+                        </>
+                      ) : (
+                        <form action={shareObservation}>
                           <input type="hidden" name="id" value={o.id} />
-                          <button type="submit" className="text-xs text-ink/40 hover:text-coral-dark">
-                            Unshare
+                          <button type="submit" className="text-xs text-ink/40 hover:text-sage-dark">
+                            Share with parent
                           </button>
                         </form>
-                      </>
-                    ) : (
-                      <form action={shareObservation}>
-                        <input type="hidden" name="id" value={o.id} />
-                        <button type="submit" className="text-xs text-ink/40 hover:text-sage-dark">
-                          Share with parent
+                      )}
+                    </div>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs text-ink/40 hover:text-coral-dark list-none [&::-webkit-details-marker]:hidden">
+                        + Note a follow-up
+                      </summary>
+                      <form action={addFollowUp} className="mt-2 space-y-2">
+                        <input type="hidden" name="child_id" value={o.child_id} />
+                        <input type="hidden" name="observation_id" value={o.id} />
+                        <input type="hidden" name="return_to" value="/observations" />
+                        <textarea
+                          name="note"
+                          placeholder="What will you do next to extend this learning?"
+                          rows={2}
+                          required
+                          className="w-full rounded-xl border border-coral-light px-3 py-2 text-xs text-ink placeholder-ink/30 focus:border-coral focus:outline-none"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-xl bg-coral px-3 py-1.5 text-xs font-semibold text-white hover:bg-coral-dark"
+                        >
+                          Save follow-up
                         </button>
                       </form>
-                    )}
+                    </details>
                   </div>
                 </div>
               </div>
