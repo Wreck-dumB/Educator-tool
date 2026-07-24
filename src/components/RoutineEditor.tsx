@@ -59,11 +59,11 @@ interface Props {
   existingTitle?: string;
   focusTopic?: string;
   notes?: string;
-  // For AI generation context
   childCount: number;
   dayName: string;
   roomName?: string;
   plannedActivities: string[];
+  templates?: { id: string; title: string; blocks: RoutineBlock[] }[];
 }
 
 type GenState = "idle" | "generating" | "error";
@@ -79,6 +79,7 @@ export default function RoutineEditor({
   dayName,
   roomName,
   plannedActivities,
+  templates,
 }: Props) {
   const [blocks, dispatch] = useReducer(reducer, initialBlocks);
   const [genState, setGenState] = useReducer((_: GenState, next: GenState) => next, "idle");
@@ -109,6 +110,23 @@ export default function RoutineEditor({
 
   return (
     <div>
+      {templates && templates.length > 0 && (
+        <div className="mb-4">
+          <p className="mb-1.5 text-xs font-medium text-ink/60">Start from a template:</p>
+          <div className="flex flex-wrap gap-2">
+            {templates.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                className="rounded-full border border-sage-light px-3 py-1.5 text-xs font-medium text-sage-dark hover:bg-sage-light"
+                onClick={() => dispatch({ type: "set", blocks: t.blocks })}
+              >
+                {t.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <button
           type="button"

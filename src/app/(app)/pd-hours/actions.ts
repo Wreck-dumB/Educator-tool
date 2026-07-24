@@ -1,18 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 
 const VALID_PD_TYPES = ["first_aid", "child_protection", "curriculum", "leadership", "nqs", "wellbeing", "other"] as const;
 
-export async function logPdHours(formData: FormData): Promise<{ error?: string }> {
+export async function logPdHours(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) redirect("/login");
 
   const ownerUserId = await getMyServiceOwnerId();
-  if (!ownerUserId) return { error: "No active service" };
+  if (!ownerUserId) redirect("/onboarding");
 
   const courseName = (formData.get("course_name") as string)?.trim();
   const provider = (formData.get("provider") as string)?.trim() || null;
@@ -21,10 +22,10 @@ export async function logPdHours(formData: FormData): Promise<{ error?: string }
   const pdType = formData.get("pd_type") as string;
   const notes = (formData.get("notes") as string)?.trim() || null;
 
-  if (!courseName) return { error: "Course name is required" };
-  if (!completedDate) return { error: "Date is required" };
-  if (isNaN(hours) || hours <= 0 || hours > 100) return { error: "Hours must be between 0.5 and 100" };
-  if (!VALID_PD_TYPES.includes(pdType as never)) return { error: "Invalid PD type" };
+  if (!courseName) redirect("/pd-hours?error=" + encodeURIComponent("Course name is required"));
+  if (!completedDate) redirect("/pd-hours?error=" + encodeURIComponent("Date is required"));
+  if (isNaN(hours) || hours <= 0 || hours > 100) redirect("/pd-hours?error=" + encodeURIComponent("Hours must be between 0.5 and 100"));
+  if (!VALID_PD_TYPES.includes(pdType as never)) redirect("/pd-hours?error=" + encodeURIComponent("Invalid PD type"));
 
   const { error } = await supabase.from("staff_pd_hours").insert({
     owner_user_id: ownerUserId,
@@ -37,19 +38,12 @@ export async function logPdHours(formData: FormData): Promise<{ error?: string }
     notes,
   });
 
-  if (error) return { error: error.message };
+  if (error) redirect("/pd-hours?error=" + encodeURIComponent(error.message));
   revalidatePath("/pd-hours");
-  return {};
 }
 
-export async function deletePdEntry(id: string): Promise<{ error?: string }> {
+export async function deletePdEntry(id: string): Promise<void> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
-
-  // Staff can delete their own entries; Director/2IC can delete any
-  const { error } = await supabase.from("staff_pd_hours").delete().eq("id", id);
-  if (error) return { error: error.message };
+  await supabase.from("staff_pd_hours").delete().eq("id", id);
   revalidatePath("/pd-hours");
-  return {};
 }

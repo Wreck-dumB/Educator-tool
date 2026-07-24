@@ -57,7 +57,7 @@ export default async function BroadcastsPage({
               No linked parents yet. Invite families via the Children page first.
             </p>
           )}
-          <form action={async (fd: FormData) => { await sendBroadcast(fd); }} className="space-y-4">
+          <form action={sendBroadcast} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-ink/70 mb-1">Subject / title</label>
               <input
@@ -111,7 +111,7 @@ export default async function BroadcastsPage({
                     />
                   </div>
                   {myRole === "director" && (
-                    <form action={async () => { "use server"; await deleteBroadcast(b.id); }}>
+                    <form action={deleteBroadcast.bind(null, b.id)}>
                       <button type="submit" className="shrink-0 text-xs text-coral-dark hover:underline">
                         Remove
                       </button>

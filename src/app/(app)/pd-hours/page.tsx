@@ -120,7 +120,7 @@ export default async function PdHoursPage({
       <div className={cardClass + " p-5"}>
         <h2 className="font-display text-base font-semibold text-ink mb-4">Log PD hours</h2>
         {error && <p className={`mb-3 ${errorBannerClass}`}>{error}</p>}
-        <form action={async (fd: FormData) => { await logPdHours(fd); }} className="space-y-4">
+        <form action={logPdHours} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="col-span-2">
               <label className="block text-sm font-medium text-ink/70 mb-1">Course / Training name</label>
@@ -221,7 +221,7 @@ function EntryList({
             {e.notes && <p className="text-xs text-ink/50 mt-0.5 italic">{e.notes}</p>}
           </div>
           {(canViewAll || e.staff_user_id === currentUserId) && (
-            <form action={async () => { "use server"; await deletePdEntry(e.id); }}>
+            <form action={deletePdEntry.bind(null, e.id)}>
               <button type="submit" className="text-xs text-coral-dark hover:underline shrink-0">
                 Remove
               </button>

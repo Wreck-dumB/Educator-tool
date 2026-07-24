@@ -67,7 +67,7 @@ export default async function ClosuresPage({
         <div className={cardClass + " p-5"}>
           <h2 className="font-display text-base font-semibold text-ink mb-4">Add closure</h2>
           {error && <p className={`mb-3 ${errorBannerClass}`}>{error}</p>}
-          <form action={async (fd: FormData) => { await addClosure(fd); }} className="space-y-4">
+          <form action={addClosure} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-ink/70 mb-1">Date</label>
@@ -125,7 +125,7 @@ export default async function ClosuresPage({
                   </div>
                 </div>
                 {canEdit && (
-                  <form action={async () => { "use server"; await deleteClosure(c.id); }}>
+                  <form action={deleteClosure.bind(null, c.id)}>
                     <button type="submit" className="text-xs text-coral-dark hover:underline">Remove</button>
                   </form>
                 )}

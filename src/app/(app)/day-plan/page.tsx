@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { cardClass, errorBannerClass, successBannerClass, inputClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
+import DateNavInput from "@/components/DateNavInput";
 import RoutineEditor from "@/components/RoutineEditor";
 import { addProgramEntry } from "./actions";
 import type { RoutineBlock } from "@/lib/types/database.types";
@@ -210,14 +211,7 @@ export default async function DayPlanPage({
           <p className="mt-1 text-sm text-ink/60">{displayDate}</p>
         </div>
         <div className="flex items-center gap-2">
-          <input
-            type="date"
-            defaultValue={date}
-            onChange={(e) => {
-              if (e.target.value) window.location.href = `/day-plan?date=${e.target.value}`;
-            }}
-            className="rounded-xl border border-coral-light px-3 py-1.5 text-sm text-ink focus:border-coral focus:outline-none"
-          />
+          <DateNavInput date={date} path="/day-plan" />
           <PrintButton />
         </div>
       </div>
@@ -395,11 +389,7 @@ export default async function DayPlanPage({
               <input type="hidden" name="day_date" value={date} />
               <div>
                 <label className="mb-1 block text-xs text-ink/60">From saved activities</label>
-                <select name="activity_id" className={inputClass} onChange={(e) => {
-                  const opt = e.target.options[e.target.selectedIndex];
-                  const titleInput = e.target.closest("form")?.querySelector<HTMLInputElement>('[name="title"]');
-                  if (titleInput && opt.text !== "— or type below —") titleInput.value = opt.text;
-                }}>
+                <select name="activity_id" className={inputClass}>
                   <option value="">Select a saved activity (optional)…</option>
                   {(savedActivities ?? []).map((a) => (
                     <option key={a.id} value={a.id}>{a.title}</option>
@@ -462,26 +452,6 @@ export default async function DayPlanPage({
             {routineBlocks.length === 0 && <span className="ml-2 text-xs font-normal text-ink/40">— editable, printable, saveable</span>}
           </summary>
           <div className="border-t border-coral-light px-4 pb-6 pt-4">
-            {routineTemplates && routineTemplates.length > 0 && (
-              <div className="mb-4">
-                <p className="mb-1.5 text-xs font-medium text-ink/60">Start from a template:</p>
-                <div className="flex flex-wrap gap-2">
-                  {routineTemplates.map((t) => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      className="rounded-full border border-sage-light px-3 py-1.5 text-xs font-medium text-sage-dark hover:bg-sage-light"
-                      onClick={() => {
-                        const event = new CustomEvent("load-template", { detail: t.blocks });
-                        window.dispatchEvent(event);
-                      }}
-                    >
-                      {t.title}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             <RoutineEditor
               initialBlocks={routineBlocks}
               date={date}
@@ -492,6 +462,7 @@ export default async function DayPlanPage({
               childCount={presentCount + expectedCount}
               dayName={dayName}
               plannedActivities={plannedActivityTitles}
+              templates={routineTemplates ?? undefined}
             />
           </div>
         </details>

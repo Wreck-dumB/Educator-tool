@@ -1,27 +1,28 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { getMyStaffRole } from "@/lib/supabase/staff";
 
-export async function sendBroadcast(formData: FormData): Promise<{ error?: string; count?: number }> {
+export async function sendBroadcast(formData: FormData): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: "Not authenticated" };
+  if (!user) redirect("/login");
 
   const myRole = await getMyStaffRole();
-  if (myRole !== "director" && myRole !== "2ic") return { error: "Only Director or 2IC can send broadcasts" };
+  if (myRole !== "director" && myRole !== "2ic") redirect("/broadcasts?error=" + encodeURIComponent("Only Director or 2IC can send broadcasts"));
 
   const ownerUserId = await getMyServiceOwnerId();
-  if (!ownerUserId) return { error: "No active service" };
+  if (!ownerUserId) redirect("/onboarding");
 
   const title = (formData.get("title") as string)?.trim();
   const body = (formData.get("body") as string)?.trim();
   const target = (formData.get("target") as string) || "all_parents";
 
-  if (!title) return { error: "Title is required" };
-  if (!body) return { error: "Message body is required" };
+  if (!title) redirect("/broadcasts?error=" + encodeURIComponent("Title is required"));
+  if (!body) redirect("/broadcasts?error=" + encodeURIComponent("Message body is required"));
 
   // Insert the broadcast record
   const { data: broadcastRow, error: broadcastError } = await supabase
@@ -36,7 +37,7 @@ export async function sendBroadcast(formData: FormData): Promise<{ error?: strin
     .select("id")
     .single();
 
-  if (broadcastError) return { error: broadcastError.message };
+  if (broadcastError) redirect("/broadcasts?error=" + encodeURIComponent(broadcastError.message));
 
   // Find all linked parents (unique) for this service
   const { data: links } = await supabase
@@ -46,7 +47,7 @@ export async function sendBroadcast(formData: FormData): Promise<{ error?: strin
 
   if (!links || links.length === 0) {
     revalidatePath("/broadcasts");
-    return { count: 0 };
+    return;
   }
 
   // De-duplicate parent_user_ids
@@ -63,23 +64,16 @@ export async function sendBroadcast(formData: FormData): Promise<{ error?: strin
   await supabase.from("parent_notifications").insert(notifications);
 
   revalidatePath("/broadcasts");
-  return { count: uniqueParents.length };
 }
 
-export async function deleteBroadcast(id: string): Promise<{ error?: string }> {
+export async function deleteBroadcast(id: string): Promise<void> {
   const supabase = await createClient();
   const ownerUserId = await getMyServiceOwnerId();
-  if (!ownerUserId) return { error: "No active service" };
+  if (!ownerUserId) redirect("/onboarding");
 
   const myRole = await getMyStaffRole();
-  if (myRole !== "director") return { error: "Only the Director can delete broadcasts" };
+  if (myRole !== "director") redirect("/broadcasts?error=" + encodeURIComponent("Only the Director can delete broadcasts"));
 
-  const { error } = await supabase
-    .from("broadcast_messages")
-    .delete()
-    .eq("id", id)
-    .eq("owner_user_id", ownerUserId);
-  if (error) return { error: error.message };
+  await supabase.from("broadcast_messages").delete().eq("id", id).eq("owner_user_id", ownerUserId);
   revalidatePath("/broadcasts");
-  return {};
 }

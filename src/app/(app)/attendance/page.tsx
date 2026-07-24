@@ -6,6 +6,7 @@ import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { createClient } from "@/lib/supabase/server";
 import { cardClass } from "@/lib/ui";
 import AttendanceRegister from "./AttendanceRegister";
+import PrintButton from "@/components/PrintButton";
 
 export const metadata: Metadata = { title: "Roll Call · DR. SparkPlay" };
 
@@ -49,20 +50,10 @@ export default async function AttendancePage({ searchParams }: Props) {
             Daily sign-in / sign-out register — who is on premises right now
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {}}
-          className="hidden print:hidden rounded-full border border-ink/20 px-4 py-1.5 text-sm font-medium text-ink/60 hover:bg-ink/5 print:block"
-          aria-hidden
-        />
-        <button
-          type="button"
-          onClick={() => window.print()}
+        <PrintButton
+          label="🖨 Print evacuation list"
           className="rounded-full border border-ink/20 px-4 py-1.5 text-sm font-medium text-ink/60 hover:bg-ink/5 print:hidden"
-          suppressHydrationWarning
-        >
-          🖨 Print evacuation list
-        </button>
+        />
       </div>
 
       {/* Date picker */}
