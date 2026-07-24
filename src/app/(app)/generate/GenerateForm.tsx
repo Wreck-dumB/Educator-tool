@@ -270,7 +270,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
             >
               {materials.map((m) => (
                 <option key={m.id} value={m.name}>
-                  {getMaterialIcon(m.name)} {m.name}
+                  {getMaterialIcon(m.name)} {m.name}{m.quantity != null ? ` ×${m.quantity}${m.unit ? " " + m.unit : ""}` : ""}
                 </option>
               ))}
             </select>
