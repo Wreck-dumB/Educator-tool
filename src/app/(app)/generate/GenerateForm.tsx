@@ -253,19 +253,32 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
 
         {materials.length > 0 && (
           <div className="mt-3">
-            <p className="text-sm font-medium text-ink/70">Saved materials</p>
-            <div className="mt-2 flex flex-wrap gap-2">
+            <label htmlFor="saved-materials" className="block text-sm font-medium text-ink/70">
+              Saved materials
+            </label>
+            <select
+              id="saved-materials"
+              multiple
+              size={Math.min(materials.length, 7)}
+              value={Array.from(selectedMaterials)}
+              onChange={(e) => {
+                setSelectedMaterials(
+                  new Set(Array.from(e.target.selectedOptions).map((o) => o.value))
+                );
+              }}
+              className="mt-2 w-full rounded-xl border border-ink/20 bg-white px-3 py-2 text-sm text-ink focus:border-coral focus:outline-none focus:ring-2 focus:ring-coral/20"
+            >
               {materials.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => toggleMaterial(m.name)}
-                  className={pillClass(selectedMaterials.has(m.name))}
-                >
+                <option key={m.id} value={m.name}>
                   {getMaterialIcon(m.name)} {m.name}
-                </button>
+                </option>
               ))}
-            </div>
+            </select>
+            <p className="mt-1 text-xs text-ink/40">
+              {selectedMaterials.size > 0
+                ? `${selectedMaterials.size} selected`
+                : "Tap to select · hold Ctrl / ⌘ for multiple"}
+            </p>
           </div>
         )}
 
