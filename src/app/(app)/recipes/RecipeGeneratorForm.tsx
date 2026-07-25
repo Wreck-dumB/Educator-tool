@@ -1,20 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import type { RecipeSuggestion, Material, ChildProfile } from "@/lib/types/domain";
+import type { RecipeSuggestion, Material } from "@/lib/types/domain";
 import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { saveRecipe } from "./actions";
 
+type AllergyKid = { name: string; restrictions: string };
+
+function buildAvoidString(kids: AllergyKid[]) {
+  return kids.map((k) => `${k.name}: ${k.restrictions}`).join("; ");
+}
+
 export default function RecipeGeneratorForm({
   foodMaterials,
-  childProfiles,
+  allergyKids,
+  attendanceBasis,
 }: {
   foodMaterials: Material[];
-  childProfiles: ChildProfile[];
+  allergyKids: AllergyKid[];
+  attendanceBasis: "signed-in" | "all-enrolled";
 }) {
   const [userInput, setUserInput] = useState("");
   const [selectedIngredients, setSelectedIngredients] = useState<Set<string>>(new Set());
-  const [avoid, setAvoid] = useState("");
+  const [avoid, setAvoid] = useState(() => buildAvoidString(allergyKids));
   const [servings, setServings] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -39,12 +47,6 @@ export default function RecipeGeneratorForm({
       else next.add(name);
       return next;
     });
-  }
-
-  function fillAvoidFromChild(child: ChildProfile) {
-    const parts = [child.medical_conditions, child.dietary_restrictions].filter(Boolean);
-    if (child.is_anaphylaxis_risk) parts.push("anaphylaxis risk — check allergens carefully");
-    setAvoid(parts.join("; "));
   }
 
   async function handleGenerate() {
@@ -86,6 +88,30 @@ export default function RecipeGeneratorForm({
 
   return (
     <div className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
+
+      {/* Allergy summary banner */}
+      {allergyKids.length > 0 && (
+        <div className="mb-4 rounded-xl border border-coral bg-coral-light/30 p-3">
+          <p className="text-xs font-semibold text-coral-dark">
+            {attendanceBasis === "signed-in"
+              ? `${allergyKids.length} child${allergyKids.length === 1 ? "" : "ren"} signed in today with dietary requirements`
+              : `${allergyKids.length} enrolled child${allergyKids.length === 1 ? "" : "ren"} with dietary requirements`}
+            {" "}— already applied below.
+          </p>
+          <ul className="mt-1.5 space-y-0.5">
+            {allergyKids.map((k) => (
+              <li key={k.name} className="flex items-baseline gap-1.5 text-xs">
+                <span className="font-semibold text-coral-dark">{k.name}:</span>
+                <span className="text-ink/70">{k.restrictions}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-[11px] text-ink/40">
+            Recipes will avoid these allergens or provide substitutions. Always verify against the child&apos;s actual enrolment record.
+          </p>
+        </div>
+      )}
+
       <label className="block text-sm font-medium text-ink/70">What do you need?</label>
       <textarea
         rows={3}
@@ -118,21 +144,12 @@ export default function RecipeGeneratorForm({
       )}
 
       <div className="mt-3">
-        <label className="block text-sm font-medium text-ink/70">Must avoid (allergies/dietary restrictions)</label>
-        {childProfiles.length > 0 && (
-          <div className="mt-1 flex flex-wrap gap-2">
-            {childProfiles.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                onClick={() => fillAvoidFromChild(c)}
-                className="rounded-full border border-sage px-3 py-1 text-xs text-sage-dark hover:bg-sage-light"
-              >
-                Fill from {c.first_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <label className="block text-sm font-medium text-ink/70">
+          Must avoid / allergens
+          {allergyKids.length === 0 && (
+            <span className="ml-1.5 text-xs font-normal text-ink/40">(no restrictions found for today — edit manually if needed)</span>
+          )}
+        </label>
         <textarea
           rows={2}
           value={avoid}

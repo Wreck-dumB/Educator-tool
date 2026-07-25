@@ -1,25 +1,52 @@
 import { getRecipes } from "@/lib/supabase/recipes";
 import { getMaterials } from "@/lib/supabase/materials";
 import { getChildren } from "@/lib/supabase/children";
+import { getAttendanceForDate } from "@/lib/supabase/attendance";
 import { cardClass } from "@/lib/ui";
 import RecipeGeneratorForm from "./RecipeGeneratorForm";
 import { deleteRecipe } from "./actions";
 
+function todayLocal() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default async function RecipesPage() {
-  const [recipes, materials, children] = await Promise.all([getRecipes(), getMaterials(), getChildren()]);
+  const today = todayLocal();
+  const [recipes, materials, children, attendance] = await Promise.all([
+    getRecipes(), getMaterials(), getChildren(), getAttendanceForDate(today),
+  ]);
   const foodMaterials = materials.filter((m) => m.category === "food");
+
+  // Build allergy summary for children present today (or all enrolled if no sign-ins yet)
+  const presentIds = new Set(
+    attendance.filter((r) => r.status === "signed_in" || r.status === "signed_out").map((r) => r.child_id),
+  );
+  const hasAttendance = presentIds.size > 0;
+  const allergyKids = children
+    .filter((c) => !hasAttendance || presentIds.has(c.id))
+    .flatMap((c) => {
+      const parts: string[] = [];
+      if (c.is_anaphylaxis_risk) parts.push("ANAPHYLAXIS RISK");
+      if (c.dietary_restrictions) parts.push(c.dietary_restrictions);
+      if (c.medical_conditions) parts.push(c.medical_conditions);
+      return parts.length > 0 ? [{ name: c.first_name, restrictions: parts.join("; ") }] : [];
+    });
 
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="font-display text-3xl font-semibold text-coral-dark">Recipes</h1>
       <p className="mt-1 text-sm text-ink/60">
         Generate child-friendly recipes for snacks, meals, or cooking activities. Allergens and
-        choking-hazard notes are always shown — but this is a draft for your own judgement, always
-        check it against each child&apos;s actual enrolment/allergy record before serving.
+        choking-hazard notes are always shown — always verify against each child&apos;s enrolment
+        record before serving.
       </p>
 
       <div className="mt-6">
-        <RecipeGeneratorForm foodMaterials={foodMaterials} childProfiles={children} />
+        <RecipeGeneratorForm
+          foodMaterials={foodMaterials}
+          allergyKids={allergyKids}
+          attendanceBasis={hasAttendance ? "signed-in" : "all-enrolled"}
+        />
       </div>
 
       <div className="mt-6 space-y-3">

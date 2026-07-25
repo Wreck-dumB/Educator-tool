@@ -627,10 +627,11 @@ const RECIPE_SYSTEM_PROMPT = `You are an assistant helping an Australian early c
 Safety comes first, ahead of variety or novelty:
 - Actively avoid or modify known choking hazards for young children (whole grapes, whole nuts, popcorn, hard raw vegetable chunks, large chunks of meat/cheese, etc.) - if a recipe includes something like this, explicitly note the modification needed (e.g. quartering grapes) in choking_hazard_notes, don't just silently include the hazard.
 - Always list allergens genuinely present in allergens_present (egg, dairy, tree nuts, peanuts, gluten, soy, sesame, shellfish, fish - whatever genuinely applies), even if not asked. Never omit a present allergen to make a recipe seem more accommodating than it is.
-- If the educator specifies allergies/dietary restrictions to avoid, the recipe must not include those allergens/ingredients at all - do not propose a recipe that violates a stated restriction and then just note it in allergens_present instead of avoiding it.
+- When child-specific restrictions are given (e.g. "Emma: no dairy; Liam: peanut allergy"): strongly prefer recipes that are safe for ALL children without modification. If a recipe cannot avoid every restriction, include a clear substitution note in the steps or description — e.g. "For Emma (dairy-free): replace butter with coconut oil" — so the educator can prepare one safe version per affected child with minimal extra effort. Never suggest a recipe where an allergen cannot be easily substituted.
+- If a restriction includes "ANAPHYLAXIS RISK", treat that allergen as an absolute exclusion — the recipe must not contain it at all, with no substitution path.
 - If ingredients on hand are given, prefer using them, but you may suggest reasonable common pantry additions if the dish genuinely needs them.
 
-This is a draft for the educator's own judgement, not a substitute for checking each child's actual enrolment/allergy record before serving - you don't know which specific children will eat this.`;
+This is a draft for the educator's own judgement, not a substitute for checking each child's actual enrolment/allergy record before serving.`;
 
 export async function generateRecipes(
   userInput: string,
@@ -644,7 +645,7 @@ export async function generateRecipes(
     lines.push(`Ingredients/pantry items on hand: ${ingredientsOnHand.join(", ")}.`);
   }
   if (avoidAllergensOrRestrictions) {
-    lines.push(`MUST avoid (allergies/dietary restrictions): ${avoidAllergensOrRestrictions}. Do not include these at all.`);
+    lines.push(`Dietary restrictions for children eating today: ${avoidAllergensOrRestrictions}. Prefer recipes safe for all; where not possible, provide clear per-child substitutions.`);
   }
   if (servings) {
     lines.push(`Number of child-sized servings needed: ${servings}.`);
