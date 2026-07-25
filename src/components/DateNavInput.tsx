@@ -1,10 +1,11 @@
 "use client";
 
-export default function DateNavInput({ date, path, className }: { date: string; path: string; className?: string }) {
+export default function DateNavInput({ date, path, max, className }: { date: string; path: string; max?: string; className?: string }) {
   return (
     <input
       type="date"
       defaultValue={date}
+      max={max}
       onChange={(e) => {
         if (e.target.value) window.location.href = `${path}?date=${e.target.value}`;
       }}

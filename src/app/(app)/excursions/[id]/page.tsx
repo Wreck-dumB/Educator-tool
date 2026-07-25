@@ -6,6 +6,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { getMyStaffRole } from "@/lib/supabase/staff";
 import { cardClass, inputClass, errorBannerClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
+import ConfirmDeleteButton from "@/components/ConfirmDeleteButton";
 import { updateExcursion, deleteExcursion, toggleAttendee } from "../actions";
 
 export default async function ExcursionDetailPage({
@@ -248,10 +249,11 @@ export default async function ExcursionDetailPage({
       {/* Delete */}
       {myRole === "director" && (
         <div className="mt-6 print:hidden">
-          <form action={deleteExcursion}
-            onSubmit={(e) => { if (!confirm("Delete this excursion?")) e.preventDefault(); }}>
+          <form action={deleteExcursion}>
             <input type="hidden" name="id" value={excursion.id} />
-            <button type="submit" className="text-xs text-coral-dark hover:underline">Delete excursion</button>
+            <ConfirmDeleteButton message="Delete this excursion?" className="text-xs text-coral-dark hover:underline">
+              Delete excursion
+            </ConfirmDeleteButton>
           </form>
         </div>
       )}

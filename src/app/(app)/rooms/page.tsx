@@ -5,6 +5,7 @@ import { getChildren } from "@/lib/supabase/children";
 import { getChildIncidentReports } from "@/lib/supabase/incidents";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { createRoom, renameRoom, deleteRoom, assignChildToRoom } from "./actions";
+import ConfirmDeleteButton from "@/components/ConfirmDeleteButton";
 
 export const metadata: Metadata = { title: "Rooms · DR. SparkPlay" };
 
@@ -93,15 +94,10 @@ export default async function RoomsPage({
                   </Link>
                   <form action={deleteRoom}>
                     <input type="hidden" name="id" value={room.id} />
-                    <button
-                      type="submit"
+                    <ConfirmDeleteButton
+                      message={`Delete "${room.name}"? Children will be unassigned.`}
                       className="text-xs text-coral-dark hover:underline"
-                      onClick={(e) => {
-                        if (!confirm(`Delete "${room.name}"? Children will be unassigned.`)) e.preventDefault();
-                      }}
-                    >
-                      Delete
-                    </button>
+                    />
                   </form>
                 </div>
 

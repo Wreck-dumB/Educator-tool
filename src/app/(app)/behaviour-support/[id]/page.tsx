@@ -12,6 +12,7 @@ import {
 import { cardClass } from "@/lib/ui";
 import { updateBehaviourSupportPlan, deleteBehaviourSupportPlan } from "../actions";
 import { BSPEditForm } from "./BSPEditForm";
+import ConfirmDeleteButton from "@/components/ConfirmDeleteButton";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Behaviour Support Plan · DR. SparkPlay" };
@@ -93,15 +94,10 @@ export default async function BSPDetailPage({
         </div>
         <form action={deleteBehaviourSupportPlan}>
           <input type="hidden" name="id" value={plan.id} />
-          <button
-            type="submit"
+          <ConfirmDeleteButton
+            message="Delete this plan? This cannot be undone."
             className="shrink-0 rounded-xl border border-coral-light px-3 py-1.5 text-xs font-medium text-ink/40 hover:border-coral-dark hover:text-coral-dark"
-            onClick={(e) => {
-              if (!confirm("Delete this plan? This cannot be undone.")) e.preventDefault();
-            }}
-          >
-            Delete
-          </button>
+          />
         </form>
       </div>
 

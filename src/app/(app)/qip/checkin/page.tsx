@@ -5,6 +5,7 @@ import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { cardClass, successBannerClass } from "@/lib/ui";
 import { saveQipCheckin } from "../actions";
 import type { QipCheckinResponse } from "@/lib/types/database.types";
+import DateNavInput from "@/components/DateNavInput";
 
 export const metadata: Metadata = { title: "QIP Daily Check-in · DR. SparkPlay" };
 
@@ -125,15 +126,7 @@ export default async function QipCheckinPage({
       {/* Date selector */}
       <div className="mt-4 flex items-center gap-3">
         <span className="text-sm font-medium text-ink/70">Date:</span>
-        <input
-          type="date"
-          defaultValue={date}
-          max={todayLocal()}
-          onChange={(e) => {
-            if (e.target.value) window.location.href = `/qip/checkin?date=${e.target.value}`;
-          }}
-          className="rounded-xl border border-coral-light px-3 py-1.5 text-sm text-ink focus:border-coral focus:outline-none"
-        />
+        <DateNavInput date={date} path="/qip/checkin" max={todayLocal()} />
         {!isToday && (
           <Link href="/qip/checkin" className="text-xs text-coral-dark hover:underline">
             Jump to today →
