@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceAccess, isPlatformOwner } from "@/lib/supabase/serviceAccess";
 import NavBar from "@/components/layout/NavBar";
 import { WhiteNoiseProvider } from "@/components/providers/WhiteNoiseProvider";
 
@@ -32,6 +33,16 @@ export default async function AppLayout({
 
   if (profile && !profile.media_consent_at) {
     redirect("/accept-media-consent");
+  }
+
+  // Platform access gate: a centre whose access has been suspended/expired (or
+  // whose trial has lapsed) is sent to /access-paused. Platform owners (Dan) are
+  // never gated. Fails open — see getServiceAccess.
+  if (!isPlatformOwner(user.email)) {
+    const access = await getServiceAccess();
+    if (!access.allowed) {
+      redirect("/access-paused");
+    }
   }
 
   return (

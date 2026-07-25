@@ -13,7 +13,8 @@ Building in order, top to bottom.
 - [x] **#6 Staff on-shift-only access (app-level)** — `getShiftAccess()` blocks regular staff from the children list, child detail, and observations pages unless signed in for a shift; managers/owner unrestricted. (commit pending) **FOLLOW-UPS:** (1) extend the gate to remaining child-data pages (diary, incidents, medical, health plans, etc.); (2) optionally harden to DB/RLS enforcement if UX-level isn't enough.
 
 ## Monetization
-- [ ] **Pricing & credits model** — creation costs a credit, maintenance included. Full spec: [docs/pricing-and-credits.md](docs/pricing-and-credits.md). Blocked on: no billing/subscription layer yet (Stripe + entitlement tables first).
+- [x] **Business access register + gate** — track which centres have access once we monetise after the test phase. Migration 0054 adds `service_access` (one row per service: status trial/active/suspended/expired + trial_ends_at + notes; auto-created 'trial' on new service via trigger; existing centres backfilled 'active'). Owner-only dashboard at `/owner/businesses` (Dan changes any centre's status by hand). App gate in `(app)/layout.tsx` sends suspended/expired/lapsed-trial centres to `/access-paused`; fails OPEN on missing row so the test phase can't lock anyone out. Platform owner = `PLATFORM_OWNER_EMAILS` env (never gated). **MANUAL STEP:** set `PLATFORM_OWNER_EMAILS` in Vercel env (already set locally to d.rust92@outlook.com) or the /owner area is inaccessible in production.
+- [ ] **Pricing & credits model** — creation costs a credit, maintenance included. Full spec: [docs/pricing-and-credits.md](docs/pricing-and-credits.md). Blocked on: no billing/subscription layer yet (Stripe + entitlement tables first). The `service_access` table above is the natural home for the entitlement/credits columns when this is built.
 
 ## Notes
 - Add new parked ideas here rather than losing them mid-conversation.

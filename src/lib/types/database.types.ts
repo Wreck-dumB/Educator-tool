@@ -1153,6 +1153,28 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;
         Relationships: [];
       };
+      service_access: {
+        Row: {
+          service_id: string;
+          status: "trial" | "active" | "suspended" | "expired";
+          trial_ends_at: string | null;
+          notes: string | null;
+          updated_by: string | null;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          service_id: string;
+          status?: "trial" | "active" | "suspended" | "expired";
+          trial_ends_at?: string | null;
+          notes?: string | null;
+          updated_by?: string | null;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["service_access"]["Insert"]>;
+        Relationships: [];
+      };
       complaint_records: {
         Row: {
           id: string;
