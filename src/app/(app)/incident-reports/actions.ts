@@ -51,6 +51,9 @@ export async function createChildIncidentReport(formData: FormData) {
   const reg176 = formData.get("regulatory_authority_notified") === "1";
   const reg176At = formData.get("regulatory_authority_notified_at") as string;
 
+  const submitterTypedName = field(formData, "submitter_typed_name");
+  const submitterConfirmed = formData.get("submitter_sign_confirmed") === "1";
+
   const { error } = await supabase.from("child_incident_reports").insert({
     owner_user_id: ownerUserId,
     created_by_user_id: user.id,
@@ -74,6 +77,8 @@ export async function createChildIncidentReport(formData: FormData) {
     regulatory_authority_notified: reg176,
     regulatory_authority_notified_at: reg176 && reg176At ? new Date(reg176At).toISOString() : null,
     regulatory_authority_notification_method: field(formData, "regulatory_authority_notification_method"),
+    submitter_confirmed_at: submitterConfirmed ? new Date().toISOString() : null,
+    submitter_typed_name: submitterConfirmed ? submitterTypedName : null,
   });
 
   if (error) {
@@ -123,6 +128,9 @@ export async function createStaffIncidentReport(formData: FormData) {
     redirect("/incident-reports?error=No active service membership");
   }
 
+  const submitterTypedName = field(formData, "submitter_typed_name");
+  const submitterConfirmed = formData.get("submitter_sign_confirmed") === "1";
+
   const { error } = await supabase.from("staff_incident_reports").insert({
     owner_user_id: ownerUserId,
     created_by_user_id: user.id,
@@ -140,6 +148,8 @@ export async function createStaffIncidentReport(formData: FormData) {
     corrective_actions: field(formData, "corrective_actions"),
     completed_by_name: completedByName,
     completed_by_role: field(formData, "completed_by_role"),
+    submitter_confirmed_at: submitterConfirmed ? new Date().toISOString() : null,
+    submitter_typed_name: submitterConfirmed ? submitterTypedName : null,
   });
 
   if (error) {
@@ -200,6 +210,59 @@ export async function notifyParentOfIncident(formData: FormData): Promise<{ erro
 
   revalidatePath("/incident-reports");
   return { count: links.length };
+}
+
+export async function directorCountersignIncident(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const myRole = await getMyStaffRole();
+  if (myRole !== "director" && myRole !== "2ic") redirect("/incident-reports");
+
+  const id = formData.get("id") as string;
+  const typedName = (formData.get("director_typed_name") as string)?.trim();
+  const notes = (formData.get("director_notes") as string)?.trim() || null;
+  const table = (formData.get("table") as string) === "staff" ? "staff_incident_reports" : "child_incident_reports";
+
+  if (!id || !typedName) redirect("/incident-reports");
+
+  await supabase
+    .from(table as "child_incident_reports")
+    .update({
+      director_signed_by: user.id,
+      director_signed_at: new Date().toISOString(),
+      director_typed_name: typedName,
+      director_notes: notes,
+    })
+    .eq("id", id);
+
+  revalidatePath("/incident-reports");
+  redirect("/incident-reports");
+}
+
+export async function recordParentAcknowledgement(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const id = formData.get("id") as string;
+  const parentName = (formData.get("parent_acknowledged_by_name") as string)?.trim();
+  const method = formData.get("parent_acknowledgement_method") as string;
+
+  if (!id || !parentName || !method) redirect("/incident-reports");
+
+  await supabase
+    .from("child_incident_reports")
+    .update({
+      parent_acknowledged_at: new Date().toISOString(),
+      parent_acknowledged_by_name: parentName,
+      parent_acknowledgement_method: method,
+    })
+    .eq("id", id);
+
+  revalidatePath("/incident-reports");
+  redirect("/incident-reports");
 }
 
 export async function deleteStaffIncidentReport(formData: FormData) {

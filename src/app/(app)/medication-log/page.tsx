@@ -1,10 +1,9 @@
 import { getMedicationLog } from "@/lib/supabase/medicationLog";
 import { getChildren } from "@/lib/supabase/children";
-import { getMyStaffRole } from "@/lib/supabase/staff";
-import { getStaffMembers } from "@/lib/supabase/staff";
-import { getMyService } from "@/lib/supabase/staff";
+import { getMyStaffRole, getStaffMembers, getMyService } from "@/lib/supabase/staff";
+import { createClient } from "@/lib/supabase/server";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
-import { logMedication, deleteMedicationLog } from "./actions";
+import { logMedication, deleteMedicationLog, witnessCountersign } from "./actions";
 
 const ROUTE_LABELS: Record<string, string> = {
   oral: "Oral",
@@ -30,6 +29,9 @@ export default async function MedicationLogPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const supabase = await createClient();
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+
   const [logs, children, myRole, service] = await Promise.all([
     getMedicationLog(),
     getChildren(),
@@ -39,6 +41,7 @@ export default async function MedicationLogPage({
 
   const staffMembers = service ? await getStaffMembers(service.id) : [];
   const isDirector = myRole === "director";
+  const currentUserProfile = staffMembers.find((s) => s.user_id === currentUser?.id);
 
   const nowLocal = new Date().toLocaleString("sv-SE", { timeZone: "Australia/Sydney" }).slice(0, 16);
 
@@ -153,8 +156,40 @@ export default async function MedicationLogPage({
             <textarea name="observations_after" rows={2} className={inputClass} placeholder="Child's reaction, any side effects…" />
           </div>
 
+          {/* ─── Sign-off (Reg 93 requirement) ────────────────────────── */}
+          <fieldset className="rounded-xl border-2 border-coral bg-coral-light/20 p-4 space-y-3">
+            <legend className="px-1 text-sm font-semibold text-coral-dark">Staff sign-off (required)</legend>
+            <p className="text-xs text-ink/60">
+              Under Regulation 93, the person administering medication must sign the record.
+              Your signature is tied to your authenticated account and timestamped.
+            </p>
+            <div>
+              <label className="block text-xs font-medium text-ink/70 mb-1">Full name (type to sign)</label>
+              <input
+                type="text"
+                name="administering_typed_name"
+                required
+                placeholder={currentUserProfile?.displayName ?? "Your full name"}
+                className={inputClass}
+              />
+            </div>
+            <label className="flex items-start gap-2.5 text-sm text-ink">
+              <input
+                type="checkbox"
+                name="sign_confirmed"
+                value="1"
+                required
+                className="mt-0.5 h-4 w-4 rounded border-coral accent-coral"
+              />
+              <span>
+                I confirm that I personally administered this medication as recorded above, that the
+                information is accurate and complete, and that I am authorised to do so.
+              </span>
+            </label>
+          </fieldset>
+
           <div className="flex justify-end">
-            <button type="submit" className={primaryButtonClass}>Save record</button>
+            <button type="submit" className={primaryButtonClass}>Save & sign record</button>
           </div>
         </form>
       </div>
@@ -225,6 +260,43 @@ export default async function MedicationLogPage({
                           })}
                         </p>
                       )}
+                      {/* ── Signature audit trail ────────────────── */}
+                      <div className="mt-2 space-y-1 border-t border-coral-light/40 pt-2">
+                        {(log as Record<string, unknown>).administering_confirmed_at ? (
+                          <p className="text-xs text-sage-dark">
+                            ✓ Signed by {(log as Record<string, unknown>).administering_typed_name as string} ·{" "}
+                            {new Date((log as Record<string, unknown>).administering_confirmed_at as string).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                          </p>
+                        ) : (
+                          <p className="text-xs text-coral-dark">⚠ No administering sign-off recorded</p>
+                        )}
+                        {witness ? (
+                          (log as Record<string, unknown>).witness_confirmed_at ? (
+                            <p className="text-xs text-sage-dark">
+                              ✓ Witness countersigned by {(log as Record<string, unknown>).witness_typed_name as string} ·{" "}
+                              {new Date((log as Record<string, unknown>).witness_confirmed_at as string).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                            </p>
+                          ) : currentUser?.id === log.witnessed_by_user_id ? (
+                            <form action={witnessCountersign} className="mt-1.5 rounded-xl border border-coral bg-coral-light/30 p-3 space-y-2">
+                              <p className="text-xs font-semibold text-coral-dark">You are listed as witness — please countersign</p>
+                              <input type="hidden" name="record_id" value={log.id} />
+                              <input
+                                type="text"
+                                name="witness_typed_name"
+                                required
+                                placeholder={witness.displayName}
+                                defaultValue={witness.displayName}
+                                className="w-full rounded-xl border border-coral-light px-3 py-1.5 text-xs focus:border-coral focus:outline-none"
+                              />
+                              <button type="submit" className="rounded-xl bg-coral px-3 py-1.5 text-xs font-semibold text-white hover:bg-coral-dark">
+                                Countersign as witness
+                              </button>
+                            </form>
+                          ) : (
+                            <p className="text-xs text-amber-700">⚠ Witness countersign pending — {witness.displayName}</p>
+                          )
+                        ) : null}
+                      </div>
                     </div>
                     {isDirector && (
                       <form action={deleteMedicationLog.bind(null, log.id)}>

@@ -12,6 +12,8 @@ import {
   createStaffIncidentReport,
   deleteStaffIncidentReport,
   notifyParentOfIncident,
+  directorCountersignIncident,
+  recordParentAcknowledgement,
 } from "./actions";
 
 const RECORD_TYPE_LABELS: Record<string, string> = {
@@ -39,6 +41,7 @@ export default async function IncidentReportsPage({
       : Promise.resolve({ data: null }),
   ]);
   const isDirector = myRole === "director";
+  const isDirectorOrAbove = myRole === "director" || myRole === "2ic";
   const jurisdiction = (serviceRow as { data: { jurisdiction: string | null } | null })?.data?.jurisdiction ?? "national";
   const mandatoryText = MANDATORY_REPORTING_TEXT[jurisdiction] ?? MANDATORY_REPORTING_TEXT.national;
 
@@ -274,8 +277,42 @@ export default async function IncidentReportsPage({
                 className={inputClass}
               />
             </div>
+
+            {/* ── Authenticated sign-off ──────────────────────────── */}
+            <fieldset className="rounded-xl border-2 border-coral bg-coral-light/20 p-4 space-y-3">
+              <legend className="px-1 text-sm font-semibold text-coral-dark">Your signature (required — Reg 87)</legend>
+              <p className="text-xs text-ink/60">
+                Tied to your logged-in account and timestamped. The free-text name above goes on the
+                printed record; this sign-off creates the auditable authentication trail.
+              </p>
+              <div>
+                <label className="block text-xs font-medium text-ink/70 mb-1">Full legal name (type to sign)</label>
+                <input
+                  type="text"
+                  name="submitter_typed_name"
+                  required
+                  placeholder="Your full name as it appears on your WWCC"
+                  className={inputClass}
+                />
+              </div>
+              <label className="flex items-start gap-2.5 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="submitter_sign_confirmed"
+                  value="1"
+                  required
+                  className="mt-0.5 h-4 w-4 rounded border-coral accent-coral"
+                />
+                <span>
+                  I certify that the information in this record is accurate and complete to the best
+                  of my knowledge, that I was present or directly involved, and that I understand my
+                  personal mandatory reporting obligations.
+                </span>
+              </label>
+            </fieldset>
+
             <button type="submit" className={`w-full ${primaryButtonClass}`}>
-              Save record
+              Save & sign record
             </button>
           </form>
         </details>
@@ -324,6 +361,89 @@ export default async function IncidentReportsPage({
                         ? `Parent notified ${new Date(r.parent_notified_at).toLocaleString("en-AU")} via ${r.parent_notification_method ?? "unknown"}`
                         : "Parent not yet notified"}
                     </p>
+
+                    {/* ── Signature audit trail ─────────────────────────── */}
+                    <div className="mt-2 space-y-1 border-t border-coral-light/40 pt-2">
+                      {r.submitter_confirmed_at ? (
+                        <p className="text-xs text-sage-dark">
+                          ✓ Signed by {r.submitter_typed_name} ·{" "}
+                          {new Date(r.submitter_confirmed_at).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-coral-dark">⚠ No submitter sign-off recorded</p>
+                      )}
+                      {r.director_signed_at ? (
+                        <p className="text-xs text-sage-dark">
+                          ✓ Director countersigned by {r.director_typed_name} ·{" "}
+                          {new Date(r.director_signed_at).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                          {r.director_notes && <span className="text-ink/50"> — {r.director_notes}</span>}
+                        </p>
+                      ) : isDirectorOrAbove ? (
+                        <details className="mt-1.5">
+                          <summary className="cursor-pointer text-xs font-medium text-coral-dark">Director countersign required</summary>
+                          <form action={directorCountersignIncident} className="mt-2 rounded-xl border border-coral bg-coral-light/20 p-3 space-y-2">
+                            <input type="hidden" name="id" value={r.id} />
+                            <input type="hidden" name="table" value="child" />
+                            <input
+                              type="text"
+                              name="director_typed_name"
+                              required
+                              placeholder="Director's full name (type to sign)"
+                              className="w-full rounded-xl border border-coral-light px-3 py-1.5 text-xs focus:border-coral focus:outline-none"
+                            />
+                            <textarea
+                              name="director_notes"
+                              rows={2}
+                              placeholder="Notes (optional)"
+                              className="w-full rounded-xl border border-coral-light px-3 py-1.5 text-xs focus:border-coral focus:outline-none"
+                            />
+                            <button type="submit" className="rounded-xl bg-coral px-3 py-1.5 text-xs font-semibold text-white hover:bg-coral-dark">
+                              Countersign as director
+                            </button>
+                          </form>
+                        </details>
+                      ) : (
+                        <p className="text-xs text-amber-700">⚠ Awaiting director countersign</p>
+                      )}
+                      {r.parent_acknowledged_at ? (
+                        <p className="text-xs text-sage-dark">
+                          ✓ Parent acknowledged by {r.parent_acknowledged_by_name} ·{" "}
+                          {new Date(r.parent_acknowledged_at).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                          {r.parent_acknowledgement_method && (
+                            <span className="text-ink/50"> ({r.parent_acknowledgement_method.replace(/_/g, " ")})</span>
+                          )}
+                        </p>
+                      ) : (
+                        <details className="mt-1.5">
+                          <summary className="cursor-pointer text-xs font-medium text-coral-dark">Record parent acknowledgement</summary>
+                          <form action={recordParentAcknowledgement} className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
+                            <input type="hidden" name="id" value={r.id} />
+                            <input
+                              type="text"
+                              name="parent_acknowledged_by_name"
+                              required
+                              placeholder="Parent/guardian full name"
+                              className="w-full rounded-xl border border-amber-200 px-3 py-1.5 text-xs focus:border-amber-400 focus:outline-none"
+                            />
+                            <select
+                              name="parent_acknowledgement_method"
+                              required
+                              className="w-full rounded-xl border border-amber-200 px-3 py-1.5 text-xs focus:border-amber-400 focus:outline-none"
+                            >
+                              <option value="">How was this acknowledged?</option>
+                              <option value="signed_in_person">Signed in person</option>
+                              <option value="email_confirmation">Email confirmation</option>
+                              <option value="verbal_confirmed">Verbal (confirmed)</option>
+                              <option value="parent_declined">Parent declined to sign</option>
+                              <option value="unable_to_contact">Unable to contact</option>
+                            </select>
+                            <button type="submit" className="rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600">
+                              Save acknowledgement
+                            </button>
+                          </form>
+                        </details>
+                      )}
+                    </div>
                   </div>
                   <div className="flex shrink-0 flex-col gap-1.5 items-end">
                     <a href={`/incident-reports/${r.id}/notify`} className="text-xs text-coral-dark hover:underline">
@@ -478,8 +598,31 @@ export default async function IncidentReportsPage({
                 className={inputClass}
               />
             </div>
+            <fieldset className="rounded-xl border-2 border-coral bg-coral-light/20 p-4 space-y-3">
+              <legend className="px-1 text-sm font-semibold text-coral-dark">Your signature (required)</legend>
+              <div>
+                <label className="block text-xs font-medium text-ink/70 mb-1">Full legal name (type to sign)</label>
+                <input
+                  type="text"
+                  name="submitter_typed_name"
+                  required
+                  placeholder="Your full name"
+                  className={inputClass}
+                />
+              </div>
+              <label className="flex items-start gap-2.5 text-sm text-ink">
+                <input
+                  type="checkbox"
+                  name="submitter_sign_confirmed"
+                  value="1"
+                  required
+                  className="mt-0.5 h-4 w-4 rounded border-coral accent-coral"
+                />
+                <span>I certify this information is accurate and complete to the best of my knowledge.</span>
+              </label>
+            </fieldset>
             <button type="submit" className={`w-full ${primaryButtonClass}`}>
-              Save report
+              Save & sign report
             </button>
           </form>
         </details>
@@ -491,7 +634,7 @@ export default async function IncidentReportsPage({
           {staffReports.map((r) => (
             <li key={r.id} className="py-3">
               <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium text-ink">
                     {r.staff_name}{" "}
                     {r.is_potentially_notifiable && (
@@ -504,6 +647,51 @@ export default async function IncidentReportsPage({
                     {new Date(r.occurred_at).toLocaleString("en-AU")}
                   </p>
                   <p className="mt-1 text-sm text-ink/80">{r.description}</p>
+
+                  {/* ── Signature audit trail ─────────────────────────── */}
+                  <div className="mt-2 space-y-1 border-t border-coral-light/40 pt-2">
+                    {r.submitter_confirmed_at ? (
+                      <p className="text-xs text-sage-dark">
+                        ✓ Signed by {r.submitter_typed_name} ·{" "}
+                        {new Date(r.submitter_confirmed_at).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-coral-dark">⚠ No submitter sign-off recorded</p>
+                    )}
+                    {r.director_signed_at ? (
+                      <p className="text-xs text-sage-dark">
+                        ✓ Director countersigned by {r.director_typed_name} ·{" "}
+                        {new Date(r.director_signed_at).toLocaleString("en-AU", { dateStyle: "short", timeStyle: "short" })}
+                        {r.director_notes && <span className="text-ink/50"> — {r.director_notes}</span>}
+                      </p>
+                    ) : isDirectorOrAbove ? (
+                      <details className="mt-1.5">
+                        <summary className="cursor-pointer text-xs font-medium text-coral-dark">Director countersign required</summary>
+                        <form action={directorCountersignIncident} className="mt-2 rounded-xl border border-coral bg-coral-light/20 p-3 space-y-2">
+                          <input type="hidden" name="id" value={r.id} />
+                          <input type="hidden" name="table" value="staff" />
+                          <input
+                            type="text"
+                            name="director_typed_name"
+                            required
+                            placeholder="Director's full name (type to sign)"
+                            className="w-full rounded-xl border border-coral-light px-3 py-1.5 text-xs focus:border-coral focus:outline-none"
+                          />
+                          <textarea
+                            name="director_notes"
+                            rows={2}
+                            placeholder="Notes (optional)"
+                            className="w-full rounded-xl border border-coral-light px-3 py-1.5 text-xs focus:border-coral focus:outline-none"
+                          />
+                          <button type="submit" className="rounded-xl bg-coral px-3 py-1.5 text-xs font-semibold text-white hover:bg-coral-dark">
+                            Countersign as director
+                          </button>
+                        </form>
+                      </details>
+                    ) : (
+                      <p className="text-xs text-amber-700">⚠ Awaiting director countersign</p>
+                    )}
+                  </div>
                 </div>
                 {isDirector && (
                   <form action={deleteStaffIncidentReport}>

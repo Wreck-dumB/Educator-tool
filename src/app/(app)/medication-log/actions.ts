@@ -31,6 +31,9 @@ export async function logMedication(formData: FormData) {
     redirect("/medication-log?error=Required+fields+missing");
   }
 
+  const typedName = (formData.get("administering_typed_name") as string)?.trim() || null;
+  const confirmed = formData.get("sign_confirmed") === "1";
+
   const { error } = await supabase.from("medication_administration_log").insert({
     owner_user_id: ownerUserId,
     child_id: childId,
@@ -46,9 +49,33 @@ export async function logMedication(formData: FormData) {
     observations_after: observationsAfter,
     next_dose_due: nextDoseDue || null,
     witnessed_by_user_id: witnessedByUserId || null,
+    administering_confirmed_at: confirmed ? new Date().toISOString() : null,
+    administering_typed_name: confirmed ? typedName : null,
   });
 
   if (error) redirect(`/medication-log?error=${encodeURIComponent(error.message)}`);
+
+  revalidatePath("/medication-log");
+  redirect("/medication-log");
+}
+
+export async function witnessCountersign(formData: FormData): Promise<void> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  const recordId = formData.get("record_id") as string;
+  const typedName = (formData.get("witness_typed_name") as string)?.trim();
+  if (!recordId || !typedName) redirect("/medication-log");
+
+  await supabase
+    .from("medication_administration_log")
+    .update({
+      witness_confirmed_at: new Date().toISOString(),
+      witness_typed_name: typedName,
+    })
+    .eq("id", recordId)
+    .eq("witnessed_by_user_id", user.id);
 
   revalidatePath("/medication-log");
   redirect("/medication-log");

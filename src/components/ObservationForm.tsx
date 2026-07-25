@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useTransition } from "react";
 import { inputClass, primaryButtonClass } from "@/lib/ui";
 
 interface Child {
@@ -24,6 +24,8 @@ interface Props {
   defaultChildId?: string;
   /** Which observation types to surface. Defaults to all 7. */
   enabledTypes?: ObservationTypeName[];
+  /** Child interests for AI expand context */
+  childInterests?: string;
 }
 
 export type ObservationTypeName =
@@ -144,6 +146,7 @@ export default function ObservationForm({
   returnTo = "/observations",
   defaultChildId,
   enabledTypes,
+  childInterests,
 }: Props) {
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -154,9 +157,35 @@ export default function ObservationForm({
   const [obsType, setObsType] = useState<ObservationTypeName>("anecdotal");
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [childSearch, setChildSearch] = useState("");
+  const [noteText, setNoteText] = useState("");
+  const [expandError, setExpandError] = useState<string | null>(null);
+  const [isExpanding, startExpand] = useTransition();
 
   const visibleTypes = enabledTypes ?? ALL_TYPES;
   const typeConfig = OBSERVATION_TYPES[obsType];
+
+  function handleExpandClick() {
+    setExpandError(null);
+    const selectedChild = children.find((c) => selectedIds.has(c.id));
+    startExpand(async () => {
+      const res = await fetch("/api/expand-observation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draftNote: noteText,
+          obsType,
+          childName: selectedChild?.first_name ?? "",
+          childInterests: childInterests ?? "",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setExpandError(data.error ?? "Could not expand observation.");
+      } else {
+        setNoteText(data.expanded);
+      }
+    });
+  }
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -354,17 +383,44 @@ export default function ObservationForm({
 
       {/* ── Observation note ───────────────────────────────────────────── */}
       <div>
-        <label htmlFor="obs_note_text" className="block text-sm font-medium text-ink/70">
-          {obsType === "photo_caption" ? "Caption / reflection" : "Observation note"}
-        </label>
+        <div className="flex items-center justify-between gap-2">
+          <label htmlFor="obs_note_text" className="block text-sm font-medium text-ink/70">
+            {obsType === "photo_caption" ? "Caption / reflection" : "Observation note"}
+          </label>
+          {noteText.trim().length >= 10 && (
+            <button
+              type="button"
+              onClick={handleExpandClick}
+              disabled={isExpanding}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-sage-light px-3 py-1 text-xs font-semibold text-sage-dark hover:bg-sage-light/70 disabled:opacity-50"
+            >
+              {isExpanding ? (
+                <>
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-sage-dark border-t-transparent" />
+                  Expanding…
+                </>
+              ) : (
+                <>✦ Expand with AI</>
+              )}
+            </button>
+          )}
+        </div>
         <textarea
           id="obs_note_text"
           name="note_text"
           required
           rows={obsType === "running_record" ? 6 : obsType === "learning_story" ? 5 : 4}
           placeholder={typeConfig.notePlaceholder}
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
           className={inputClass}
         />
+        {expandError && (
+          <p className="mt-1 text-xs text-coral-dark">{expandError}</p>
+        )}
+        {noteText.trim().length < 10 && (
+          <p className="mt-1 text-xs text-ink/30">Start typing your observation — AI expand appears once you have 10+ characters</p>
+        )}
       </div>
 
       {/* ── Context field (running record, learning story, work sample, dev note) */}

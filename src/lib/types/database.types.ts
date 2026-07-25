@@ -798,6 +798,15 @@ export interface Database {
           regulatory_authority_notified: boolean;
           regulatory_authority_notified_at: string | null;
           regulatory_authority_notification_method: string | null;
+          submitter_confirmed_at: string | null;
+          submitter_typed_name: string | null;
+          director_signed_by: string | null;
+          director_signed_at: string | null;
+          director_typed_name: string | null;
+          director_notes: string | null;
+          parent_acknowledged_at: string | null;
+          parent_acknowledged_by_name: string | null;
+          parent_acknowledgement_method: string | null;
           created_at: string;
         };
         Insert: {
@@ -824,6 +833,15 @@ export interface Database {
           regulatory_authority_notified?: boolean;
           regulatory_authority_notified_at?: string | null;
           regulatory_authority_notification_method?: string | null;
+          submitter_confirmed_at?: string | null;
+          submitter_typed_name?: string | null;
+          director_signed_by?: string | null;
+          director_signed_at?: string | null;
+          director_typed_name?: string | null;
+          director_notes?: string | null;
+          parent_acknowledged_at?: string | null;
+          parent_acknowledged_by_name?: string | null;
+          parent_acknowledgement_method?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["child_incident_reports"]["Insert"]>;
@@ -849,6 +867,12 @@ export interface Database {
           completed_by_role: string | null;
           created_by_user_id: string | null;
           subject_user_id: string | null;
+          submitter_confirmed_at: string | null;
+          submitter_typed_name: string | null;
+          director_signed_by: string | null;
+          director_signed_at: string | null;
+          director_typed_name: string | null;
+          director_notes: string | null;
           created_at: string;
         };
         Insert: {
@@ -870,6 +894,12 @@ export interface Database {
           completed_by_role?: string | null;
           created_by_user_id?: string | null;
           subject_user_id?: string | null;
+          submitter_confirmed_at?: string | null;
+          submitter_typed_name?: string | null;
+          director_signed_by?: string | null;
+          director_signed_at?: string | null;
+          director_typed_name?: string | null;
+          director_notes?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["staff_incident_reports"]["Insert"]>;
@@ -1735,6 +1765,10 @@ export interface Database {
           observations_after: string | null;
           next_dose_due: string | null;
           witnessed_by_user_id: string | null;
+          administering_confirmed_at: string | null;
+          administering_typed_name: string | null;
+          witness_confirmed_at: string | null;
+          witness_typed_name: string | null;
           created_at: string;
         };
         Insert: {
@@ -1753,6 +1787,10 @@ export interface Database {
           observations_after?: string | null;
           next_dose_due?: string | null;
           witnessed_by_user_id?: string | null;
+          administering_confirmed_at?: string | null;
+          administering_typed_name?: string | null;
+          witness_confirmed_at?: string | null;
+          witness_typed_name?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["medication_administration_log"]["Insert"]>;
