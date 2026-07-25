@@ -84,7 +84,7 @@ export default function RoutineEditor({
   const [blocks, dispatch] = useReducer(reducer, initialBlocks);
   const [genState, setGenState] = useReducer((_: GenState, next: GenState) => next, "idle");
   const [genError, setGenError] = useReducer((_: string, next: string) => next, "");
-  const [, startTransition] = useTransition();
+  useTransition();
   const formRef = useRef<HTMLFormElement>(null);
 
   async function handleGenerate() {

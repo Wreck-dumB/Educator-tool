@@ -1,3 +1,4 @@
+/* eslint-disable react/no-children-prop */
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getChildren } from "@/lib/supabase/children";

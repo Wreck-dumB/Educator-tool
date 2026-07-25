@@ -92,9 +92,9 @@ export default async function InvoicesPage({
           <p className="mt-1 text-sm text-ink/60">Create and track fee invoices for families.</p>
         </div>
         {canManage && (
-          <a href="/invoices?add=1" className={`${primaryButtonClass} no-underline`}>
+          <Link href="/invoices?add=1" className={`${primaryButtonClass} no-underline`}>
             + New invoice
-          </a>
+          </Link>
         )}
       </div>
 
@@ -167,9 +167,9 @@ export default async function InvoicesPage({
 
             <div className="flex gap-3">
               <button type="submit" className={primaryButtonClass}>Create invoice</button>
-              <a href="/invoices" className="rounded-xl border border-coral-light px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-coral-light">
+              <Link href="/invoices" className="rounded-xl border border-coral-light px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-coral-light">
                 Cancel
-              </a>
+              </Link>
             </div>
           </form>
         </div>

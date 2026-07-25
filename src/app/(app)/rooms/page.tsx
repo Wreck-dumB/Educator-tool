@@ -17,6 +17,7 @@ export default async function RoomsPage({
   const { error } = await searchParams;
   const [rooms, children, allIncidents] = await Promise.all([getRooms(), getChildren(), getChildIncidentReports()]);
 
+  // eslint-disable-next-line react-hooks/purity
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
   const recentIncidentCountByChild = new Map<string, number>();
   for (const inc of allIncidents) {

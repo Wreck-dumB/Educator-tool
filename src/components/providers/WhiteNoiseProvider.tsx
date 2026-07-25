@@ -31,7 +31,7 @@ const R = 0;     // rest (freq 0 = silence)
 // Chromatic frequencies (Hz)
 const G3 = 196.00, A3 = 220.00;
 const C4 = 261.63, D4 = 293.66, E4 = 329.63, F4 = 349.23, G4 = 392.00;
-const A4 = 440.00, B4 = 493.88, C5 = 523.25, D5 = 587.33, E5 = 659.25;
+const A4 = 440.00;
 
 const LULLABIES: { name: string; notes: Note[] }[] = [
   {

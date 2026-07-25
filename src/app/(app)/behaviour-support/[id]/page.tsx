@@ -7,10 +7,9 @@ import {
   getFamilyResponsesForPlan,
   STATUS_LABELS,
   STATUS_COLOURS,
-  FREQUENCY_LABELS,
 } from "@/lib/supabase/behaviour-support";
 import { cardClass } from "@/lib/ui";
-import { updateBehaviourSupportPlan, deleteBehaviourSupportPlan } from "../actions";
+import { deleteBehaviourSupportPlan } from "../actions";
 import { BSPEditForm } from "./BSPEditForm";
 import ConfirmDeleteButton from "@/components/ConfirmDeleteButton";
 import type { Metadata } from "next";

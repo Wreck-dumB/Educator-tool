@@ -1,6 +1,7 @@
 "use client";
-
+/* eslint-disable react/no-children-prop */
 import { useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { ChildProfile, AttendanceRecord, Room, RoomStaffCount } from "@/lib/types/domain";
 import { signIn, signOut, markAbsent, undoAttendance, updateRoomStaffCount, updateWellbeing } from "./actions";
@@ -378,7 +379,7 @@ export default function AttendanceRegister({ children, records, rooms, staffCoun
       {children.length === 0 && (
         <p className="rounded-2xl border border-coral-light bg-white px-5 py-8 text-center text-sm text-ink/50">
           No children enrolled yet —{" "}
-          <a href="/children" className="font-medium text-coral-dark hover:underline">add children</a>
+          <Link href="/children" className="font-medium text-coral-dark hover:underline">add children</Link>
         </p>
       )}
 

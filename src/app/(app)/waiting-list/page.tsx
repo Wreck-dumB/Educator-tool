@@ -13,8 +13,6 @@ function todayAEST() {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
 }
 
-const STATUS_ORDER = ["enquiry", "waitlisted", "offered", "enrolled", "declined", "withdrawn"];
-
 const STATUS_META: Record<string, { label: string; cls: string; next?: string[] }> = {
   enquiry:   { label: "Enquiry",    cls: "bg-amber-100 text-amber-700", next: ["waitlisted", "declined", "withdrawn"] },
   waitlisted: { label: "Waitlisted", cls: "bg-blue-100 text-blue-700",  next: ["offered", "declined", "withdrawn"] },
@@ -209,6 +207,7 @@ export default async function WaitingListPage({
           {enquiries.map((e) => {
             const meta = STATUS_META[e.status] ?? { label: e.status, cls: "bg-ink/5 text-ink/50" };
             const ageMonths = e.child_date_of_birth
+              // eslint-disable-next-line react-hooks/purity
               ? Math.floor((Date.now() - new Date(e.child_date_of_birth).getTime()) / (1000 * 60 * 60 * 24 * 30.5))
               : null;
             return (

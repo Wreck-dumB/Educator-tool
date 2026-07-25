@@ -25,7 +25,7 @@ export async function sendBroadcast(formData: FormData): Promise<void> {
   if (!body) redirect("/broadcasts?error=" + encodeURIComponent("Message body is required"));
 
   // Insert the broadcast record
-  const { data: broadcastRow, error: broadcastError } = await supabase
+  const { error: broadcastError } = await supabase
     .from("broadcast_messages")
     .insert({
       owner_user_id: ownerUserId,

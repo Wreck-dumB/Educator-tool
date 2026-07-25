@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
@@ -58,7 +59,7 @@ export default async function InvoiceDetailPage({
     <div className="mx-auto max-w-2xl">
       {/* Toolbar (hidden on print) */}
       <div className="mb-6 flex flex-wrap items-center gap-3 print:hidden">
-        <a href="/invoices" className="text-sm font-medium text-ink/50 hover:text-coral-dark">← Invoices</a>
+        <Link href="/invoices" className="text-sm font-medium text-ink/50 hover:text-coral-dark">← Invoices</Link>
         <PrintButton />
         {inv.status !== "paid" && inv.status !== "cancelled" && (
           <form action={async () => { "use server"; await markInvoicePaid(id); }}>

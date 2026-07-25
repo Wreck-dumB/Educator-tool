@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { cardClass } from "@/lib/ui";
 import { createBehaviourSupportPlan } from "../actions";
 
@@ -19,7 +18,6 @@ interface Child {
 }
 
 export function NewBSPForm({ children }: { children: Child[] }) {
-  const router = useRouter();
   const [, startTransition] = useTransition();
 
   const [childId, setChildId] = useState(children[0]?.id ?? "");

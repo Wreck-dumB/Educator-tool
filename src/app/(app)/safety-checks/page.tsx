@@ -71,6 +71,7 @@ export default async function SafetyChecksPage({
         .from("environment_safety_checks")
         .select("check_date, room_id, items")
         .eq("owner_user_id", ownerUserId)
+        // eslint-disable-next-line react-hooks/purity
         .gte("check_date", new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10))
         .order("check_date", { ascending: false })
     : { data: [] };

@@ -186,6 +186,7 @@ export default async function DashboardPage() {
           </div>
           <ul className="space-y-1">
             {expiringPlans.map((p) => {
+              // eslint-disable-next-line react-hooks/purity
               const days = Math.ceil((new Date(p.review_date!).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
               return (
                 <li key={p.id} className="flex items-center gap-2 text-sm">

@@ -1,3 +1,4 @@
+/* eslint-disable react/no-children-prop */
 import Link from "next/link";
 import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
 import { getChildren } from "@/lib/supabase/children";

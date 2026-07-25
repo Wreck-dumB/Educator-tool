@@ -26,7 +26,7 @@ interface Props {
   body: string;
 }
 
-export default function TranslatePanel({ broadcastId, title, body }: Props) {
+export default function TranslatePanel({ title, body }: Props) {
   const [language, setLanguage] = useState("");
   const [result, setResult] = useState<{ title: string; body: string } | null>(null);
   const [loading, setLoading] = useState(false);

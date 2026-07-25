@@ -45,9 +45,6 @@ function formatTime(ts: string | null): string {
   });
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
 
 // ──────────────────────────────────────────────────────────────────────────────
 // ChildCard

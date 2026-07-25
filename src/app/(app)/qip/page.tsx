@@ -9,7 +9,6 @@ import QipGeneratorForm from "./QipGeneratorForm";
 import StatusSelect from "./StatusSelect";
 import { deleteQipItem, updateQipContextNotes } from "./actions";
 import type { QipItem } from "@/lib/types/domain";
-import type { QipCheckinResponse } from "@/lib/types/database.types";
 
 const QUALITY_AREA_TITLES: Record<number, string> = {
   1: "Educational program and practice",

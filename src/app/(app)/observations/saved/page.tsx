@@ -85,8 +85,6 @@ export default async function ObservationSavedPage({
         {observations.map((obs) => {
           const child = childMap.get(obs.child_id);
           if (!child) return null;
-          const currentPage = `${savedUrl}&obs=${obs.id}`;
-
           return (
             <div key={obs.id} className={cardClass}>
               <div className="border-b border-coral-light px-4 py-3">

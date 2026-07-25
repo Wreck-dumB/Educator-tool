@@ -76,8 +76,7 @@ export default async function CompliancePage({
     byStaff.get(r.staff_user_id)!.push(r);
   });
 
-  const now = new Date();
-  const expiringSoon = (records ?? []).filter((r) => {
+  const expiringSoon =(records ?? []).filter((r) => {
     if (!r.expiry_date) return false;
     const days = daysUntil(r.expiry_date);
     return days !== null && days <= 60;

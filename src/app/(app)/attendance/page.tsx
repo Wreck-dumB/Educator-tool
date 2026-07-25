@@ -1,3 +1,4 @@
+/* eslint-disable react/no-children-prop */
 import type { Metadata } from "next";
 import { getChildren } from "@/lib/supabase/children";
 import { getAttendanceForDate } from "@/lib/supabase/attendance";

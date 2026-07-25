@@ -171,7 +171,7 @@ export default async function IncidentReportsPage({
               <p className="text-xs text-amber-700">
                 Consider whether this incident suggests the child may be experiencing abuse,
                 neglect, domestic violence exposure, or any other situation that could constitute
-                "risk of significant harm." You must assess this for every entry.
+                &ldquo;risk of significant harm.&rdquo; You must assess this for every entry.
               </p>
               <label className="flex items-start gap-2 text-sm text-amber-900">
                 <input

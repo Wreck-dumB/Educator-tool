@@ -17,12 +17,6 @@ import { detectPrintTemplate, buildWorksheetUrl } from "@/lib/utils/printable";
 const inputClass =
   "mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral";
 
-function pillClass(active: boolean) {
-  return `rounded-full border px-3 py-1 text-sm transition-colors ${
-    active ? "border-coral bg-coral-light text-coral-dark" : "border-coral-light/60 text-ink/70 hover:bg-coral-light/40"
-  }`;
-}
-
 const AGE_BRACKET_SUGGESTIONS = [
   "Babies (0-12 months)",
   "Toddlers (1-2 years)",
@@ -104,15 +98,6 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
     acc[o.outcome_number].items.push(o);
     return acc;
   }, {});
-
-  function toggleMaterial(name: string) {
-    setSelectedMaterials((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  }
 
   function toggleOutcome(code: string) {
     setSelectedOutcomes((prev) => {

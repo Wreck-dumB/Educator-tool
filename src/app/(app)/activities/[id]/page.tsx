@@ -1,7 +1,8 @@
+/* eslint-disable react/no-children-prop */
 import { notFound } from "next/navigation";
 import { getActivity } from "@/lib/supabase/activities";
 import { getChildren } from "@/lib/supabase/children";
-import { getObservations, getSignedPhotoUrl } from "@/lib/supabase/observations";
+import { getObservations } from "@/lib/supabase/observations";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getRiskAssessments } from "@/lib/supabase/riskAssessments";
 import { getMaterials } from "@/lib/supabase/materials";

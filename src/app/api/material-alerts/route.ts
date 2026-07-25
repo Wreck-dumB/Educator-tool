@@ -85,7 +85,6 @@ export async function GET(request: Request) {
 
     if (!members || members.length === 0) continue;
 
-    const userIds = members.map((m) => m.user_id);
     const { data: { users } } = await supabase.auth.admin.listUsers();
     const emailById = new Map((users ?? []).map((u) => [u.id, u.email ?? ""]));
 
