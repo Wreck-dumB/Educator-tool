@@ -517,6 +517,50 @@ export async function generatePolicy(category: string, userInput: string): Promi
   return callTool<RawPolicy>(POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL);
 }
 
+// Reworks an existing uploaded document (already run through the document
+// reviewer) into a complete revised draft, folding in the gaps that review
+// found plus whatever the educator asks to add/amend. Reuses propose_policy's
+// tool schema so the result drops straight into the same policies table/
+// review-before-adoption flow as a policy drafted from scratch.
+const REVISE_POLICY_SYSTEM_PROMPT = `You are an assistant helping an Australian early childhood education and care service revise an EXISTING policy/procedure document that has already been reviewed for gaps against NQS/EYLF/WHS standards. Produce a complete, updated draft — not a diff or a changelog — using the propose_policy tool. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
+
+Preserve what the original document already does well. Incorporate both the previously identified gaps and the educator's specific amendment instructions. If an amendment instruction conflicts with a genuine regulatory requirement, follow the regulatory requirement and note the conflict in suggested_additions rather than silently dropping either one.
+
+Reference relevant National Law/Regulations areas only where you are genuinely confident they apply; if unsure of an exact regulation number, describe the general requirement area instead of inventing a citation.`;
+
+export interface PriorDocumentReview {
+  documentTypeDetected: string;
+  gaps: string[];
+  suggestions: string[];
+  nqsAlignment: string[];
+}
+
+export async function regeneratePolicyFromReview(
+  category: string,
+  documentText: string,
+  priorReview: PriorDocumentReview,
+  amendmentNotes: string,
+): Promise<RawPolicy> {
+  const userPrompt = `Policy category: ${category}
+Document type previously detected: ${priorReview.documentTypeDetected}
+
+--- ORIGINAL DOCUMENT TEXT START ---
+${documentText}
+--- ORIGINAL DOCUMENT TEXT END ---
+
+Gaps previously identified in this document:
+${priorReview.gaps.length > 0 ? priorReview.gaps.map((g) => `- ${g}`).join("\n") : "(none)"}
+
+Suggestions previously given for this document:
+${priorReview.suggestions.length > 0 ? priorReview.suggestions.map((s) => `- ${s}`).join("\n") : "(none)"}
+
+What the educator wants added or amended:
+${amendmentNotes || "(no specific amendments requested — just address the gaps above)"}
+
+Draft the complete revised policy using the propose_policy tool.`;
+  return callTool<RawPolicy>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL, 4096);
+}
+
 // =========================================
 // General form template generation (permission slips, consent forms, and
 // other miscellaneous templates whose wording genuinely varies by service

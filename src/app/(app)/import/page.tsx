@@ -2,10 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { cardClass } from "@/lib/ui";
 import DocumentReviewForm from "@/components/DocumentReviewForm";
+import { getMyStaffRole } from "@/lib/supabase/staff";
 
 export const metadata: Metadata = { title: "Document Import & Review · DR. SparkPlay" };
 
-export default function ImportPage() {
+export default async function ImportPage() {
+  const myRole = await getMyStaffRole();
+  const canManage = myRole === "director" || myRole === "2ic";
+
   return (
     <div className="mx-auto max-w-2xl">
       <h1 className="font-display text-3xl font-semibold text-coral-dark">
@@ -26,7 +30,7 @@ export default function ImportPage() {
       </div>
 
       <div className={`mt-6 p-5 ${cardClass}`}>
-        <DocumentReviewForm />
+        <DocumentReviewForm canManage={canManage} />
       </div>
 
       <div className={`mt-4 p-4 ${cardClass}`}>
@@ -48,7 +52,11 @@ export default function ImportPage() {
           </li>
           <li className="flex gap-3">
             <span className="font-bold text-coral-dark">4.</span>
-            <span>Once you&apos;re happy with the document, add it to DR. SparkPlay manually via Policies, Document Templates, or Safe Work Procedures.</span>
+            <span>
+              {canManage
+                ? "Tell it what to add or amend and it will draft a complete updated version, saved as a new unreviewed draft in Policy Builder for a director/2IC to check before adoption."
+                : "Add it to DR. SparkPlay manually via Policies, Document Templates, or Safe Work Procedures — regenerating an updated draft directly is limited to directors/2ICs."}
+            </span>
           </li>
         </ol>
         <p className="mt-3 text-xs text-ink/40">

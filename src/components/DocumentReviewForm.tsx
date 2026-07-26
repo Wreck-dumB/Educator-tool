@@ -1,6 +1,10 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
+import Link from "next/link";
+import type { PolicySuggestion } from "@/lib/types/domain";
+import { saveReviewedPolicy, type QipSuggestionInput } from "@/app/(app)/import/actions";
+import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass, successBannerClass } from "@/lib/ui";
 
 interface ReviewResult {
   filename: string;
@@ -13,6 +17,11 @@ interface ReviewResult {
   nqs_alignment: string[];
   suggestions: string[];
   import_recommendation: "ready" | "minor_edits" | "major_rewrite";
+}
+
+interface RegenerateResponse {
+  policy: PolicySuggestion;
+  qipSuggestion: QipSuggestionInput | null;
 }
 
 const CATEGORIES = [
@@ -43,13 +52,21 @@ function QualityDots({ score }: { score: number }) {
   );
 }
 
-export default function DocumentReviewForm() {
+export default function DocumentReviewForm({ canManage }: { canManage: boolean }) {
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("policy");
   const [result, setResult] = useState<ReviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [amendmentNotes, setAmendmentNotes] = useState("");
+  const [regenerating, startRegenerating] = useTransition();
+  const [regenError, setRegenError] = useState<string | null>(null);
+  const [regenerated, setRegenerated] = useState<RegenerateResponse | null>(null);
+  const [logToQip, setLogToQip] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   function handleFile(f: File | null) {
     if (!f) return;
@@ -65,6 +82,10 @@ export default function DocumentReviewForm() {
     setFile(f);
     setError(null);
     setResult(null);
+    setRegenerated(null);
+    setRegenError(null);
+    setSavedId(null);
+    setAmendmentNotes("");
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -77,6 +98,9 @@ export default function DocumentReviewForm() {
     if (!file) return;
     setError(null);
     setResult(null);
+    setRegenerated(null);
+    setRegenError(null);
+    setSavedId(null);
 
     startTransition(async () => {
       const fd = new FormData();
@@ -95,6 +119,61 @@ export default function DocumentReviewForm() {
         setError("Network error — please try again");
       }
     });
+  }
+
+  function handleRegenerate() {
+    if (!file || !result) return;
+    setRegenError(null);
+    setRegenerated(null);
+    setSavedId(null);
+
+    startRegenerating(async () => {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("category", category);
+      fd.append("amendmentNotes", amendmentNotes);
+      fd.append(
+        "priorReview",
+        JSON.stringify({
+          documentTypeDetected: result.document_type_detected,
+          gaps: result.gaps,
+          suggestions: result.suggestions,
+          nqsAlignment: result.nqs_alignment,
+        }),
+      );
+
+      try {
+        const res = await fetch("/api/document-review/regenerate", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          setRegenError(data.error ?? "Could not generate an updated policy");
+          return;
+        }
+        setRegenerated(data as RegenerateResponse);
+        setLogToQip(Boolean((data as RegenerateResponse).qipSuggestion));
+      } catch {
+        setRegenError("Network error — please try again");
+      }
+    });
+  }
+
+  async function handleSave() {
+    if (!regenerated) return;
+    setSaving(true);
+    setRegenError(null);
+    const saveResult = await saveReviewedPolicy(
+      category,
+      amendmentNotes,
+      regenerated.policy,
+      logToQip ? regenerated.qipSuggestion : null,
+    );
+    if ("error" in saveResult) {
+      setRegenError(saveResult.error);
+    } else {
+      setSavedId(saveResult.policyId);
+      setRegenerated(null);
+    }
+    setSaving(false);
   }
 
   const rec = result ? RECOMMENDATION_LABELS[result.import_recommendation] : null;
@@ -251,6 +330,115 @@ export default function DocumentReviewForm() {
           <p className="text-xs text-ink/40">
             AI-generated — use as a starting point for your professional review, not a replacement for it.
           </p>
+
+          {canManage && !savedId && (
+            <section className="rounded-2xl border border-coral-light bg-white p-5">
+              <h3 className="font-display text-sm font-semibold text-ink">Generate an updated policy</h3>
+              <p className="mt-1 text-xs text-ink/60">
+                Describe anything you&apos;d like added or amended, and DR. SparkPlay will draft a complete
+                updated version — addressing the gaps above plus your notes — saved as a new unreviewed
+                draft in Policy Builder for a director/2IC to check before adoption.
+              </p>
+              <textarea
+                rows={3}
+                value={amendmentNotes}
+                onChange={(e) => setAmendmentNotes(e.target.value)}
+                placeholder="e.g. Add a step for notifying the nominated supervisor within 24 hours, and reference our new incident register."
+                className={inputClass}
+              />
+
+              {regenError && <p className={errorBannerClass}>{regenError}</p>}
+
+              {!regenerated && (
+                <button
+                  type="button"
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                  className={`mt-3 ${primaryButtonClass}`}
+                >
+                  {regenerating ? "Drafting updated policy…" : "Generate updated policy"}
+                </button>
+              )}
+
+              {regenerated && (
+                <div className="mt-4">
+                  <h4 className="font-display text-base font-semibold text-ink">{regenerated.policy.title}</h4>
+                  {regenerated.policy.purpose && (
+                    <p className="mt-2 text-sm text-ink/80">
+                      <span className="font-medium">Purpose:</span> {regenerated.policy.purpose}
+                    </p>
+                  )}
+                  {regenerated.policy.scope && (
+                    <p className="mt-2 text-sm text-ink/80">
+                      <span className="font-medium">Scope:</span> {regenerated.policy.scope}
+                    </p>
+                  )}
+                  {regenerated.policy.procedureSteps.length > 0 && (
+                    <>
+                      <p className="mt-3 text-sm font-medium text-ink/80">Procedure</p>
+                      <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-ink/80">
+                        {regenerated.policy.procedureSteps.map((s, idx) => (
+                          <li key={idx}>{s}</li>
+                        ))}
+                      </ol>
+                    </>
+                  )}
+                  {regenerated.policy.relatedLegislation.length > 0 && (
+                    <p className="mt-3 text-xs text-ink/50">
+                      <span className="font-medium">Related legislation/areas:</span>{" "}
+                      {regenerated.policy.relatedLegislation.join("; ")}
+                    </p>
+                  )}
+                  {regenerated.policy.suggestedAdditions.length > 0 && (
+                    <div className="mt-4 rounded-xl bg-amber-light p-3">
+                      <p className="text-sm font-medium text-amber-dark">Still worth considering</p>
+                      <ul className="mt-1 list-disc space-y-0.5 pl-4 text-sm text-amber-dark/90">
+                        {regenerated.policy.suggestedAdditions.map((s, idx) => (
+                          <li key={idx}>{s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {regenerated.qipSuggestion && (
+                    <label className="mt-4 flex items-start gap-2 rounded-xl bg-sage-light p-3 text-sm text-sage-dark">
+                      <input
+                        type="checkbox"
+                        checked={logToQip}
+                        onChange={(e) => setLogToQip(e.target.checked)}
+                        className="mt-0.5"
+                      />
+                      <span>
+                        Also log this as a QIP improvement item (Quality Area {regenerated.qipSuggestion.qualityAreaNumber}
+                        {regenerated.qipSuggestion.standardCode ? ` · Standard ${regenerated.qipSuggestion.standardCode}` : ""})
+                        <br />
+                        <span className="text-xs text-sage-dark/80">{regenerated.qipSuggestion.description}</span>
+                      </span>
+                    </label>
+                  )}
+
+                  <div className="mt-4 flex gap-3">
+                    <button type="button" onClick={handleSave} disabled={saving} className={primaryButtonClass}>
+                      {saving ? "Saving…" : "Save as new policy draft"}
+                    </button>
+                    <button type="button" onClick={() => setRegenerated(null)} className={secondaryButtonClass}>
+                      Discard
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+          )}
+
+          {savedId && (
+            <p className={successBannerClass}>
+              Saved as a new unreviewed draft.{" "}
+              <Link href="/policies" className="font-semibold underline">
+                View it in Policy Builder
+              </Link>
+              .
+            </p>
+          )}
         </div>
       )}
     </div>

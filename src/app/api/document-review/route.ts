@@ -2,15 +2,11 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { MAX_TEXT_CHARS, extractTextFromPdf, extractTextFromDocx, isPdfFile, isDocxFile } from "@/lib/documentExtraction";
 
 export const runtime = "nodejs";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
-// The model has a 1M-token (~4M character) context window, so this cap exists only
-// to keep any single review's cost and latency bounded — not because of a model limit.
-// 200,000 chars is ~40-50 pages of dense text, comfortably larger than any single
-// childcare policy or procedures manual, while using only ~5% of the context window.
-const MAX_TEXT_CHARS = 200000;
 
 const REVIEW_TOOL: Anthropic.Tool = {
   name: "review_document",
@@ -60,19 +56,6 @@ const REVIEW_TOOL: Anthropic.Tool = {
   },
 };
 
-async function extractTextFromPdf(buffer: Buffer): Promise<string> {
-  const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: buffer });
-  const data = await parser.getText();
-  return data.text ?? "";
-}
-
-async function extractTextFromDocx(buffer: Buffer): Promise<string> {
-  const mammoth = await import("mammoth");
-  const result = await mammoth.extractRawText({ buffer });
-  return result.value ?? "";
-}
-
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -109,10 +92,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "File is too large (max 20 MB)" }, { status: 400 });
   }
 
-  const isPdf = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-  const isDocx =
-    file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
-    file.name.toLowerCase().endsWith(".docx");
+  const isPdf = isPdfFile(file);
+  const isDocx = isDocxFile(file);
 
   if (!isPdf && !isDocx) {
     return NextResponse.json({ error: "Only PDF and DOCX files are supported" }, { status: 400 });
