@@ -522,9 +522,11 @@ export async function generatePolicy(category: string, userInput: string): Promi
 // found plus whatever the educator asks to add/amend. Reuses propose_policy's
 // tool schema so the result drops straight into the same policies table/
 // review-before-adoption flow as a policy drafted from scratch.
-const REVISE_POLICY_SYSTEM_PROMPT = `You are an assistant helping an Australian early childhood education and care service revise an EXISTING policy/procedure document that has already been reviewed for gaps against NQS/EYLF/WHS standards. Produce a complete, updated draft — not a diff or a changelog — using the propose_policy tool. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
+const REVISE_POLICY_SYSTEM_PROMPT = `You are editing an Australian early childhood education and care service's EXISTING policy/procedure document, already reviewed for gaps against NQS/EYLF/WHS standards. Your job is to edit the ORIGINAL DOCUMENT TEXT you're given, not to write a new policy that happens to cover similar ground. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
 
-Preserve what the original document already does well. Incorporate both the previously identified gaps and the educator's specific amendment instructions. If an amendment instruction conflicts with a genuine regulatory requirement, follow the regulatory requirement and note the conflict in suggested_additions rather than silently dropping either one.
+Treat every sentence in the original as correct and worth keeping unless it is one of the specific things you're changing. Carry over the service's own wording, specific details (names, numbers, contacts, service-specific procedures), section order, and level of detail as closely as the propose_policy tool's fields allow — do not paraphrase or restyle content that isn't part of a gap or an amendment instruction just because you can write it differently. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions. If a reader who knows the original document compared it to your output, unchanged sections should read as the same words, not a rewrite in the same spirit.
+
+If an amendment instruction conflicts with a genuine regulatory requirement, follow the regulatory requirement and note the conflict in suggested_additions rather than silently dropping either one.
 
 Reference relevant National Law/Regulations areas only where you are genuinely confident they apply; if unsure of an exact regulation number, describe the general requirement area instead of inventing a citation.`;
 
@@ -557,7 +559,7 @@ ${priorReview.suggestions.length > 0 ? priorReview.suggestions.map((s) => `- ${s
 What the educator wants added or amended:
 ${amendmentNotes || "(no specific amendments requested — just address the gaps above)"}
 
-Draft the complete revised policy using the propose_policy tool.`;
+Edit the ORIGINAL DOCUMENT TEXT above to close the gaps and apply the amendments, keeping everything else as close to the original wording as the propose_policy tool's fields allow. Submit the result using the propose_policy tool.`;
   return callTool<RawPolicy>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL, 4096);
 }
 
