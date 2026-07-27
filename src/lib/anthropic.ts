@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { EylfOutcome, GeneratedActivity, NqsStandard } from "@/lib/types/domain";
 import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/types/database.types";
+import { splitIntoBlocks } from "@/lib/documentExtraction";
 
 export interface MealPlanAssignment {
   slot_date: string;
@@ -525,18 +526,69 @@ export async function generatePolicy(category: string, userInput: string): Promi
 
 // Reworks an existing uploaded document (already run through the document
 // reviewer) into a complete revised draft, folding in the gaps that review
-// found plus whatever the educator asks to add/amend. Reuses propose_policy's
-// tool schema so the result drops straight into the same policies table/
-// review-before-adoption flow as a policy drafted from scratch.
-const REVISE_POLICY_SYSTEM_PROMPT = `You are editing an Australian early childhood education and care service's EXISTING policy/procedure document, already reviewed for gaps against NQS/EYLF/WHS standards. Your job is to edit the ORIGINAL DOCUMENT TEXT you're given, not to write a new policy that happens to cover similar ground. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
+// found plus whatever the educator asks to add/amend.
+//
+// Rather than asking the model to retype the whole document (slow, expensive,
+// and no more than a promise of fidelity), the original text is split into
+// numbered blocks and the model returns a PATCH: for procedure_steps, each
+// entry is either a block number ("reuse this verbatim, unchanged") or new
+// text ("this is new/modified content"). Unchanged content is copied
+// byte-for-byte in code, not regenerated - output size scales with the size
+// of the edit, not the size of the document, which keeps this fast and cheap
+// even on a genuinely long policy and gives a structural fidelity guarantee
+// instead of a prompt-only one.
+const REVISE_POLICY_SYSTEM_PROMPT = `You are editing an Australian early childhood education and care service's EXISTING policy/procedure document, already reviewed for gaps against NQS/EYLF/WHS standards. The original document has been split into numbered blocks below - this includes EVERYTHING in the document (title, purpose paragraph, scope paragraph, section headings, legislation list, as well as the actual procedure/step content), not just the procedure section. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
 
-Treat every sentence in the original as correct and worth keeping unless it is one of the specific things you're changing. Carry over the service's own wording, specific operational details (numbers, contacts, service-specific procedures), section order, and level of detail as closely as the propose_policy tool's fields allow — do not paraphrase or restyle content that isn't part of a gap or an amendment instruction just because you can write it differently. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions. If a reader who knows the original document compared it to your output, unchanged sections should read as the same words, not a rewrite in the same spirit.
+Produce procedure_steps as an ORDERED LIST containing ONLY the actual procedure/step content - never a block that is just the document's title, a section heading on its own (e.g. "Procedure", "Purpose"), or the purpose/scope paragraphs (those go in the separate purpose/scope fields instead) or the legislation list (that goes in related_legislation instead). Each entry in procedure_steps is EITHER:
+- an integer referencing one of the numbered blocks, meaning "reuse this block's text exactly, unchanged" - use this for every procedure-step block whose substance doesn't need to change, even if you could phrase it better or differently. Do not spend output retyping a block as a string if an unmodified integer reference would do.
+- a string, ONLY for a procedure step that is genuinely new or whose substance is actually changing.
+
+Treat every procedure-step block as correct and worth keeping via its number unless it is one of the specific things you're changing per the gaps/amendments below. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions - everything else should be a number, not retyped text.
 
 If an amendment instruction conflicts with a genuine regulatory requirement, follow the regulatory requirement and note the conflict in suggested_additions rather than silently dropping either one.
 
 Reference relevant National Law/Regulations areas only where you are genuinely confident they apply; if unsure of an exact regulation number, describe the general requirement area instead of inventing a citation.
 
-PRIVACY (overrides the "carry over wording exactly" instruction above): policies and procedures must stay generic. If the original text names a real child, or describes a specific real incident involving one, do not carry that name or scenario into your output even though you'd otherwise preserve it verbatim — rewrite that part generically (e.g. "a child", "an educator") and note it under suggested_additions so staff know to double-check the source document too.`;
+PRIVACY (overrides "reuse via number" above): policies and procedures must stay generic. If a block names a real child, or describes a specific real incident involving one, do NOT reference that block by number - instead include it as a new string with that part rewritten generically (e.g. "a child", "an educator"), and note it under suggested_additions so staff know to double-check the source document too.`;
+
+const PROPOSE_POLICY_PATCH_TOOL: Anthropic.Tool = {
+  name: "propose_policy_patch",
+  description: "Produce a revised policy as a patch against the original document's numbered blocks, for an Australian education and care service.",
+  input_schema: {
+    type: "object",
+    required: ["title", "procedure_steps", "related_legislation", "suggested_additions"],
+    properties: {
+      title: { type: "string", description: "A clear policy title, e.g. 'Incident, Injury, Trauma and Illness Policy'." },
+      purpose: { type: "string", description: "Why this policy exists, in plain language." },
+      scope: { type: "string", description: "Who and what this policy applies to." },
+      procedure_steps: {
+        type: "array",
+        items: {
+          anyOf: [
+            { type: "integer", description: "Index of an original numbered block to reuse verbatim, unchanged." },
+            { type: "string", description: "New or substantively modified procedure step text." },
+          ],
+        },
+        description: "The complete ordered list of procedure steps for the revised policy, mixing block-number references (unchanged content) and new strings (new/modified content).",
+      },
+      related_legislation: { type: "array", items: { type: "string" } },
+      suggested_additions: {
+        type: "array",
+        items: { type: "string" },
+        description: "Specific things the educator's amendment instructions did NOT cover that this policy would still benefit from, or reasonable alternatives worth considering. Be concrete, not generic.",
+      },
+    },
+  },
+};
+
+interface RawPolicyPatch {
+  title: string;
+  purpose?: string;
+  scope?: string;
+  procedure_steps: (number | string)[];
+  related_legislation: string[];
+  suggested_additions: string[];
+}
 
 export interface PriorDocumentReview {
   documentTypeDetected: string;
@@ -551,12 +603,15 @@ export async function regeneratePolicyFromReview(
   priorReview: PriorDocumentReview,
   amendmentNotes: string,
 ): Promise<RawPolicy> {
+  const blocks = splitIntoBlocks(documentText);
+  const numberedBlocks = blocks.map((b, i) => `[${i + 1}] ${b}`).join("\n\n");
+
   const userPrompt = `Policy category: ${category}
 Document type previously detected: ${priorReview.documentTypeDetected}
 
---- ORIGINAL DOCUMENT TEXT START ---
-${documentText}
---- ORIGINAL DOCUMENT TEXT END ---
+--- ORIGINAL DOCUMENT, NUMBERED BLOCKS ---
+${numberedBlocks}
+--- END NUMBERED BLOCKS ---
 
 Gaps previously identified in this document:
 ${priorReview.gaps.length > 0 ? priorReview.gaps.map((g) => `- ${g}`).join("\n") : "(none)"}
@@ -567,14 +622,20 @@ ${priorReview.suggestions.length > 0 ? priorReview.suggestions.map((s) => `- ${s
 What the educator wants added or amended:
 ${amendmentNotes || "(no specific amendments requested — just address the gaps above)"}
 
-Edit the ORIGINAL DOCUMENT TEXT above to close the gaps and apply the amendments, keeping everything else as close to the original wording as the propose_policy tool's fields allow. Submit the result using the propose_policy tool.`;
-  // Faithfully reproducing the original document's wording takes far more
-  // output than a fresh paraphrase would (see REVISE_POLICY_SYSTEM_PROMPT) -
-  // 8192 was still cutting real multi-page policies off mid-procedure_steps.
-  // 20000 is the highest value the Anthropic SDK allows on a non-streaming
-  // call before it demands streaming mode (it errors above ~24-32k as a
-  // >10-minute-response guard) - pairs with maxDuration=60 on the route.
-  return callTool<RawPolicy>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL, 20000);
+Produce the revised policy using the propose_policy_patch tool. Remember: reference unchanged blocks by number, only write new text for what's actually new or changed.`;
+
+  const patch = await callTool<RawPolicyPatch>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_PATCH_TOOL, 4096);
+
+  return {
+    title: patch.title,
+    purpose: patch.purpose,
+    scope: patch.scope,
+    procedure_steps: patch.procedure_steps.map((item) =>
+      typeof item === "number" ? (blocks[item - 1] ?? "") : item,
+    ).filter((s) => s.length > 0),
+    related_legislation: patch.related_legislation,
+    suggested_additions: patch.suggested_additions,
+  };
 }
 
 // =========================================

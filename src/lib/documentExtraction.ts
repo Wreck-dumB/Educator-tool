@@ -30,3 +30,34 @@ export function isDocxFile(file: File): boolean {
     file.name.toLowerCase().endsWith(".docx")
   );
 }
+
+// Splits raw extracted document text into an ordered list of coherent
+// blocks (paragraphs, or individual items where a paragraph is really a
+// run of numbered list items squashed together by PDF/DOCX extraction).
+// Lets the AI reference an unchanged block by index instead of retyping
+// it - regeneration only has to pay (in tokens, time, and fidelity risk)
+// for what's actually changing, not for reproducing the whole document.
+export function splitIntoBlocks(text: string): string[] {
+  const paragraphs = text
+    .split(/\n\s*\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const blocks: string[] = [];
+  const numberedItemMarker = /(?:^|\n)\s*\d{1,3}[.)]\s+/g;
+
+  for (const para of paragraphs) {
+    const markerCount = (para.match(numberedItemMarker) ?? []).length;
+    if (markerCount > 1) {
+      const parts = para
+        .split(/(?=(?:^|\n)\s*\d{1,3}[.)]\s+)/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      blocks.push(...parts);
+    } else {
+      blocks.push(para);
+    }
+  }
+
+  return blocks;
+}
