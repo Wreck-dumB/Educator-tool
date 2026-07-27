@@ -624,7 +624,14 @@ ${amendmentNotes || "(no specific amendments requested — just address the gaps
 
 Produce the revised policy using the propose_policy_patch tool. Remember: reference unchanged blocks by number, only write new text for what's actually new or changed.`;
 
-  const patch = await callTool<RawPolicyPatch>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_PATCH_TOOL, 4096);
+  // The numbered-block patch still needs real headroom: a document with a
+  // handful of large prose blocks (rather than many short ones) gets little
+  // benefit from block-number references, and several substantive amendments
+  // (e.g. a genuinely new clause) still have to be written out in full.
+  // 20000 is the highest value the Anthropic SDK allows on a non-streaming
+  // call before it demands streaming mode; pairs with maxDuration=60 on the
+  // regenerate route.
+  const patch = await callTool<RawPolicyPatch>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_PATCH_TOOL, 20000);
 
   return {
     title: patch.title,
