@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePolicy } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -25,6 +26,16 @@ export async function POST(request: Request) {
   const userInput = typeof body?.userInput === "string" ? body.userInput.trim().slice(0, 3000) : "";
   if (!category || !userInput) {
     return NextResponse.json({ error: "Category and description are required" }, { status: 400 });
+  }
+
+  const childNameMatches = await findEnrolledChildNameMentions(userInput);
+  if (childNameMatches.length > 0) {
+    return NextResponse.json(
+      {
+        error: `Your description appears to name a child from your centre ("${childNameMatches.join('", "')}"). Policies and procedures must stay generic — describe the situation without naming a specific child, then try again.`,
+      },
+      { status: 400 },
+    );
   }
 
   let raw;

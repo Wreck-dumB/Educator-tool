@@ -4,8 +4,13 @@ import { isRateLimited } from "@/lib/rateLimit";
 import { getNqsStandards } from "@/lib/supabase/qip";
 import { regeneratePolicyFromReview, type PriorDocumentReview } from "@/lib/anthropic";
 import { MAX_TEXT_CHARS, extractTextFromPdf, extractTextFromDocx, isPdfFile, isDocxFile } from "@/lib/documentExtraction";
+import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
 
 export const runtime = "nodejs";
+// Preserving a real policy's wording near-verbatim while folding in
+// amendments takes a large, slow generation - the platform's 10s default
+// would kill the function before the AI response finishes.
+export const maxDuration = 60;
 
 // Finds the first NQS code in a review's nqs_alignment list that resolves to
 // a real seeded Quality Area/Standard, e.g. "QA2.1.3" or "2.1" -> "2.1".
@@ -93,6 +98,17 @@ export async function POST(request: Request) {
       { status: 422 },
     );
   }
+
+  const childNameMatches = await findEnrolledChildNameMentions(`${rawText}\n${amendmentNotes}`);
+  if (childNameMatches.length > 0) {
+    return NextResponse.json(
+      {
+        error: `This document or your notes appear to name a child from your centre ("${childNameMatches.join('", "')}"). Policies and procedures must stay generic — remove the child's name and any specific real scenario involving them, then try again.`,
+      },
+      { status: 422 },
+    );
+  }
+
   const documentText = rawText.slice(0, MAX_TEXT_CHARS);
 
   const apiKey = process.env.ANTHROPIC_API_KEY;

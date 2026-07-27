@@ -3,8 +3,10 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { MAX_TEXT_CHARS, extractTextFromPdf, extractTextFromDocx, isPdfFile, isDocxFile } from "@/lib/documentExtraction";
+import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -117,6 +119,16 @@ export async function POST(request: Request) {
     );
   }
 
+  const childNameMatches = await findEnrolledChildNameMentions(rawText);
+  if (childNameMatches.length > 0) {
+    return NextResponse.json(
+      {
+        error: `This document appears to name a child from your centre ("${childNameMatches.join('", "')}"). Policies and procedures must stay generic — remove the child's name and any specific real scenario involving them, then re-upload.`,
+      },
+      { status: 422 },
+    );
+  }
+
   const truncated = rawText.length > MAX_TEXT_CHARS;
   const documentText = rawText.slice(0, MAX_TEXT_CHARS);
 
@@ -124,7 +136,9 @@ export async function POST(request: Request) {
 - Specific to the Australian NQS (National Quality Standard), EYLF V2.0, and relevant WHS/state regulations
 - Practical for a small-to-medium childcare service (not a large bureaucratic organisation)
 - Honest about gaps without being harsh — frame everything as "here's how to make it better"
-- Focused on what matters for ACECQA assessment and real operational use`;
+- Focused on what matters for ACECQA assessment and real operational use
+
+PRIVACY: If the document text still contains a real child's name or a specific real incident involving one, never repeat that name or scenario in your response — refer to them generically (e.g. "a child") and flag it under gaps/suggestions instead.`;
 
   const userPrompt = `Document filename: ${file.name}
 Document category the educator selected: ${category}${truncated ? `\n\n[Note: This document was truncated to fit — only the first ~${MAX_TEXT_CHARS.toLocaleString()} characters are shown]` : ""}
