@@ -368,7 +368,7 @@ export function scoreHazards(hazards: RawHazard[]): Hazard[] {
 }
 
 /** Shared single-tool-call helper used by every generator in this file. */
-async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 2048): Promise<T> {
+async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 4096): Promise<T> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     throw new Error("ANTHROPIC_API_KEY is not configured");
@@ -383,6 +383,10 @@ async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.T
     tools: [tool],
     tool_choice: { type: "tool", name: tool.name },
   });
+
+  if (message.stop_reason === "max_tokens") {
+    throw new Error("AI_RESPONSE_TRUNCATED: the response was cut off before it finished — try a shorter document/description or fewer amendment notes");
+  }
 
   const toolUse = message.content.find(
     (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
@@ -560,7 +564,11 @@ What the educator wants added or amended:
 ${amendmentNotes || "(no specific amendments requested — just address the gaps above)"}
 
 Edit the ORIGINAL DOCUMENT TEXT above to close the gaps and apply the amendments, keeping everything else as close to the original wording as the propose_policy tool's fields allow. Submit the result using the propose_policy tool.`;
-  return callTool<RawPolicy>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL, 4096);
+  // Faithfully reproducing the original document's wording takes far more
+  // output than a fresh paraphrase would (see REVISE_POLICY_SYSTEM_PROMPT) -
+  // 4096 was cutting real-world policies off mid-procedure_steps, silently
+  // saving a policy with an empty procedure list.
+  return callTool<RawPolicy>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL, 8192);
 }
 
 // =========================================

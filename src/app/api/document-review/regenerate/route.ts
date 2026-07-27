@@ -105,7 +105,15 @@ export async function POST(request: Request) {
     revised = await regeneratePolicyFromReview(category, documentText, priorReview, amendmentNotes);
   } catch (err) {
     console.error("Policy regeneration failed:", err);
-    return NextResponse.json({ error: "AI review failed — please try again" }, { status: 502 });
+    const truncated = err instanceof Error && err.message.startsWith("AI_RESPONSE_TRUNCATED");
+    return NextResponse.json(
+      {
+        error: truncated
+          ? "The updated document was too long to generate in one go — try shorter amendment notes, or split the original document into smaller sections and review each separately."
+          : "AI review failed — please try again",
+      },
+      { status: 502 },
+    );
   }
 
   const standards = await getNqsStandards();
