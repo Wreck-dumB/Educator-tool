@@ -54,7 +54,7 @@ export default async function ImportPage() {
             <span className="font-bold text-coral-dark">4.</span>
             <span>
               {canManage
-                ? "Tell it what to add or amend and it will draft a complete updated version, saved as a new unreviewed draft in Policy Builder for a director/2IC to check before adoption."
+                ? "Tell it what to add or amend and it will draft a complete updated version, saved as a new unreviewed draft. You'll land straight on the full document, with buttons to print/save as PDF or download an editable Word (.docx) file — ready for a director/2IC to check before adoption."
                 : "Add it to DR. SparkPlay manually via Policies, Document Templates, or Safe Work Procedures — regenerating an updated draft directly is limited to directors/2ICs."}
             </span>
           </li>

@@ -19,7 +19,15 @@ export default async function PolicyDetailPage({
         <Link href="/policies" className="text-sm text-coral-dark hover:underline">
           ← Back
         </Link>
-        <PrintButton />
+        <div className="flex gap-2">
+          <a
+            href={`/api/policies/${policy.id}/export-docx`}
+            className="rounded-full border-2 border-sage px-4 py-2 text-sm font-semibold text-sage-dark transition-colors hover:bg-sage-light"
+          >
+            ⬇️ Download Word (.docx)
+          </a>
+          <PrintButton />
+        </div>
       </div>
 
       <div className="mt-4 print:mt-0">

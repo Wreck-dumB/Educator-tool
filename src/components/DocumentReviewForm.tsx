@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { PolicySuggestion } from "@/lib/types/domain";
 import { saveReviewedPolicy, type QipSuggestionInput } from "@/app/(app)/import/actions";
-import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass, successBannerClass } from "@/lib/ui";
+import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 
 interface ReviewResult {
   filename: string;
@@ -53,6 +53,7 @@ function QualityDots({ score }: { score: number }) {
 }
 
 export default function DocumentReviewForm({ canManage }: { canManage: boolean }) {
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState("policy");
   const [result, setResult] = useState<ReviewResult | null>(null);
@@ -66,7 +67,6 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
   const [regenerated, setRegenerated] = useState<RegenerateResponse | null>(null);
   const [logToQip, setLogToQip] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savedId, setSavedId] = useState<string | null>(null);
 
   function handleFile(f: File | null) {
     if (!f) return;
@@ -84,7 +84,6 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
     setResult(null);
     setRegenerated(null);
     setRegenError(null);
-    setSavedId(null);
     setAmendmentNotes("");
   }
 
@@ -100,7 +99,6 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
     setResult(null);
     setRegenerated(null);
     setRegenError(null);
-    setSavedId(null);
 
     startTransition(async () => {
       const fd = new FormData();
@@ -125,7 +123,6 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
     if (!file || !result) return;
     setRegenError(null);
     setRegenerated(null);
-    setSavedId(null);
 
     startRegenerating(async () => {
       const fd = new FormData();
@@ -169,11 +166,10 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
     );
     if ("error" in saveResult) {
       setRegenError(saveResult.error);
-    } else {
-      setSavedId(saveResult.policyId);
-      setRegenerated(null);
+      setSaving(false);
+      return;
     }
-    setSaving(false);
+    router.push(`/policies/${saveResult.policyId}`);
   }
 
   const rec = result ? RECOMMENDATION_LABELS[result.import_recommendation] : null;
@@ -331,13 +327,13 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
             AI-generated — use as a starting point for your professional review, not a replacement for it.
           </p>
 
-          {canManage && !savedId && (
+          {canManage && (
             <section className="rounded-2xl border border-coral-light bg-white p-5">
               <h3 className="font-display text-sm font-semibold text-ink">Generate an updated policy</h3>
               <p className="mt-1 text-xs text-ink/60">
                 Describe anything you&apos;d like added or amended, and DR. SparkPlay will draft a complete
-                updated version — addressing the gaps above plus your notes — saved as a new unreviewed
-                draft in Policy Builder for a director/2IC to check before adoption.
+                updated version — addressing the gaps above plus your notes. Saving takes you straight to
+                the full document, ready to print/save as PDF or download as an editable Word file.
               </p>
               <textarea
                 rows={3}
@@ -419,7 +415,7 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
 
                   <div className="mt-4 flex gap-3">
                     <button type="button" onClick={handleSave} disabled={saving} className={primaryButtonClass}>
-                      {saving ? "Saving…" : "Save as new policy draft"}
+                      {saving ? "Saving…" : "Save & open full document"}
                     </button>
                     <button type="button" onClick={() => setRegenerated(null)} className={secondaryButtonClass}>
                       Discard
@@ -428,16 +424,6 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
                 </div>
               )}
             </section>
-          )}
-
-          {savedId && (
-            <p className={successBannerClass}>
-              Saved as a new unreviewed draft.{" "}
-              <Link href="/policies" className="font-semibold underline">
-                View it in Policy Builder
-              </Link>
-              .
-            </p>
           )}
         </div>
       )}
