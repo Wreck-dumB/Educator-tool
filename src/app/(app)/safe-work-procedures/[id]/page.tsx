@@ -100,7 +100,8 @@ export default async function SafeWorkProcedureDetailPage({
               )}
             </p>
             {!procedure.reviewed_at && (
-              <form action={async () => { await markSafeWorkProcedureReviewed(procedure.id); }}>
+              <form action={markSafeWorkProcedureReviewed}>
+                <input type="hidden" name="id" value={procedure.id} />
                 <button type="submit" className="text-xs font-medium text-sage-dark hover:underline">
                   Mark as reviewed
                 </button>

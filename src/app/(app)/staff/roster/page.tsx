@@ -133,7 +133,7 @@ export default async function StaffRosterPage({
         <div className={cardClass + " p-5"}>
           <h2 className="font-display text-base font-semibold text-ink mb-4">Add shift</h2>
           {error && <p className={`mb-3 ${errorBannerClass}`}>{error}</p>}
-          <form action={async (fd: FormData) => { await addShift(fd); }} className="space-y-4">
+          <form action={async (fd: FormData) => { "use server"; await addShift(fd); }} className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-ink/70 mb-1">Staff member</label>

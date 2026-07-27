@@ -355,7 +355,7 @@ export default async function ChildDetailPage({
           Under No Jab No Play, services must sight a current AIR Immunisation History Statement from myGov
           before attendance. Medical exemptions and approved catch-up schedules are accepted alternatives.
         </p>
-        <form action={async (fd: FormData) => { await updateImmunisationStatus(fd); }} className="space-y-3">
+        <form action={async (fd: FormData) => { "use server"; await updateImmunisationStatus(fd); }} className="space-y-3">
           <input type="hidden" name="child_id" value={child.id} />
           <div>
             <label className="block text-sm font-medium text-ink/70 mb-1">Current status</label>

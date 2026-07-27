@@ -450,7 +450,7 @@ export default async function IncidentReportsPage({
                       Reg 176 form →
                     </a>
                     {!r.parent_notified_at && (
-                      <form action={async (fd: FormData) => { await notifyParentOfIncident(fd); }}>
+                      <form action={async (fd: FormData) => { "use server"; await notifyParentOfIncident(fd); }}>
                         <input type="hidden" name="incident_id" value={r.id} />
                         <input type="hidden" name="method" value="in-app" />
                         <button type="submit" className="text-xs font-medium text-sage-dark hover:underline">

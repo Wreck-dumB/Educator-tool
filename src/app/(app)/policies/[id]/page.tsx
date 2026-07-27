@@ -106,7 +106,8 @@ export default async function PolicyDetailPage({
               )}
             </p>
             {!policy.reviewed_at && (
-              <form action={async () => { await markPolicyReviewed(policy.id); }}>
+              <form action={markPolicyReviewed}>
+                <input type="hidden" name="id" value={policy.id} />
                 <button type="submit" className="text-xs font-medium text-sage-dark hover:underline">
                   Mark as reviewed
                 </button>

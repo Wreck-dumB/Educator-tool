@@ -85,7 +85,7 @@ export default async function ProgramDetailPage({
                   Update inventory →
                 </Link>
                 {canAlert && (
-                  <form action={async () => { await sendMaterialAlertNow(); }}>
+                  <form action={async () => { "use server"; await sendMaterialAlertNow(); }}>
                     <button type="submit" className="rounded-full border border-amber-400 px-3 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-100">
                       Alert staff now
                     </button>
