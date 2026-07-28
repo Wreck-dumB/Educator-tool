@@ -8,9 +8,10 @@ import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
 
 export const runtime = "nodejs";
 // Preserving a real policy's wording near-verbatim while folding in
-// amendments takes a large, slow generation - the platform's 10s default
-// would kill the function before the AI response finishes.
-export const maxDuration = 60;
+// amendments takes a large, slow generation - 60s still hit a real Vercel
+// Runtime Timeout (504) on a genuine full-length document, so this is
+// raised to the platform ceiling.
+export const maxDuration = 300;
 
 // Finds the first NQS code in a review's nqs_alignment list that resolves to
 // a real seeded Quality Area/Standard, e.g. "QA2.1.3" or "2.1" -> "2.1".
