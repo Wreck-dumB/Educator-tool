@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getPolicy } from "@/lib/supabase/policies";
 import PrintButton from "@/components/PrintButton";
+import PolicySteps from "@/components/PolicySteps";
 import { markPolicyReviewed } from "../actions";
 
 export default async function PolicyDetailPage({
@@ -59,11 +60,7 @@ export default async function PolicyDetailPage({
         {policy.procedure_steps.length > 0 && (
           <>
             <p className="mt-4 text-sm font-medium text-ink print:text-black">Procedure</p>
-            <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-ink/80 print:text-black">
-              {policy.procedure_steps.map((s, idx) => (
-                <li key={idx}>{s}</li>
-              ))}
-            </ol>
+            <PolicySteps steps={policy.procedure_steps} />
           </>
         )}
 

@@ -1,6 +1,8 @@
 // Shared PDF/DOCX text extraction, used by both the document-review and
 // document-review/regenerate routes.
 
+import type { PolicyStep } from "@/lib/types/domain";
+
 // The model has a 1M-token (~4M character) context window, so this cap exists only
 // to keep any single review's cost and latency bounded — not because of a model limit.
 // 200,000 chars is ~40-50 pages of dense text, comfortably larger than any single
@@ -14,9 +16,25 @@ export async function extractTextFromPdf(buffer: Buffer): Promise<string> {
   return data.text ?? "";
 }
 
+// Converts to Markdown rather than plain text so that heading/list structure
+// survives extraction (see splitIntoBlocks) - a plain-text extraction throws
+// away every paragraph style, which is what previously made regenerated
+// policies collapse into one undifferentiated wall of numbered lines even
+// though the wording itself was preserved correctly. Images are stripped
+// (real-world docs commonly have an embedded letterhead/logo, which
+// convertToMarkdown would otherwise inline as a giant base64 data URI).
+// mammoth's bundled type declarations predate its convertToMarkdown export
+// (present at runtime in the installed version, just untyped), so it's
+// accessed via a narrow cast reusing convertToHtml's identical signature
+// shape rather than an `any` escape hatch.
+type MammothWithMarkdown = typeof import("mammoth") & {
+  convertToMarkdown: typeof import("mammoth").convertToHtml;
+};
+
 export async function extractTextFromDocx(buffer: Buffer): Promise<string> {
-  const mammoth = await import("mammoth");
-  const result = await mammoth.extractRawText({ buffer });
+  const mammoth = (await import("mammoth")) as unknown as MammothWithMarkdown;
+  const noImages = mammoth.images.imgElement(() => Promise.resolve({ src: "" }));
+  const result = await mammoth.convertToMarkdown({ buffer }, { convertImage: noImages });
   return result.value ?? "";
 }
 
@@ -31,12 +49,6 @@ export function isDocxFile(file: File): boolean {
   );
 }
 
-// Splits raw extracted document text into an ordered list of coherent
-// blocks (paragraphs, or individual items where a paragraph is really a
-// run of numbered list items squashed together by PDF/DOCX extraction).
-// Lets the AI reference an unchanged block by index instead of retyping
-// it - regeneration only has to pay (in tokens, time, and fidelity risk)
-// for what's actually changing, not for reproducing the whole document.
 // Above this size, a blank-line-free paragraph gets sentence-chunked (see
 // splitLongParagraph) instead of kept whole - otherwise a PDF export with no
 // blank lines between paragraphs (very common from pdf-parse) collapses the
@@ -45,32 +57,54 @@ export function isDocxFile(file: File): boolean {
 // on every regeneration, regardless of how small the requested edit is.
 const MAX_BLOCK_CHARS = 600;
 
-export function splitIntoBlocks(text: string): string[] {
-  const paragraphs = text
-    .split(/\n\s*\n+/)
-    .map((p) => p.trim())
-    .filter(Boolean);
-
-  const blocks: string[] = [];
-  const numberedItemMarker = /(?:^|\n)\s*\d{1,3}[.)]\s+/g;
-
-  for (const para of paragraphs) {
-    const markerCount = (para.match(numberedItemMarker) ?? []).length;
-    if (markerCount > 1) {
-      const parts = para
-        .split(/(?=(?:^|\n)\s*\d{1,3}[.)]\s+)/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-      blocks.push(...parts);
-    } else if (para.length > MAX_BLOCK_CHARS) {
-      blocks.push(...splitLongParagraph(para));
-    } else {
-      blocks.push(para);
-    }
-  }
-
-  return blocks;
+// Undoes Markdown's backslash-escaping of punctuation (mammoth's
+// convertToMarkdown escapes characters like . ( ) * so they don't get
+// misread as Markdown syntax on re-parse) so stored/displayed text is clean.
+function unescapeMarkdown(text: string): string {
+  return text.replace(/\\([\\`*_{}[\]()#+\-.!>])/g, "$1");
 }
+
+// Strips a line's bold/italic wrapper syntax (__text__, **text**, *text*,
+// possibly nested/combined) leaving just the underlying text.
+function stripEmphasis(text: string): string {
+  let out = text.trim();
+  while (true) {
+    const boldMatch = out.match(/^(?:__(.+)__|\*\*(.+)\*\*)$/);
+    if (boldMatch) {
+      out = (boldMatch[1] ?? boldMatch[2]).trim();
+      continue;
+    }
+    const italicMatch = out.match(/^\*(.+)\*$/);
+    if (italicMatch) {
+      out = italicMatch[1].trim();
+      continue;
+    }
+    break;
+  }
+  return out;
+}
+
+// Removes leftover inline emphasis markers (partial bold/italic runs within
+// an otherwise-plain paragraph or list item, e.g. "...costs incurred **at
+// the family's expense**.") - common mid-sentence in real-world documents
+// that mix ad hoc bold formatting into ordinary body text.
+function stripInlineMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1");
+}
+
+// A line consisting entirely of bold (optionally also italic) text, and
+// nothing else - the dominant real-world "heading" pattern in policy
+// documents that use manual bold formatting for section titles rather than
+// Word's actual Heading styles.
+function isEntirelyBold(line: string): boolean {
+  return /^(?:__.+__|\*\*.+\*\*)$/.test(line.trim());
+}
+
+const LIST_ITEM_RE = /^(\s*)(?:[-*]|\d{1,3}[.)])\s+(.*)$/;
+const HASH_HEADING_RE = /^(#{1,6})\s+(.*)$/;
 
 // Chunks a long, blank-line-free paragraph into sentence-sized blocks so it
 // can still benefit from block-number reuse. Groups sentences together up
@@ -95,4 +129,60 @@ function splitLongParagraph(para: string): string[] {
   if (current) chunks.push(current);
 
   return chunks.length > 0 ? chunks : [para];
+}
+
+// Splits extracted document text into an ordered list of typed blocks
+// (heading / list_item / paragraph), so the AI can reference an unchanged
+// block by index (preserving both its wording and how it looked) instead of
+// retyping it. Text is expected to be Markdown-flavoured (from
+// extractTextFromDocx) but plain text (from extractTextFromPdf) degrades
+// gracefully to all-paragraph blocks, since it has no recoverable structure.
+export function splitIntoBlocks(text: string): PolicyStep[] {
+  const groups = text
+    .split(/\n\s*\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  const steps: PolicyStep[] = [];
+
+  for (const group of groups) {
+    const lines = group.split("\n").map((l) => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+
+    const listLines = lines.filter((l) => LIST_ITEM_RE.test(l));
+    if (listLines.length === lines.length) {
+      for (const line of lines) {
+        const match = line.match(LIST_ITEM_RE);
+        if (!match) continue;
+        const level = Math.floor(match[1].length / 2);
+        const itemText = unescapeMarkdown(stripInlineMarkdown(match[2]));
+        if (itemText) steps.push({ type: "list_item", level, text: itemText });
+      }
+      continue;
+    }
+
+    if (lines.length === 1) {
+      const hashMatch = lines[0].match(HASH_HEADING_RE);
+      if (hashMatch) {
+        const headingText = unescapeMarkdown(stripEmphasis(hashMatch[2]));
+        if (headingText) steps.push({ type: "heading", level: hashMatch[1].length - 1, text: headingText });
+        continue;
+      }
+      if (isEntirelyBold(lines[0])) {
+        const headingText = unescapeMarkdown(stripEmphasis(lines[0]));
+        if (headingText) steps.push({ type: "heading", level: 0, text: headingText });
+        continue;
+      }
+    }
+
+    const paraText = unescapeMarkdown(stripInlineMarkdown(lines.join(" ")));
+    if (!paraText) continue;
+    if (paraText.length > MAX_BLOCK_CHARS) {
+      splitLongParagraph(paraText).forEach((t) => steps.push({ type: "paragraph", level: 0, text: t }));
+    } else {
+      steps.push({ type: "paragraph", level: 0, text: paraText });
+    }
+  }
+
+  return steps;
 }

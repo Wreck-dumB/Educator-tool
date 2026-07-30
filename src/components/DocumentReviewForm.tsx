@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import type { PolicySuggestion } from "@/lib/types/domain";
 import { saveReviewedPolicy, type QipSuggestionInput } from "@/app/(app)/import/actions";
 import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
+import PolicySteps from "@/components/PolicySteps";
 
 interface ReviewResult {
   filename: string;
@@ -372,11 +373,7 @@ export default function DocumentReviewForm({ canManage }: { canManage: boolean }
                   {regenerated.policy.procedureSteps.length > 0 && (
                     <>
                       <p className="mt-3 text-sm font-medium text-ink/80">Procedure</p>
-                      <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-ink/80">
-                        {regenerated.policy.procedureSteps.map((s, idx) => (
-                          <li key={idx}>{s}</li>
-                        ))}
-                      </ol>
+                      <PolicySteps steps={regenerated.policy.procedureSteps} />
                     </>
                   )}
                   {regenerated.policy.relatedLegislation.length > 0 && (

@@ -1,4 +1,6 @@
-import type { Database } from "./database.types";
+import type { Database, PolicyStep } from "./database.types";
+
+export type { PolicyStep };
 
 export type EylfOutcome = Database["public"]["Tables"]["eylf_outcomes"]["Row"];
 export type ChildProfile = Database["public"]["Tables"]["children"]["Row"];
@@ -133,7 +135,7 @@ export interface PolicySuggestion {
   title: string;
   purpose: string | null;
   scope: string | null;
-  procedureSteps: string[];
+  procedureSteps: PolicyStep[];
   relatedLegislation: string[];
   suggestedAdditions: string[];
 }

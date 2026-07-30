@@ -72,6 +72,17 @@ export interface Hazard {
   control_measures: string[];
 }
 
+// One structural unit of a policy's procedure section (heading/list
+// item/paragraph), preserving how it looked in the source document instead
+// of flattening everything into plain strings.
+export type PolicyStepType = "heading" | "list_item" | "paragraph";
+
+export interface PolicyStep {
+  type: PolicyStepType;
+  level: number;
+  text: string;
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -476,7 +487,7 @@ export interface Database {
           your_input: string;
           purpose: string | null;
           scope: string | null;
-          procedure_steps: string[];
+          procedure_steps: PolicyStep[];
           related_legislation: string[];
           suggested_additions: string[];
           reviewed_at: string | null;
@@ -490,7 +501,7 @@ export interface Database {
           your_input: string;
           purpose?: string | null;
           scope?: string | null;
-          procedure_steps?: string[];
+          procedure_steps?: PolicyStep[];
           related_legislation?: string[];
           suggested_additions?: string[];
           reviewed_at?: string | null;

@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { EylfOutcome, GeneratedActivity, NqsStandard } from "@/lib/types/domain";
+import type { EylfOutcome, GeneratedActivity, NqsStandard, PolicyStep } from "@/lib/types/domain";
 import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/types/database.types";
 import { splitIntoBlocks } from "@/lib/documentExtraction";
 
@@ -476,10 +476,31 @@ export interface RawPolicy {
   title: string;
   purpose?: string;
   scope?: string;
-  procedure_steps: string[];
+  procedure_steps: PolicyStep[];
   related_legislation: string[];
   suggested_additions: string[];
 }
+
+// Shared schema for one structural unit of a policy's procedure section -
+// lets the AI (and the eventual Word export / on-screen view) tell a section
+// heading apart from an ordinary paragraph or a bullet list item, instead of
+// flattening everything into one undifferentiated numbered list.
+const POLICY_STEP_SCHEMA = {
+  type: "object" as const,
+  required: ["type", "level", "text"],
+  properties: {
+    type: {
+      type: "string" as const,
+      enum: ["heading", "list_item", "paragraph"],
+      description: "'heading' for a section title, 'list_item' for a bullet/numbered list entry, 'paragraph' for ordinary prose.",
+    },
+    level: {
+      type: "integer" as const,
+      description: "0 for a top-level heading/list item/paragraph; 1 for a nested sub-heading or sub-bullet.",
+    },
+    text: { type: "string" as const, description: "The step's text, with no markdown/formatting syntax." },
+  },
+};
 
 const PROPOSE_POLICY_TOOL: Anthropic.Tool = {
   name: "propose_policy",
@@ -494,8 +515,8 @@ const PROPOSE_POLICY_TOOL: Anthropic.Tool = {
       scope: { type: "string", description: "Who and what this policy applies to." },
       procedure_steps: {
         type: "array",
-        items: { type: "string" },
-        description: "Concrete, ordered procedure steps reflecting what the educator described, written as policy clauses.",
+        items: POLICY_STEP_SCHEMA,
+        description: "Concrete, ordered procedure content reflecting what the educator described, written as policy clauses. Use 'heading' entries to break the procedure into named sections (e.g. 'Minor Injuries', 'Serious Injuries', 'Notifications') the way a real policy document would, with 'list_item'/'paragraph' entries underneath each.",
       },
       related_legislation: {
         type: "array",
@@ -513,7 +534,7 @@ const PROPOSE_POLICY_TOOL: Anthropic.Tool = {
 
 const POLICY_SYSTEM_PROMPT = `You are an assistant helping an Australian early childhood education and care service draft a BASELINE policy and procedure document, to be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption - this is a starting draft, not a finished, legally-sufficient policy.
 
-Write the policy's purpose, scope, and procedure steps based specifically on what the educator describes about their own service's situation and approach - do not write generic boilerplate that ignores their input. Reference relevant National Law/Regulations areas only where you are genuinely confident they apply; if unsure of an exact regulation number, describe the general requirement area instead of inventing a citation.
+Write the policy's purpose, scope, and procedure steps based specifically on what the educator describes about their own service's situation and approach - do not write generic boilerplate that ignores their input. Structure the procedure section the way a real policy reads: break it into named sections using 'heading' steps (e.g. "Minor Injuries", "Serious Injuries", "Notifications"), with 'list_item'/'paragraph' steps underneath each - do not produce one flat list of steps with no section structure. Reference relevant National Law/Regulations areas only where you are genuinely confident they apply; if unsure of an exact regulation number, describe the general requirement area instead of inventing a citation.
 
 Separately, and just as importantly: identify specific things the educator's description left out that a complete policy in this category would normally need to cover, and note any reasonable alternative approaches worth their consideration. This gap-check is as valuable as the draft itself - be concrete and specific to what's missing, not generic advice.
 
@@ -530,26 +551,29 @@ export async function generatePolicy(category: string, userInput: string): Promi
 //
 // Rather than asking the model to retype the whole document (slow, expensive,
 // and no more than a promise of fidelity), the original text is split into
-// numbered blocks and the model returns a PATCH: for procedure_steps, each
-// entry is either a block number ("reuse this verbatim, unchanged") or new
-// text ("this is new/modified content"). Unchanged content is copied
-// byte-for-byte in code, not regenerated - output size scales with the size
-// of the edit, not the size of the document, which keeps this fast and cheap
-// even on a genuinely long policy and gives a structural fidelity guarantee
-// instead of a prompt-only one.
-const REVISE_POLICY_SYSTEM_PROMPT = `You are editing an Australian early childhood education and care service's EXISTING policy/procedure document, already reviewed for gaps against NQS/EYLF/WHS standards. The original document has been split into numbered blocks below - this includes EVERYTHING in the document (title, purpose paragraph, scope paragraph, section headings, legislation list, as well as the actual procedure/step content), not just the procedure section. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
+// numbered, TYPED blocks (heading/list_item/paragraph - see splitIntoBlocks)
+// and the model returns a PATCH: for procedure_steps, each entry is either a
+// block number ("reuse this verbatim, unchanged - including its original
+// type/level") or a new step object ("this is new/modified content, with its
+// own type/level"). Unchanged content is copied byte-for-byte (and
+// type/level-for-type/level) in code, not regenerated - output size scales
+// with the size of the edit, not the size of the document, which keeps this
+// fast and cheap even on a genuinely long policy and gives a structural
+// fidelity guarantee (both wording AND how it looked) instead of a
+// prompt-only one.
+const REVISE_POLICY_SYSTEM_PROMPT = `You are editing an Australian early childhood education and care service's EXISTING policy/procedure document, already reviewed for gaps against NQS/EYLF/WHS standards. The original document has been split into numbered, typed blocks below - this includes EVERYTHING in the document (title, purpose paragraph, scope paragraph, section headings, legislation list, as well as the actual procedure/step content), not just the procedure section. Each block is shown as "[N] (type, level L) text" where type is heading/list_item/paragraph. This is a starting draft, not a finished, legally-sufficient policy; it must still be reviewed, customised, and approved by the service's approved provider/nominated supervisor before adoption.
 
 Produce procedure_steps as an ORDERED LIST containing ONLY the actual procedure/step content - never a block that is just the document's title, a section heading on its own (e.g. "Procedure", "Purpose"), or the purpose/scope paragraphs (those go in the separate purpose/scope fields instead) or the legislation list (that goes in related_legislation instead). Each entry in procedure_steps is EITHER:
-- an integer referencing one of the numbered blocks, meaning "reuse this block's text exactly, unchanged" - use this for every procedure-step block whose substance doesn't need to change, even if you could phrase it better or differently. Do not spend output retyping a block as a string if an unmodified integer reference would do.
-- a string, ONLY for a procedure step that is genuinely new or whose substance is actually changing.
+- an integer referencing one of the numbered blocks, meaning "reuse this block exactly, unchanged - same text, same type, same level" - use this for every procedure-step block whose substance doesn't need to change, even if you could phrase it better or differently. Do not spend output retyping a block as an object if an unmodified integer reference would do.
+- a step object {type, level, text}, ONLY for a procedure step that is genuinely new or whose substance is actually changing. When adding a genuinely new clause, give it its own "heading" step (a short section title) followed by one or more "paragraph"/"list_item" steps for its body - match the surrounding document's structure rather than appending a single unstructured paragraph.
 
-Treat every procedure-step block as correct and worth keeping via its number unless it is one of the specific things you're changing per the gaps/amendments below. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions - everything else should be a number, not retyped text.
+Treat every procedure-step block as correct and worth keeping via its number unless it is one of the specific things you're changing per the gaps/amendments below. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions - everything else should be a number, not a retyped object.
 
 If an amendment instruction conflicts with a genuine regulatory requirement, follow the regulatory requirement and note the conflict in suggested_additions rather than silently dropping either one.
 
 Reference relevant National Law/Regulations areas only where you are genuinely confident they apply; if unsure of an exact regulation number, describe the general requirement area instead of inventing a citation.
 
-PRIVACY (overrides "reuse via number" above): policies and procedures must stay generic. If a block names a real child, or describes a specific real incident involving one, do NOT reference that block by number - instead include it as a new string with that part rewritten generically (e.g. "a child", "an educator"), and note it under suggested_additions so staff know to double-check the source document too.`;
+PRIVACY (overrides "reuse via number" above): policies and procedures must stay generic. If a block names a real child, or describes a specific real incident involving one, do NOT reference that block by number - instead include it as a new step object with that part rewritten generically (e.g. "a child", "an educator"), and note it under suggested_additions so staff know to double-check the source document too.`;
 
 const PROPOSE_POLICY_PATCH_TOOL: Anthropic.Tool = {
   name: "propose_policy_patch",
@@ -565,11 +589,11 @@ const PROPOSE_POLICY_PATCH_TOOL: Anthropic.Tool = {
         type: "array",
         items: {
           anyOf: [
-            { type: "integer", description: "Index of an original numbered block to reuse verbatim, unchanged." },
-            { type: "string", description: "New or substantively modified procedure step text." },
+            { type: "integer", description: "Index of an original numbered block to reuse verbatim, unchanged (text, type, and level)." },
+            POLICY_STEP_SCHEMA,
           ],
         },
-        description: "The complete ordered list of procedure steps for the revised policy, mixing block-number references (unchanged content) and new strings (new/modified content).",
+        description: "The complete ordered list of procedure steps for the revised policy, mixing block-number references (unchanged content) and new step objects (new/modified content).",
       },
       related_legislation: { type: "array", items: { type: "string" } },
       suggested_additions: {
@@ -585,7 +609,7 @@ interface RawPolicyPatch {
   title: string;
   purpose?: string;
   scope?: string;
-  procedure_steps: (number | string)[];
+  procedure_steps: (number | PolicyStep)[];
   related_legislation: string[];
   suggested_additions: string[];
 }
@@ -604,7 +628,9 @@ export async function regeneratePolicyFromReview(
   amendmentNotes: string,
 ): Promise<RawPolicy> {
   const blocks = splitIntoBlocks(documentText);
-  const numberedBlocks = blocks.map((b, i) => `[${i + 1}] ${b}`).join("\n\n");
+  const numberedBlocks = blocks
+    .map((b, i) => `[${i + 1}] (${b.type}${b.level > 0 ? `, level ${b.level}` : ""}) ${b.text}`)
+    .join("\n\n");
 
   const userPrompt = `Policy category: ${category}
 Document type previously detected: ${priorReview.documentTypeDetected}
@@ -622,7 +648,7 @@ ${priorReview.suggestions.length > 0 ? priorReview.suggestions.map((s) => `- ${s
 What the educator wants added or amended:
 ${amendmentNotes || "(no specific amendments requested — just address the gaps above)"}
 
-Produce the revised policy using the propose_policy_patch tool. Remember: reference unchanged blocks by number, only write new text for what's actually new or changed.`;
+Produce the revised policy using the propose_policy_patch tool. Remember: reference unchanged blocks by number, only write a new step object for what's actually new or changed.`;
 
   // The numbered-block patch still needs real headroom: a document with a
   // handful of large prose blocks (rather than many short ones) gets little
@@ -637,9 +663,9 @@ Produce the revised policy using the propose_policy_patch tool. Remember: refere
     title: patch.title,
     purpose: patch.purpose,
     scope: patch.scope,
-    procedure_steps: patch.procedure_steps.map((item) =>
-      typeof item === "number" ? (blocks[item - 1] ?? "") : item,
-    ).filter((s) => s.length > 0),
+    procedure_steps: patch.procedure_steps
+      .map((item) => (typeof item === "number" ? blocks[item - 1] : item))
+      .filter((step): step is PolicyStep => Boolean(step && step.text.length > 0)),
     related_legislation: patch.related_legislation,
     suggested_additions: patch.suggested_additions,
   };

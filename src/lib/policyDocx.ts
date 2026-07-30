@@ -45,8 +45,16 @@ export async function buildPolicyDocx(policy: Policy): Promise<Buffer> {
 
   if (policy.procedure_steps.length > 0) {
     children.push(new Paragraph({ text: "Procedure", heading: HeadingLevel.HEADING_1 }));
-    policy.procedure_steps.forEach((step, idx) => {
-      children.push(new Paragraph({ text: `${idx + 1}. ${step}`, spacing: { after: 100 } }));
+    policy.procedure_steps.forEach((step) => {
+      if (step.type === "heading") {
+        children.push(
+          new Paragraph({ text: step.text, heading: step.level > 0 ? HeadingLevel.HEADING_3 : HeadingLevel.HEADING_2 }),
+        );
+      } else if (step.type === "list_item") {
+        children.push(new Paragraph({ text: step.text, bullet: { level: step.level } }));
+      } else {
+        children.push(new Paragraph({ text: step.text, spacing: { after: 100 } }));
+      }
     });
   }
 

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { PolicySuggestion } from "@/lib/types/domain";
 import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
+import PolicySteps from "@/components/PolicySteps";
 import { savePolicy } from "./actions";
 
 export default function PolicyForm() {
@@ -112,11 +113,7 @@ export default function PolicyForm() {
           {draft.procedureSteps.length > 0 && (
             <>
               <p className="mt-3 text-sm font-medium text-ink/80">Procedure</p>
-              <ol className="mt-1 list-decimal space-y-1 pl-5 text-sm text-ink/80">
-                {draft.procedureSteps.map((s, idx) => (
-                  <li key={idx}>{s}</li>
-                ))}
-              </ol>
+              <PolicySteps steps={draft.procedureSteps} />
             </>
           )}
           {draft.relatedLegislation.length > 0 && (
