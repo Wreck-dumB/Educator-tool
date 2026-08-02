@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 interface Props {
   searchParams: Promise<{
     type?: string;
-    name?: string;
+    name?: string | string[];
     title?: string;
     summary?: string;
     material?: string | string[];
@@ -34,7 +34,11 @@ export default async function WorksheetPage({ searchParams }: Props) {
     type && VALID_TYPES.has(type)
       ? (type as "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions")
       : "name_trace";
-  const resolvedName = typeof name === "string" ? name.trim().slice(0, 60) : "";
+  const resolvedNames = toArray(name)
+    .flatMap((n) => n.split(","))
+    .map((n) => n.trim().slice(0, 60))
+    .filter(Boolean)
+    .slice(0, 100);
   const resolvedTitle =
     typeof title === "string" && title.trim()
       ? title.trim().slice(0, 120)
@@ -52,7 +56,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
   return (
     <WorksheetClient
       type={resolvedType}
-      initialName={resolvedName}
+      initialNames={resolvedNames}
       title={resolvedTitle}
       summary={resolvedSummary}
       materials={resolvedMaterials}

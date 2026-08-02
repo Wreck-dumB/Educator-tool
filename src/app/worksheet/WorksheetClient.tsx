@@ -6,7 +6,7 @@ type TemplateType = "name_trace" | "drawing_frame" | "writing_lines" | "activity
 
 interface Props {
   type: TemplateType;
-  initialName: string;
+  initialNames: string[];
   title: string;
   summary?: string;
   materials?: string[];
@@ -345,8 +345,8 @@ function InstructionsTemplate({
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialName, title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
-  const [names, setNames] = useState<string[]>([initialName]);
+export default function WorksheetClient({ type, initialNames, title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+  const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -383,6 +383,17 @@ export default function WorksheetClient({ type, initialName, title, summary, mat
   function update(i: number, v: string) {
     setNames((prev) => prev.map((n, idx) => (idx === i ? v : n)));
   }
+  // Typing/pasting "Mia, Jack, Priya" into one box explodes it into separate rows on blur
+  function splitOnBlur(i: number) {
+    setNames((prev) => {
+      const v = prev[i];
+      if (!v.includes(",")) return prev;
+      const parts = v.split(",").map((p) => p.trim()).filter(Boolean);
+      const next = [...prev];
+      next.splice(i, 1, ...(parts.length > 0 ? parts : [""]));
+      return next;
+    });
+  }
   function add() {
     setNames((prev) => [...prev, ""]);
   }
@@ -404,8 +415,8 @@ export default function WorksheetClient({ type, initialName, title, summary, mat
         </button>
       </div>
 
-      {/* ── Name-trace + drawing-frame + writing-lines: multi-child names ─ */}
-      {(type === "name_trace" || type === "drawing_frame" || type === "writing_lines") && (
+      {/* ── Name-trace + drawing-frame + writing-lines + activity-sheet: multi-child names ─ */}
+      {(type === "name_trace" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
         <>
           {/* Names panel — screen only */}
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
@@ -424,7 +435,8 @@ export default function WorksheetClient({ type, initialName, title, summary, mat
                       type="text"
                       value={n}
                       onChange={(e) => update(i, e.target.value)}
-                      placeholder="Child's name"
+                      onBlur={() => splitOnBlur(i)}
+                      placeholder="Child's name, or paste a comma-separated list"
                       autoFocus={i === 0}
                       className="flex-1 rounded-xl border-2 border-coral/40 bg-white px-4 py-2 text-xl font-bold text-ink focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
                     />
@@ -452,6 +464,7 @@ export default function WorksheetClient({ type, initialName, title, summary, mat
 
               <p className="mt-3 text-xs text-coral-dark/50">
                 Add as many names as you need, then click Print — each child gets their own page.
+                Tip: type or paste several names separated by commas into one box and they&apos;ll split into rows automatically.
               </p>
             </div>
           </div>
@@ -554,14 +567,10 @@ export default function WorksheetClient({ type, initialName, title, summary, mat
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
+              {type === "activity_sheet" && <ActivitySheetTemplate name={n} title={title} materials={materials} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
             </div>
           ))}
         </>
-      )}
-
-      {/* ── Activity-sheet flow ──────────────────────────────────────────── */}
-      {type === "activity_sheet" && (
-        <ActivitySheetTemplate name={initialName} title={title} materials={materials} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />
       )}
 
       {/* ── Instructions flow (no image generation — print only) ─────────── */}

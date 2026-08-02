@@ -9,7 +9,6 @@ import { saveActivity } from "@/app/(app)/generate/save";
 
 interface PersonalisedResult extends ActivitySuggestion {
   adaptationNotes: string[];
-  childName: string | null;
 }
 
 interface Props {
@@ -93,6 +92,11 @@ export default function PersonalisePanel({ activityId, children }: Props) {
     }
   }
 
+  const childNames = childName
+    .split(",")
+    .map((n) => n.trim())
+    .filter(Boolean);
+
   const inputClass =
     "mt-1 block w-full rounded-xl border border-coral-light bg-white px-3 py-2 text-sm shadow-sm focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral";
 
@@ -151,16 +155,19 @@ export default function PersonalisePanel({ activityId, children }: Props) {
 
             <div>
               <label htmlFor="ps-name" className="block text-sm font-medium text-ink/70">
-                Child&apos;s name
+                Child&apos;s name(s)
               </label>
               <input
                 id="ps-name"
                 type="text"
                 value={childName}
                 onChange={(e) => setChildName(e.target.value)}
-                placeholder="e.g. Mia"
+                placeholder="e.g. Mia, Jack, Priya"
                 className={inputClass}
               />
+              <p className="mt-1 text-xs text-ink/40">
+                Separate multiple names with commas to print one worksheet per child — the same adaptation applies to all of them.
+              </p>
             </div>
 
             <div>
@@ -216,8 +223,8 @@ export default function PersonalisePanel({ activityId, children }: Props) {
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-display text-lg font-semibold text-ink">{result.title}</h3>
-                {result.childName && (
-                  <p className="text-sm text-ink/50">Adapted for {result.childName}</p>
+                {childNames.length > 0 && (
+                  <p className="text-sm text-ink/50">Adapted for {childNames.join(", ")}</p>
                 )}
               </div>
               <button
@@ -303,7 +310,7 @@ export default function PersonalisePanel({ activityId, children }: Props) {
               type="button"
               onClick={() => {
                 const params = new URLSearchParams({ title: result.title });
-                if (result.childName) params.set("name", result.childName);
+                childNames.forEach((n) => params.append("name", n));
                 if (result.suggestedTemplate === "name_trace") {
                   params.set("type", "name_trace");
                 } else {
@@ -314,7 +321,8 @@ export default function PersonalisePanel({ activityId, children }: Props) {
               }}
               className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
             >
-              🖨 Print activity sheet{result.childName ? ` for ${result.childName}` : ""}
+              🖨 Print activity sheet{childNames.length > 1 ? "s" : ""}
+              {childNames.length > 0 ? ` for ${childNames.join(", ")}` : ""}
             </button>
 
             {/* Save */}

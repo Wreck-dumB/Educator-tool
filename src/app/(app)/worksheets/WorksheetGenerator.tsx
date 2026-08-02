@@ -81,13 +81,13 @@ export default function WorksheetGenerator({
         </div>
         <div className="sm:w-56">
           <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-ink/40">
-            Child name (optional)
+            Child name(s) (optional)
           </label>
           <input
             type="text"
             value={childName}
             onChange={(e) => setChildName(e.target.value)}
-            placeholder="Printed on each sheet"
+            placeholder="e.g. Mia, Jack, Priya — one sheet each"
             className="w-full rounded-xl border border-coral-light bg-white px-4 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-coral focus:outline-none focus:ring-1 focus:ring-coral"
           />
         </div>

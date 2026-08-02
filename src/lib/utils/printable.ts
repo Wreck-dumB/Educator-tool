@@ -97,7 +97,12 @@ export function buildWorksheetUrl(
 ): string {
   const params = new URLSearchParams({ type: templateType, title: activity.title });
 
-  if (childName?.trim()) params.set("name", childName.trim());
+  // Accepts a comma-separated list — one worksheet name per entry
+  childName
+    ?.split(",")
+    .map((n) => n.trim())
+    .filter(Boolean)
+    .forEach((n) => params.append("name", n));
 
   // Activity sheet: materials + image generation (no steps in URL — the sheet is a workspace)
   if (templateType === "activity_sheet") {
