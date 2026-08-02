@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 type TemplateType = "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions";
 
@@ -348,14 +348,19 @@ function InstructionsTemplate({
 export default function WorksheetClient({ type, initialNames, title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
-  // Image generation state
+  // Image generation state — activity sheets default to a colour illustration
+  // of the actual activity rather than a cut-out outline
   const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageStyle, setImageStyle] = useState<"outline" | "colour">("outline");
+  const [imageStyle, setImageStyle] = useState<"outline" | "colour">(
+    type === "activity_sheet" ? "colour" : "outline",
+  );
   const [imagePrompt, setImagePrompt] = useState(title);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
-  async function generateImage() {
+  async function generateImage(promptOverride?: string, styleOverride?: "outline" | "colour") {
+    const prompt = promptOverride ?? imagePrompt;
+    const style = styleOverride ?? imageStyle;
     setImageLoading(true);
     setImageError(null);
     setImageUrl(null);
@@ -363,7 +368,7 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
       const res = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: imagePrompt, style: imageStyle }),
+        body: JSON.stringify({ prompt, style }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -379,6 +384,17 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
       setImageLoading(false);
     }
   }
+
+  // Activity sheets should show the real activity, not a blank workspace —
+  // generate the illustration automatically instead of waiting for a manual click.
+  // Deferred a tick so the image fetch (and its setState calls) isn't triggered
+  // synchronously from the effect body.
+  useEffect(() => {
+    if (type !== "activity_sheet" || !title.trim()) return;
+    const id = setTimeout(() => generateImage(title, "colour"), 0);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function update(i: number, v: string) {
     setNames((prev) => prev.map((n, idx) => (idx === i ? v : n)));
@@ -501,7 +517,7 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
                 />
                 <button
                   type="button"
-                  onClick={generateImage}
+                  onClick={() => generateImage()}
                   disabled={imageLoading || !imagePrompt.trim()}
                   className="shrink-0 rounded-full bg-sage px-4 py-2 text-sm font-semibold text-white hover:bg-sage-dark disabled:opacity-50"
                 >
