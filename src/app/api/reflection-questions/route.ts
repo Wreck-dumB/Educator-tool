@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -70,28 +71,20 @@ ${context}
 
 Generate 4-6 tailored reflection questions using the generate_reflection_questions tool.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });
   }
 
   try {
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
+    const result = await runToolCall({
       model: MODEL,
-      max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
-      tools: [QUESTIONS_TOOL],
-      tool_choice: { type: "tool", name: "generate_reflection_questions" },
+      tool: QUESTIONS_TOOL,
+      maxTokens: 1024,
     });
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) throw new Error("No tool call returned");
-
-    return NextResponse.json(toolUse.input);
+    return NextResponse.json(result);
   } catch (err) {
     console.error("Reflection question generation failed:", err);
     return NextResponse.json({ error: "Failed to generate questions" }, { status: 502 });

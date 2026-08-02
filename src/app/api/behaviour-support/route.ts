@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -140,28 +141,19 @@ ${situation}
 
 Propose support strategies using the propose_support_strategies tool.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });
   }
 
   let result;
   try {
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
+    result = await runToolCall({
       model: MODEL,
-      max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
-      tools: [PROPOSE_SUPPORT_TOOL],
-      tool_choice: { type: "tool", name: "propose_support_strategies" },
+      tool: PROPOSE_SUPPORT_TOOL,
+      maxTokens: 2048,
     });
-
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) throw new Error("No tool call returned");
-    result = toolUse.input;
   } catch (err) {
     console.error("Behaviour support generation failed:", err);
     return NextResponse.json({ error: "Failed to generate support strategies" }, { status: 502 });

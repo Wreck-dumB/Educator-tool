@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { EylfOutcome, GeneratedActivity, NqsStandard, PolicyStep } from "@/lib/types/domain";
 import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/types/database.types";
 import { splitIntoBlocks } from "@/lib/documentExtraction";
+import { runToolCall, runTextCall } from "@/lib/ai/backend";
 
 export interface MealPlanAssignment {
   slot_date: string;
@@ -188,31 +189,12 @@ export async function generateActivitySuggestions(
   outcomes: EylfOutcome[],
   count = 5,
 ): Promise<RawActivitySuggestion[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
-  }
-
-  const client = new Anthropic({ apiKey });
-
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: Math.min(8192, Math.max(2048, count * 700)),
-    system: buildSystemPrompt(outcomes),
-    messages: [{ role: "user", content: buildUserPrompt(input, count) }],
-    tools: [makeActivitiesTool(count)],
-    tool_choice: { type: "tool", name: "propose_activities" },
-  });
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(
+    buildSystemPrompt(outcomes),
+    buildUserPrompt(input, count),
+    makeActivitiesTool(count),
+    Math.min(8192, Math.max(2048, count * 700)),
   );
-
-  if (!toolUse) {
-    throw new Error("Model did not return a tool call");
-  }
-
-  const result = toolUse.input as { activities?: RawActivitySuggestion[] };
   return result.activities ?? [];
 }
 
@@ -327,31 +309,12 @@ function buildRiskAssessmentUserPrompt(activity: GeneratedActivity): string {
 }
 
 export async function generateRiskAssessment(activity: GeneratedActivity): Promise<RawRiskAssessment> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
-  }
-
-  const client = new Anthropic({ apiKey });
-
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    system: RISK_ASSESSMENT_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildRiskAssessmentUserPrompt(activity) }],
-    tools: [PROPOSE_RISK_ASSESSMENT_TOOL],
-    tool_choice: { type: "tool", name: "propose_risk_assessment" },
-  });
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+  return callTool<RawRiskAssessment>(
+    RISK_ASSESSMENT_SYSTEM_PROMPT,
+    buildRiskAssessmentUserPrompt(activity),
+    PROPOSE_RISK_ASSESSMENT_TOOL,
+    2048,
   );
-
-  if (!toolUse) {
-    throw new Error("Model did not return a tool call");
-  }
-
-  return toolUse.input as RawRiskAssessment;
 }
 
 /** Attaches a deterministically-computed risk rating to each raw hazard. */
@@ -368,34 +331,17 @@ export function scoreHazards(hazards: RawHazard[]): Hazard[] {
     }));
 }
 
-/** Shared single-tool-call helper used by every generator in this file. */
+/** Shared single-tool-call helper used by every generator in this file. Routes through
+ * AI_BACKEND (proxy for $0 local dev/testing, api for production/real users) - see
+ * src/lib/ai/backend.ts. */
 async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 4096): Promise<T> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured");
-  }
-
-  const client = new Anthropic({ apiKey });
-  const message = await client.messages.create({
+  return runToolCall<T>({
     model: MODEL,
-    max_tokens: maxTokens,
     system,
     messages: [{ role: "user", content: userPrompt }],
-    tools: [tool],
-    tool_choice: { type: "tool", name: tool.name },
+    tool,
+    maxTokens,
   });
-
-  if (message.stop_reason === "max_tokens") {
-    throw new Error("AI_RESPONSE_TRUNCATED: the response was cut off before it finished — try a shorter document/description or fewer amendment notes");
-  }
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-  );
-  if (!toolUse) {
-    throw new Error("Model did not return a tool call");
-  }
-  return toolUse.input as T;
 }
 
 // =========================================
@@ -1261,25 +1207,12 @@ Rules:
     "Propose a single follow-up activity that extends this observation. Use the propose_activities tool with exactly one activity.",
   ].filter(Boolean);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
-
-  const client = new Anthropic({ apiKey });
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
+  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(
     system,
-    messages: [{ role: "user", content: lines.join("\n") }],
-    tools: [makeActivitiesTool(1)],
-    tool_choice: { type: "tool", name: "propose_activities" },
-  });
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
+    lines.join("\n"),
+    makeActivitiesTool(1),
+    2048,
   );
-  if (!toolUse) throw new Error("Model did not return a tool call");
-
-  const result = toolUse.input as { activities?: RawActivitySuggestion[] };
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
   return activity;
@@ -1339,9 +1272,6 @@ const ROUTINE_TOOL = {
 export async function generateDailyRoutine(
   input: DailyRoutineInput,
 ): Promise<RoutineBlockRaw[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
-
   const system = `You are an expert early childhood educator planning a time-blocked daily routine for an Australian early childhood centre.
 Create a realistic, developmentally appropriate routine that:
 - Runs from approximately 7:30–8:00 AM arrival to 5:30–6:00 PM departure
@@ -1366,22 +1296,7 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
     "Generate a complete, realistic daily routine using the set_daily_routine tool.",
   ].filter(Boolean).join("\n");
 
-  const client = new Anthropic({ apiKey });
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    system,
-    messages: [{ role: "user", content: userMsg }],
-    tools: [ROUTINE_TOOL],
-    tool_choice: { type: "tool", name: "set_daily_routine" },
-  });
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-  );
-  if (!toolUse) throw new Error("Model did not return a tool call");
-
-  const result = toolUse.input as { blocks?: RoutineBlockRaw[] };
+  const result = await callTool<{ blocks?: RoutineBlockRaw[] }>(system, userMsg, ROUTINE_TOOL, 2048);
   return result.blocks ?? [];
 }
 
@@ -1414,25 +1329,7 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
   const noteList = followUpNotes.map((n, i) => `${i + 1}. ${n}`).join("\n");
   const userMsg = `Here are the follow-up intentions for different children in the group:\n\n${noteList}\n\nPropose one group activity that addresses as many of these threads as possible. Use the propose_activities tool with exactly one activity.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
-
-  const client = new Anthropic({ apiKey });
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    system,
-    messages: [{ role: "user", content: userMsg }],
-    tools: [makeActivitiesTool(1)],
-    tool_choice: { type: "tool", name: "propose_activities" },
-  });
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-  );
-  if (!toolUse) throw new Error("Model did not return a tool call");
-
-  const result = toolUse.input as { activities?: RawActivitySuggestion[] };
+  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(system, userMsg, makeActivitiesTool(1), 2048);
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
   return activity;
@@ -1576,11 +1473,6 @@ function makeBrainBreaksTool(count: number): Anthropic.Tool {
 }
 
 export async function generateBrainBreaks(input: BrainBreakInput, count = 3): Promise<RawBrainBreak[]> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("ANTHROPIC_API_KEY is not configured");
-
-  const client = new Anthropic({ apiKey });
-
   const AGE_LABELS: Record<string, string> = {
     toddlers_1_2: "toddlers aged 1–2 years",
     toddlers_2_3: "toddlers aged 2–3 years",
@@ -1624,21 +1516,7 @@ ${typeInstruction}
 
 Propose ${count} digital Brain Break ideas using the propose_brain_breaks tool.`;
 
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userPrompt }],
-    tools: [makeBrainBreaksTool(count)],
-    tool_choice: { type: "tool", name: "propose_brain_breaks" },
-  });
-
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-  );
-  if (!toolUse) throw new Error("Model did not return a tool call");
-
-  const result = toolUse.input as { brain_breaks?: RawBrainBreak[] };
+  const result = await callTool<{ brain_breaks?: RawBrainBreak[] }>(systemPrompt, userPrompt, makeBrainBreaksTool(count), 4096);
   return result.brain_breaks ?? [];
 }
 
@@ -1669,8 +1547,6 @@ export interface RawTransitionStatement {
 export async function generateTransitionStatement(
   input: TransitionStatementInput,
 ): Promise<RawTransitionStatement> {
-  const client = new Anthropic();
-
   const typeLabel =
     input.transitionType === "to_school"
       ? "transitioning to primary school"
@@ -1703,38 +1579,24 @@ ${observationContext}
 
 Use the write_transition_statement tool to produce the statement.`;
 
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    system: systemPrompt,
-    messages: [{ role: "user", content: userPrompt }],
-    tools: [
-      {
-        name: "write_transition_statement",
-        description: "Write a structured transition statement for a child moving to a new learning environment.",
-        input_schema: {
-          type: "object" as const,
-          required: ["opening", "strengths", "interests_and_learning_style", "social_and_emotional", "next_steps", "family_note"],
-          properties: {
-            opening: { type: "string", description: "One or two sentences introducing the child's time at the service." },
-            strengths: { type: "string", description: "2-3 sentences describing the child's key strengths and achievements." },
-            interests_and_learning_style: { type: "string", description: "2-3 sentences on the child's current interests and how they learn best." },
-            social_and_emotional: { type: "string", description: "2-3 sentences on the child's social skills, friendships, and emotional regulation." },
-            next_steps: { type: "string", description: "1-2 sentences on what the receiving educator might focus on to support continued growth." },
-            family_note: { type: "string", description: "One warm sentence acknowledging the family's partnership in the child's learning." },
-          },
-        },
+  const transitionStatementTool: Anthropic.Tool = {
+    name: "write_transition_statement",
+    description: "Write a structured transition statement for a child moving to a new learning environment.",
+    input_schema: {
+      type: "object" as const,
+      required: ["opening", "strengths", "interests_and_learning_style", "social_and_emotional", "next_steps", "family_note"],
+      properties: {
+        opening: { type: "string", description: "One or two sentences introducing the child's time at the service." },
+        strengths: { type: "string", description: "2-3 sentences describing the child's key strengths and achievements." },
+        interests_and_learning_style: { type: "string", description: "2-3 sentences on the child's current interests and how they learn best." },
+        social_and_emotional: { type: "string", description: "2-3 sentences on the child's social skills, friendships, and emotional regulation." },
+        next_steps: { type: "string", description: "1-2 sentences on what the receiving educator might focus on to support continued growth." },
+        family_note: { type: "string", description: "One warm sentence acknowledging the family's partnership in the child's learning." },
       },
-    ],
-    tool_choice: { type: "tool", name: "write_transition_statement" },
-  });
+    },
+  };
 
-  const toolUse = message.content.find(
-    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-  );
-  if (!toolUse) throw new Error("Model did not return a tool call");
-
-  return toolUse.input as RawTransitionStatement;
+  return callTool<RawTransitionStatement>(systemPrompt, userPrompt, transitionStatementTool, 2048);
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1767,12 +1629,11 @@ export async function translateBroadcast(
   body: string,
   targetLanguageKey: string,
 ): Promise<{ title: string; body: string }> {
-  const client = new Anthropic();
   const languageName = SUPPORTED_LANGUAGES[targetLanguageKey] ?? targetLanguageKey;
 
-  const message = await client.messages.create({
+  const raw = await runTextCall({
     model: MODEL,
-    max_tokens: 1024,
+    maxTokens: 1024,
     messages: [
       {
         role: "user",
@@ -1787,7 +1648,6 @@ ${body}`,
     ],
   });
 
-  const raw = message.content.find((b) => b.type === "text")?.text ?? "";
   const parts = raw.split("|||");
   return {
     title: (parts[0] ?? title).trim(),
@@ -1801,8 +1661,6 @@ export async function generateMealPlanAssignments(input: {
   children: { first_name: string; dietary_restrictions: string | null; medical_conditions: string | null; is_anaphylaxis_risk: boolean }[];
   recipes: { id: string; title: string; dietary_tags: string[]; allergens_present: string[]; age_range: string | null }[];
 }): Promise<MealPlanAssignment[]> {
-  const client = new Anthropic();
-
   const restrictions = input.children
     .flatMap((c) => {
       const parts: string[] = [];
@@ -1813,35 +1671,34 @@ export async function generateMealPlanAssignments(input: {
     })
     .filter(Boolean);
 
-  const message = await client.messages.create({
-    model: MODEL,
-    max_tokens: 2048,
-    tools: [
-      {
-        name: "assign_meal_plan",
-        description: "Assign a saved recipe or custom meal title to each provided slot",
-        input_schema: {
-          type: "object" as const,
-          properties: {
-            assignments: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  slot_date: { type: "string", description: "YYYY-MM-DD" },
-                  meal_type: { type: "string" },
-                  recipe_id: { type: "string", description: "ID of a saved recipe, or null" },
-                  custom_title: { type: "string", description: "Short meal title when no saved recipe fits, or null" },
-                },
-                required: ["slot_date", "meal_type"],
-              },
+  const mealPlanTool: Anthropic.Tool = {
+    name: "assign_meal_plan",
+    description: "Assign a saved recipe or custom meal title to each provided slot",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        assignments: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              slot_date: { type: "string", description: "YYYY-MM-DD" },
+              meal_type: { type: "string" },
+              recipe_id: { type: "string", description: "ID of a saved recipe, or null" },
+              custom_title: { type: "string", description: "Short meal title when no saved recipe fits, or null" },
             },
+            required: ["slot_date", "meal_type"],
           },
-          required: ["assignments"],
         },
       },
-    ],
-    tool_choice: { type: "tool" as const, name: "assign_meal_plan" },
+      required: ["assignments"],
+    },
+  };
+
+  const data = await runToolCall<{ assignments: MealPlanAssignment[] }>({
+    model: MODEL,
+    maxTokens: 2048,
+    tool: mealPlanTool,
     messages: [
       {
         role: "user",
@@ -1872,8 +1729,5 @@ Rules:
     ],
   });
 
-  const toolUse = message.content.find((b) => b.type === "tool_use");
-  if (!toolUse || toolUse.type !== "tool_use") return [];
-  const data = toolUse.input as { assignments: MealPlanAssignment[] };
   return data.assignments ?? [];
 }

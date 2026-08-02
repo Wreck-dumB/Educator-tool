@@ -5,6 +5,7 @@ import { getNqsStandards } from "@/lib/supabase/qip";
 import { regeneratePolicyFromReview, type PriorDocumentReview } from "@/lib/anthropic";
 import { MAX_TEXT_CHARS, extractTextFromPdf, extractTextFromDocx, isPdfFile, isDocxFile } from "@/lib/documentExtraction";
 import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
+import { aiBackendMode } from "@/lib/ai/backend";
 
 export const runtime = "nodejs";
 // Preserving a real policy's wording near-verbatim while folding in
@@ -112,8 +113,7 @@ export async function POST(request: Request) {
 
   const documentText = rawText.slice(0, MAX_TEXT_CHARS);
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });
   }
 

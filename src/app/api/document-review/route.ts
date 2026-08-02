@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { MAX_TEXT_CHARS, extractTextFromPdf, extractTextFromDocx, isPdfFile, isDocxFile } from "@/lib/documentExtraction";
 import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
+import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -149,28 +150,19 @@ ${documentText}
 
 Please review this document using the review_document tool.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });
   }
 
   let result;
   try {
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
+    result = await runToolCall({
       model: MODEL,
-      max_tokens: 4096,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
-      tools: [REVIEW_TOOL],
-      tool_choice: { type: "tool", name: "review_document" },
+      tool: REVIEW_TOOL,
+      maxTokens: 4096,
     });
-
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) throw new Error("No tool call returned");
-    result = toolUse.input;
   } catch (err) {
     console.error("Document review generation failed:", err);
     return NextResponse.json({ error: "AI review failed — please try again" }, { status: 502 });

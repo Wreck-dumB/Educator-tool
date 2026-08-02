@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -146,28 +147,20 @@ ${behaviourFunction || "not specified"}
 
 Please generate structured Behaviour Support Plan strategies using the generate_bsp_strategies tool.`;
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });
   }
 
   try {
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
+    const result = await runToolCall({
       model: MODEL,
-      max_tokens: 2048,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: prompt }],
-      tools: [GENERATE_PLAN_TOOL],
-      tool_choice: { type: "tool", name: "generate_bsp_strategies" },
+      tool: GENERATE_PLAN_TOOL,
+      maxTokens: 2048,
     });
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) throw new Error("No tool call returned");
-
-    return NextResponse.json(toolUse.input);
+    return NextResponse.json(result);
   } catch (err) {
     console.error("BSP strategy generation failed:", err);
     return NextResponse.json(

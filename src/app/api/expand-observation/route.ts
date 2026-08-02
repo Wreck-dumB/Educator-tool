@@ -2,10 +2,8 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { isRateLimited } from "@/lib/rateLimit";
-
-const client = new Anthropic();
+import { runTextCall } from "@/lib/ai/backend";
 
 const FORMAT_INSTRUCTIONS: Record<string, string> = {
   anecdotal: `Rewrite as a polished anecdotal record. Use specific, objective, factual language — what was seen, heard, said. Third person. Present tense description of the moment. No interpretation in the main body. End with one sentence linking to EYLF outcomes if relevant. 2–4 sentences total.`,
@@ -70,15 +68,14 @@ ${formatInstructions}
 
 Write the observation now:`;
 
-  const message = await client.messages.create({
+  const rawText = await runTextCall({
     model: "claude-haiku-4-5-20251001",
-    max_tokens: 600,
+    maxTokens: 600,
     messages: [{ role: "user", content: userPrompt }],
     system: systemPrompt,
   });
 
-  const expanded =
-    message.content[0]?.type === "text" ? message.content[0].text.trim() : "";
+  const expanded = rawText.trim();
 
   if (!expanded) {
     return NextResponse.json({ error: "AI did not return content." }, { status: 500 });

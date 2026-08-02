@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -149,8 +150,9 @@ export async function POST(request: Request) {
       ? `${incidentCount} incident/injury/illness record(s) were filed today. Details are confidential — only acknowledge that care was provided.`
       : "No incidents filed today.";
 
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: "AI not configured" }, { status: 500 });
+  if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
+    return NextResponse.json({ error: "AI not configured" }, { status: 500 });
+  }
 
   const userPrompt = `Room: ${room.name}
 Date: ${new Date(date).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
@@ -168,22 +170,15 @@ ${incidentSummary}
 Generate the daily room summary using the generate_room_daily_report tool.`;
 
   try {
-    const client = new Anthropic({ apiKey });
-    const message = await client.messages.create({
+    const result = await runToolCall({
       model: MODEL,
-      max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
-      tools: [REPORT_TOOL],
-      tool_choice: { type: "tool", name: "generate_room_daily_report" },
+      tool: REPORT_TOOL,
+      maxTokens: 1024,
     });
 
-    const toolUse = message.content.find(
-      (block): block is Anthropic.ToolUseBlock => block.type === "tool_use",
-    );
-    if (!toolUse) throw new Error("No tool call returned");
-
-    return NextResponse.json({ ...toolUse.input as object, roomName: room.name, date });
+    return NextResponse.json({ ...result as object, roomName: room.name, date });
   } catch (err) {
     console.error("Room daily report generation failed:", err);
     return NextResponse.json({ error: "Failed to generate report" }, { status: 502 });
