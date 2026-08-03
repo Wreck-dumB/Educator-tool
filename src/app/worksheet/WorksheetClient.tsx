@@ -585,13 +585,17 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ti
     }
   }
 
-  // Activity sheets should show the real activity, not a blank workspace —
-  // generate the illustration automatically instead of waiting for a manual click.
+  // Activity sheets and drawing frames should show the real activity, not a
+  // blank workspace/box — generate the illustration automatically instead of
+  // waiting for a manual click. Drawing frames get an outline (something to
+  // colour/cut, matching their own default style) rather than a filled-in
+  // colour picture, which would leave nothing for the child to actually do.
   // Deferred a tick so the image fetch (and its setState calls) isn't triggered
   // synchronously from the effect body.
   useEffect(() => {
-    if (type !== "activity_sheet" || !title.trim()) return;
-    const id = setTimeout(() => generateImage(title, "colour"), 0);
+    if ((type !== "activity_sheet" && type !== "drawing_frame") || !title.trim()) return;
+    const style = type === "activity_sheet" ? "colour" : "outline";
+    const id = setTimeout(() => generateImage(title, style), 0);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
