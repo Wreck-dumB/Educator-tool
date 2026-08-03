@@ -48,9 +48,10 @@ export interface RawActivitySuggestion {
   energy_level?: "calm" | "moderate" | "high";
   group_size_fit?: "solo" | "small_group" | "whole_group";
   eylf_codes: string[];
-  suggested_template?: "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
+  suggested_template?: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
   card_items?: string[];
   image_subject?: string;
+  letter_text?: string;
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -88,13 +89,17 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             },
             suggested_template: {
               type: "string",
-              enum: ["name_trace", "name_colouring", "drawing_frame", "writing_lines", "card_set"],
-              description: "Set this for activities where a printable template helps children engage: 'name_trace' — the activity is HANDWRITING PRACTICE, forming/tracing letters of their own name (dotted trace-guide lines printed per child); 'name_colouring' — the activity is NAME RECOGNITION or decoration, not handwriting — the child's own name printed in big hollow outline letters to colour in, paint, or glue cut-out collage materials onto, with open space on the page for that gluing/decorating (printed per child); 'drawing_frame' — activity involves free drawing, illustrating, painting, or colouring a picture/scene on paper (blank bordered space printed per child); 'writing_lines' — activity involves handwriting practice, forming letters, writing words or sentences beyond just their own name (ruled handwriting lines printed per child); 'card_set' — the activity fundamentally IS a set of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, picture-word pairs, alphabet/number cards) — each card shows one picture + one short label, printed as a grid ready to cut out and laminate. Always set one of these five for any art, literacy, drawing, colouring, painting, handwriting, flashcard, or card-game activity — pick 'card_set' specifically whenever the finished product is a deck of individual cards rather than a single worksheet page, and pick 'name_colouring' specifically whenever the activity is about colouring/decorating/gluing onto the child's own name rather than practising writing it. A generic 'name' mentioned in passing (e.g. an animal's name printed on a flashcard) is NOT the child's own name — don't pick name_trace/name_colouring just because the word 'name' appears. Leave absent only for purely oral, physical, or construction activities with no paper component.",
+              enum: ["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "card_set"],
+              description: "Set this for activities where a printable template helps children engage: 'name_trace' — the activity is HANDWRITING PRACTICE, forming/tracing letters of their own name (dotted trace-guide lines printed per child); 'name_colouring' — the activity is NAME RECOGNITION or decoration, not handwriting — the child's own name printed in big hollow outline letters to colour in, paint, or glue cut-out collage materials onto, with open space on the page for that gluing/decorating (printed per child); 'letter_colouring' — the activity is about a specific alphabet letter, number, or short word (NOT the child's own name) shown as one big hollow shape to colour in or decorate (e.g. 'colour the letter S', 'trace and colour the number 5', 'decorate the word CAT') — rendered as real text, not an AI-drawn picture, so it's always shaped correctly; 'drawing_frame' — activity involves free drawing, illustrating, painting, or colouring a picture/scene on paper (blank bordered space printed per child); 'writing_lines' — activity involves handwriting practice, forming letters, writing words or sentences beyond just their own name (ruled handwriting lines printed per child); 'card_set' — the activity fundamentally IS a set of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, picture-word pairs, alphabet/number cards) — each card shows one picture + one short label, printed as a grid ready to cut out and laminate. Always set one of these six for any art, literacy, drawing, colouring, painting, handwriting, flashcard, or card-game activity — pick 'card_set' specifically whenever the finished product is a deck of individual cards rather than a single worksheet page, pick 'name_colouring' specifically whenever the activity is about colouring/decorating/gluing onto the child's own name, and pick 'letter_colouring' whenever it's about a letter/number/word that is NOT the child's own name. A generic 'name' mentioned in passing (e.g. an animal's name printed on a flashcard) is NOT the child's own name — don't pick name_trace/name_colouring just because the word 'name' appears. Never use image_subject/an AI-drawn picture to depict a letter, number, or word — text rendered by an image generator is frequently wrong-shaped; always use 'letter_colouring' instead. Leave absent only for purely oral, physical, or construction activities with no paper component.",
             },
             card_items: {
               type: "array",
               items: { type: "string" },
               description: "REQUIRED and must list every distinct card (e.g. ['Kangaroo', 'Koala', 'Wombat']) when — and only when — suggested_template is 'card_set'. One short label per card face. For a matching/memory game where each item appears twice, list each label ONCE here (the printable template duplicates it automatically to make the pair). Omit entirely for every other suggested_template value.",
+            },
+            letter_text: {
+              type: "string",
+              description: "REQUIRED when — and only when — suggested_template is 'letter_colouring'. The exact text to render in big hollow letters, e.g. 'S', 'Ss', '5', 'CAT'. Keep it short (a single letter, number, or one short word) — this fills most of the printed page. Omit entirely for every other suggested_template value.",
             },
             image_subject: {
               type: "string",

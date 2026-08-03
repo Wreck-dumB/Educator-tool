@@ -330,6 +330,7 @@ export default function PersonalisePanel({ activityId, children }: Props) {
                     group_size_fit: result.groupSizeFit,
                     card_items: result.cardItems,
                     image_subject: result.imageSubject,
+                    letter_text: result.letterText,
                   },
                   childNames.join(","),
                 );

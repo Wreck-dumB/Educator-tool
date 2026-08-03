@@ -97,5 +97,6 @@ export async function POST(request: Request) {
     suggestedTemplate: null,
     cardItems: [],
     imageSubject: null,
+    letterText: null,
   });
 }

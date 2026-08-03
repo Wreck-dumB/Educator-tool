@@ -4,6 +4,7 @@ export type PrintTemplateType =
   | "writing_lines"
   | "name_trace"
   | "name_colouring"
+  | "letter_colouring"
   | "card_set"
   | "instructions";
 
@@ -13,6 +14,7 @@ export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   writing_lines: "Writing lines",
   name_trace: "Name tracing",
   name_colouring: "Name colouring",
+  letter_colouring: "Letter/number colouring",
   card_set: "Card set",
   instructions: "Instruction card",
 };
@@ -23,6 +25,7 @@ export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
   writing_lines: "Lined paper (writing, journalling, language activities)",
   name_trace: "Guided name-tracing lines (name writing practice only)",
   name_colouring: "Child's name in big hollow letters to colour in or glue collage onto (name recognition, not handwriting)",
+  letter_colouring: "One letter, number, or short word in big hollow text to colour in (alphabet/number recognition, not the child's own name)",
   card_set: "Printable cut-out cards, one picture + label per card (flashcards, memory/matching, snap, go fish)",
   instructions: "Steps + EYLF codes + time/group info (outdoor, physical, discussion, music)",
 };
@@ -33,6 +36,7 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
   writing_lines: "bg-blue-50 text-blue-700",
   name_trace: "bg-amber-50 text-amber-700",
   name_colouring: "bg-purple-50 text-purple-700",
+  letter_colouring: "bg-indigo-50 text-indigo-700",
   card_set: "bg-teal-50 text-teal-700",
   instructions: "bg-cream-dark text-ink/70",
 };
@@ -89,10 +93,11 @@ export function detectPrintTemplate(activity: ActivityShape): PrintTemplateType 
   // Outdoor / physical / discussion / music → instruction card
   if (PHYSICAL_KW.test(text)) return "instructions";
 
-  // Unknown — default to instruction card (not name_trace). Note: "card_set" is
-  // deliberately never a fallback guess here — it needs a structured list of
-  // card labels (card_items) that only the AI's explicit suggested_template
-  // call can provide; there's nothing reliable to parse out of free text for it.
+  // Unknown — default to instruction card (not name_trace). Note: "card_set"
+  // and "letter_colouring" are deliberately never fallback guesses here —
+  // they each need structured data (card_items / letter_text) that only the
+  // AI's explicit suggested_template call can provide; there's nothing
+  // reliable to parse out of free text for either.
   return "instructions";
 }
 
@@ -111,6 +116,7 @@ export function buildWorksheetUrl(
     group_size_fit?: string | null;
     card_items?: string[];
     image_subject?: string | null;
+    letter_text?: string | null;
   },
   childName?: string,
 ): string {
@@ -137,6 +143,11 @@ export function buildWorksheetUrl(
   // Card set: one label per card face — the template duplicates each into a pair
   if (templateType === "card_set") {
     activity.card_items?.forEach((c) => params.append("card", c));
+  }
+
+  // Letter colouring: the exact letter/number/word to render
+  if (templateType === "letter_colouring" && activity.letter_text) {
+    params.set("letter_text", activity.letter_text);
   }
 
   // Drawing frame / writing lines: child name already set above, no extra params needed

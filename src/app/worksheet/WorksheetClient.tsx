@@ -2,13 +2,14 @@
 
 import { useState, useMemo, useEffect } from "react";
 
-type TemplateType = "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions";
+type TemplateType = "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions";
 
 interface Props {
   type: TemplateType;
   initialNames: string[];
   cardItems?: string[];
   imageSubject?: string;
+  letterText?: string;
   title: string;
   summary?: string;
   materials?: string[];
@@ -214,6 +215,65 @@ function NameColouringTemplate({ name, title }: { name: string; title: string })
 
       <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-widest text-ink/40">
         🖌 Colour in the letters, or glue your cut-out pieces on:
+      </p>
+      <div
+        className="rounded-xl border-2 border-dashed border-ink/25"
+        style={{ height: "380px" }}
+        aria-label="Glue / decorating space"
+      />
+
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Letter Colouring Template — a letter/number/word in big hollow text,
+// rendered as real text (never an AI-drawn picture, which is unreliable at
+// drawing accurate letterforms) ────────────────────────────────────────────
+function LetterColouringTemplate({ text, name, title }: { text: string; name: string; title: string }) {
+  const displayText = text.trim() || "?";
+  const svgWidth = 760;
+
+  const fontSize = useMemo(
+    () => pickColouringFontSize(displayText.length, svgWidth - 40),
+    [displayText.length],
+  );
+  const svgHeight = fontSize * 1.4;
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-4 border-b border-ink/10 pb-3">
+        <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
+        {name.trim() && (
+          <p className="mt-0.5 text-sm text-ink/50">For <strong>{name.trim()}</strong></p>
+        )}
+      </div>
+
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        width="100%"
+        aria-label={`Colour in ${displayText}`}
+        style={{ display: "block" }}
+      >
+        <text
+          x={svgWidth / 2}
+          y={svgHeight * 0.75}
+          textAnchor="middle"
+          fontSize={fontSize}
+          fontWeight="bold"
+          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
+          fill="#ffffff"
+          stroke="#2b2b2b"
+          strokeWidth={Math.max(2.5, fontSize * 0.05)}
+          strokeLinejoin="round"
+          style={{ userSelect: "none" }}
+        >
+          {displayText}
+        </text>
+      </svg>
+
+      <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-widest text-ink/40">
+        🖌 Colour it in, or glue your cut-out pieces on:
       </p>
       <div
         className="rounded-xl border-2 border-dashed border-ink/25"
@@ -546,7 +606,7 @@ function InstructionsTemplate({
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], imageSubject = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -647,7 +707,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], im
       </div>
 
       {/* ── Name-trace + name-colouring + drawing-frame + writing-lines + activity-sheet: multi-child names ─ */}
-      {(type === "name_trace" || type === "name_colouring" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
+      {(type === "name_trace" || type === "name_colouring" || type === "letter_colouring" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
         <>
           {/* Names panel — screen only */}
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
@@ -700,9 +760,9 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], im
             </div>
           </div>
 
-          {/* Image generation panel — screen only. Not for name-colouring: the
-              name itself, not a generated picture, is the page's content. */}
-          {type !== "name_colouring" && (
+          {/* Image generation panel — screen only. Not for name/letter colouring:
+              the text itself, not a generated picture, is the page's content. */}
+          {type !== "name_colouring" && type !== "letter_colouring" && (
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
             <div className="mt-4 rounded-2xl border-2 border-dashed border-sage-light bg-sage-light/20 px-5 py-4">
               <p className="mb-3 text-sm font-semibold text-sage-dark">🎨 Activity image (optional)</p>
@@ -800,6 +860,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], im
               )}
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "name_colouring" && <NameColouringTemplate name={n} title={title} />}
+              {type === "letter_colouring" && <LetterColouringTemplate text={letterText} name={n} title={title} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "activity_sheet" && <ActivitySheetTemplate name={n} title={title} materials={materials} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}

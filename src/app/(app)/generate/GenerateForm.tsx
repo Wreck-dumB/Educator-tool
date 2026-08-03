@@ -803,6 +803,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       group_size_fit: s.groupSizeFit,
                       card_items: s.cardItems,
                       image_subject: s.imageSubject,
+                      letter_text: s.letterText,
                     }, printNames.trim() || selectedChild?.first_name || undefined);
                     window.open(url, "_blank");
                   }}

@@ -138,18 +138,21 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
   }
 
-  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "drawing_frame", "writing_lines", "card_set"]);
+  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "card_set"]);
   // Card decks get large fast (pairs double the print count) — cap unique
   // labels so a print run stays a reasonable number of pages/images.
   const MAX_CARD_ITEMS = 16;
   const suggestions: ActivitySuggestion[] = raw.map((activity) => {
     const cardItems = (activity.card_items ?? []).map((c) => c.trim()).filter(Boolean).slice(0, MAX_CARD_ITEMS);
-    // "card_set" without any actual card labels has nothing to render —
-    // fall through to null so detectPrintTemplate() picks a sane fallback at print time.
-    const suggestedTemplate =
+    const letterText = activity.letter_text?.trim().slice(0, 20) || null;
+    // "card_set"/"letter_colouring" without their required data has nothing
+    // to render — fall through to null so detectPrintTemplate() picks a sane
+    // fallback at print time.
+    let suggestedTemplate =
       activity.suggested_template && VALID_TEMPLATES.has(activity.suggested_template)
-        ? (activity.suggested_template as "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "card_set")
+        ? (activity.suggested_template as "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set")
         : null;
+    if (suggestedTemplate === "letter_colouring" && !letterText) suggestedTemplate = null;
 
     return {
       title: activity.title,
@@ -172,6 +175,7 @@ export async function POST(request: Request) {
       // from it produces irrelevant/nonsensical output. No subject means the
       // printed page is deliberately left blank.
       imageSubject: activity.image_subject?.trim() || null,
+      letterText: suggestedTemplate === "letter_colouring" ? letterText : null,
     };
   });
 

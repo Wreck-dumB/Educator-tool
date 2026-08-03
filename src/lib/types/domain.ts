@@ -94,11 +94,13 @@ export interface ActivitySuggestion {
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
   /** Set when the activity warrants a printable worksheet. */
-  suggestedTemplate: "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
+  suggestedTemplate: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */
   cardItems: string[];
   /** Concrete drawable subject for auto-generated illustrations — null means "leave the page blank", not "use the title". */
   imageSubject: string | null;
+  /** Letter/number/word text when suggestedTemplate is "letter_colouring" — rendered as real text, never an AI-drawn picture. */
+  letterText: string | null;
 }
 
 /** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */

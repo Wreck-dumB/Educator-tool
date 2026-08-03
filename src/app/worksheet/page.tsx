@@ -16,13 +16,14 @@ interface Props {
     eylf?: string | string[];
     card?: string | string[];
     image_subject?: string;
+    letter_text?: string;
     duration?: string;
     age?: string;
     group?: string;
   }>;
 }
 
-const VALID_TYPES = new Set(["name_trace", "name_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions"]);
+const VALID_TYPES = new Set(["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions"]);
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -30,11 +31,11 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, summary, material, step, eylf, card, image_subject, duration, age, group } = await searchParams;
+  const { type, name, title, summary, material, step, eylf, card, image_subject, letter_text, duration, age, group } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
-      ? (type as "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions")
+      ? (type as "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions")
       : "name_trace";
   const resolvedNames = toArray(name)
     .flatMap((n) => n.split(","))
@@ -46,6 +47,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
     .filter(Boolean)
     .slice(0, 16);
   const resolvedImageSubject = typeof image_subject === "string" ? image_subject.trim().slice(0, 150) : "";
+  const resolvedLetterText = typeof letter_text === "string" ? letter_text.trim().slice(0, 20) : "";
   const resolvedTitle =
     typeof title === "string" && title.trim()
       ? title.trim().slice(0, 120)
@@ -66,6 +68,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
       initialNames={resolvedNames}
       cardItems={resolvedCards}
       imageSubject={resolvedImageSubject}
+      letterText={resolvedLetterText}
       title={resolvedTitle}
       summary={resolvedSummary}
       materials={resolvedMaterials}

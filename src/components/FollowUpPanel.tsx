@@ -74,6 +74,7 @@ export default function FollowUpPanel({
           suggestedTemplate: suggestion.suggested_template ?? null,
           cardItems: suggestion.card_items ?? [],
           imageSubject: suggestion.image_subject?.trim() || null,
+          letterText: suggestion.letter_text?.trim() || null,
         },
         "interest",
       );
