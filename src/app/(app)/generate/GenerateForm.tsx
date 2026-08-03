@@ -55,6 +55,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
   const [targetMilestone, setTargetMilestone] = useState("");
   const [milestoneFocused, setMilestoneFocused] = useState(false);
   const [ideaDescription, setIdeaDescription] = useState("");
+  const [printNames, setPrintNames] = useState("");
 
   const selectedChild = childProfiles.find((c) => c.id === childId);
   const childMatches =
@@ -666,6 +667,22 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
 
       {suggestions.length > 0 && (
         <div className="mt-6 space-y-4">
+          <div className="rounded-2xl border border-coral-light bg-white p-4 shadow-sm">
+            <label htmlFor="print-names" className="block text-sm font-medium text-ink/70">
+              Child name(s) to print <span className="text-ink/40">(optional — not tied to enrolled profiles)</span>
+            </label>
+            <input
+              id="print-names"
+              type="text"
+              value={printNames}
+              onChange={(e) => setPrintNames(e.target.value)}
+              placeholder="e.g. Mia, Jack, Priya"
+              className={inputClass}
+            />
+            <p className="mt-1 text-xs text-ink/40">
+              Separate multiple names with commas — each &quot;Print sheet&quot; button below will print one sheet per name.
+            </p>
+          </div>
           {suggestions.map((s, i) => (
             <div key={i} className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
@@ -784,7 +801,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       duration_minutes: s.durationMinutes,
                       age_range: s.ageRange,
                       group_size_fit: s.groupSizeFit,
-                    }, selectedChild?.first_name ?? undefined);
+                    }, printNames.trim() || selectedChild?.first_name || undefined);
                     window.open(url, "_blank");
                   }}
                   className="inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark transition-colors hover:bg-coral-light"
