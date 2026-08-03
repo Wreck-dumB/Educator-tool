@@ -103,8 +103,36 @@ function isEntirelyBold(line: string): boolean {
   return /^(?:__.+__|\*\*.+\*\*)$/.test(line.trim());
 }
 
-const LIST_ITEM_RE = /^(\s*)(?:[-*]|\d{1,3}[.)])\s+(.*)$/;
+// Matches a leading numbering/lettering marker: multi-level clause numbers
+// (3.2, 4.2.1 - trailing '.'/')' optional since the dots between levels
+// already make it unambiguous), a single number/letter/roman numeral
+// (requires trailing '.'/')' since otherwise "A" or "I" would collide with
+// real words), or a plain '-'/'*' bullet.
+const NUMBERING_MARKER = String.raw`\d{1,3}(?:\.\d{1,3}){1,3}\.?|\d{1,3}[.)]|\(?[a-hj-zA-HJ-Z][.)]|\(?[ivxlc]+[.)]`;
+const LIST_ITEM_RE = new RegExp(`^(\\s*)(?:[-*]|${NUMBERING_MARKER})\\s+(.*)$`);
 const HASH_HEADING_RE = /^(#{1,6})\s+(.*)$/;
+
+// A standalone line whose only marker is a multi-level clause number (e.g.
+// "3.2 Serious Injuries", "4.2.1 Reporting") - in real policy documents this
+// is how a numbered section/sub-section title reads when the author didn't
+// also bold it, as distinct from a flat "1./2./3." or "-" marker which
+// denotes an actual list item. Checked only for single-line groups so a
+// genuine multi-item numbered sub-list (several such lines together) still
+// falls through to ordinary list_item handling below.
+const MULTI_LEVEL_HEADING_RE = /^(\d{1,3}(?:\.\d{1,3}){1,3})\.?\s+(.*)$/;
+
+// Strips a leading numbering/lettering marker that survived into a heading or
+// paragraph line (e.g. "1. Purpose", "3.2 Minor Injuries", "(a) ...") - the
+// same clause-numbering schemes LIST_ITEM_RE recognises, but applied to text
+// that isn't itself a list item (a numbered heading, or a numbered paragraph
+// that didn't get list-detected because it's alone in its blank-line group).
+// Without this, hierarchical policy numbering (very common in real-world
+// documents) survives unchanged into reused blocks and shows up literally in
+// the rendered output, making it look like every point has been numbered.
+const LEADING_NUMBERING_RE = new RegExp(`^(?:${NUMBERING_MARKER})\\s+`);
+function stripLeadingNumbering(text: string): string {
+  return text.replace(LEADING_NUMBERING_RE, "");
+}
 
 // Chunks a long, blank-line-free paragraph into sentence-sized blocks so it
 // can still benefit from block-number reuse. Groups sentences together up
@@ -149,6 +177,34 @@ export function splitIntoBlocks(text: string): PolicyStep[] {
     const lines = group.split("\n").map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) continue;
 
+    if (lines.length === 1) {
+      const hashMatch = lines[0].match(HASH_HEADING_RE);
+      if (hashMatch) {
+        const headingText = stripLeadingNumbering(unescapeMarkdown(stripEmphasis(hashMatch[2])));
+        if (headingText) steps.push({ type: "heading", level: hashMatch[1].length - 1, text: headingText });
+        continue;
+      }
+      if (isEntirelyBold(lines[0])) {
+        const headingText = stripLeadingNumbering(unescapeMarkdown(stripEmphasis(lines[0])));
+        if (headingText) steps.push({ type: "heading", level: 0, text: headingText });
+        continue;
+      }
+      const multiLevelMatch = lines[0].match(MULTI_LEVEL_HEADING_RE);
+      if (multiLevelMatch) {
+        const headingText = unescapeMarkdown(stripInlineMarkdown(multiLevelMatch[2]));
+        // Distinguishes an actual numbered section title ("3.2 Serious
+        // Injuries") from a numbered clause of body text ("4.2.1 Staff must
+        // check the first aid kit weekly.") - titles are short and don't end
+        // in sentence-terminal punctuation; clauses read as full sentences.
+        const looksLikeTitle = headingText.length > 0 && headingText.length <= 80 && !/[.!?]$/.test(headingText);
+        if (looksLikeTitle) {
+          const level = multiLevelMatch[1].split(".").length - 1;
+          steps.push({ type: "heading", level, text: headingText });
+          continue;
+        }
+      }
+    }
+
     const listLines = lines.filter((l) => LIST_ITEM_RE.test(l));
     if (listLines.length === lines.length) {
       for (const line of lines) {
@@ -161,21 +217,7 @@ export function splitIntoBlocks(text: string): PolicyStep[] {
       continue;
     }
 
-    if (lines.length === 1) {
-      const hashMatch = lines[0].match(HASH_HEADING_RE);
-      if (hashMatch) {
-        const headingText = unescapeMarkdown(stripEmphasis(hashMatch[2]));
-        if (headingText) steps.push({ type: "heading", level: hashMatch[1].length - 1, text: headingText });
-        continue;
-      }
-      if (isEntirelyBold(lines[0])) {
-        const headingText = unescapeMarkdown(stripEmphasis(lines[0]));
-        if (headingText) steps.push({ type: "heading", level: 0, text: headingText });
-        continue;
-      }
-    }
-
-    const paraText = unescapeMarkdown(stripInlineMarkdown(lines.join(" ")));
+    const paraText = stripLeadingNumbering(unescapeMarkdown(stripInlineMarkdown(lines.join(" "))));
     if (!paraText) continue;
     if (paraText.length > MAX_BLOCK_CHARS) {
       splitLongParagraph(paraText).forEach((t) => steps.push({ type: "paragraph", level: 0, text: t }));

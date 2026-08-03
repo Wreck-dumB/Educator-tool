@@ -444,7 +444,11 @@ const POLICY_STEP_SCHEMA = {
       type: "integer" as const,
       description: "0 for a top-level heading/list item/paragraph; 1 for a nested sub-heading or sub-bullet.",
     },
-    text: { type: "string" as const, description: "The step's text, with no markdown/formatting syntax." },
+    text: {
+      type: "string" as const,
+      description:
+        "The step's text, with no markdown/formatting syntax. Do NOT prefix it with a number, letter, or bullet character (e.g. '1.', '3.2', '(a)', '-') - numbering and bullets are applied automatically when the document is rendered, based on 'type' and 'level'. Write only the clause's own words.",
+    },
   },
 };
 
@@ -513,7 +517,9 @@ Produce procedure_steps as an ORDERED LIST containing ONLY the actual procedure/
 - an integer referencing one of the numbered blocks, meaning "reuse this block exactly, unchanged - same text, same type, same level" - use this for every procedure-step block whose substance doesn't need to change, even if you could phrase it better or differently. Do not spend output retyping a block as an object if an unmodified integer reference would do.
 - a step object {type, level, text}, ONLY for a procedure step that is genuinely new or whose substance is actually changing. When adding a genuinely new clause, give it its own "heading" step (a short section title) followed by one or more "paragraph"/"list_item" steps for its body - match the surrounding document's structure rather than appending a single unstructured paragraph.
 
-Treat every procedure-step block as correct and worth keeping via its number unless it is one of the specific things you're changing per the gaps/amendments below. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions - everything else should be a number, not a retyped object.
+Treat every procedure-step block as correct and worth keeping via its number unless it is one of the specific things you're changing per the gaps/amendments below. Only change, add, or remove the specific content needed to close the identified gaps and apply the educator's amendment instructions - everything else should be a number, not a retyped object. If you find yourself writing more than a handful of new step objects, stop and reconsider: you are very likely retyping content that should have been a number instead.
+
+Every new/changed step object's text must read as if the ORIGINAL author of this specific document wrote it - match its vocabulary, sentence length, formality, and phrasing conventions (e.g. "educators must" vs "staff should", terminology it already uses for the service/children/families), not generic policy boilerplate. Look at the wording of nearby numbered blocks for cues before writing new text.
 
 If an amendment instruction conflicts with a genuine regulatory requirement, follow the regulatory requirement and note the conflict in suggested_additions rather than silently dropping either one.
 
