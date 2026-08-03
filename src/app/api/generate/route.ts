@@ -138,26 +138,37 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
   }
 
-  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "drawing_frame", "writing_lines"]);
-  const suggestions: ActivitySuggestion[] = raw.map((activity) => ({
-    title: activity.title,
-    summary: activity.summary,
-    steps: activity.steps ?? [],
-    materialsUsed: activity.materials_used ?? [],
-    reflectionPrompts: activity.reflection_prompts ?? [],
-    ageRange: activity.age_range ?? null,
-    durationMinutes: activity.duration_minutes ?? null,
-    energyLevel: activity.energy_level ?? null,
-    groupSizeFit: activity.group_size_fit ?? null,
-    // Drop any EYLF code the model returned that doesn't exist in our seeded
-    // taxonomy, rather than trusting it blindly — wrong framework links are a
-    // real compliance/trust risk if this is ever relied on for documentation.
-    eylfCodes: (activity.eylf_codes ?? []).filter((code) => validCodes.has(code)),
-    suggestedTemplate:
+  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "drawing_frame", "writing_lines", "card_set"]);
+  // Card decks get large fast (pairs double the print count) — cap unique
+  // labels so a print run stays a reasonable number of pages/images.
+  const MAX_CARD_ITEMS = 16;
+  const suggestions: ActivitySuggestion[] = raw.map((activity) => {
+    const cardItems = (activity.card_items ?? []).map((c) => c.trim()).filter(Boolean).slice(0, MAX_CARD_ITEMS);
+    // "card_set" without any actual card labels has nothing to render —
+    // fall through to null so detectPrintTemplate() picks a sane fallback at print time.
+    const suggestedTemplate =
       activity.suggested_template && VALID_TEMPLATES.has(activity.suggested_template)
-        ? (activity.suggested_template as "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines")
-        : null,
-  }));
+        ? (activity.suggested_template as "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "card_set")
+        : null;
+
+    return {
+      title: activity.title,
+      summary: activity.summary,
+      steps: activity.steps ?? [],
+      materialsUsed: activity.materials_used ?? [],
+      reflectionPrompts: activity.reflection_prompts ?? [],
+      ageRange: activity.age_range ?? null,
+      durationMinutes: activity.duration_minutes ?? null,
+      energyLevel: activity.energy_level ?? null,
+      groupSizeFit: activity.group_size_fit ?? null,
+      // Drop any EYLF code the model returned that doesn't exist in our seeded
+      // taxonomy, rather than trusting it blindly — wrong framework links are a
+      // real compliance/trust risk if this is ever relied on for documentation.
+      eylfCodes: (activity.eylf_codes ?? []).filter((code) => validCodes.has(code)),
+      suggestedTemplate: suggestedTemplate === "card_set" && cardItems.length === 0 ? null : suggestedTemplate,
+      cardItems: suggestedTemplate === "card_set" ? cardItems : [],
+    };
+  });
 
   return NextResponse.json({ activities: suggestions, mode: input.mode });
 }

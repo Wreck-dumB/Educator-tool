@@ -95,5 +95,6 @@ export async function POST(request: Request) {
     energyLevel: activity.energy_level ?? null,
     groupSizeFit: activity.group_size_fit ?? null,
     suggestedTemplate: null,
+    cardItems: [],
   });
 }

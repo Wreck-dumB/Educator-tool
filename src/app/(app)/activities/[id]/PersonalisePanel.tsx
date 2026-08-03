@@ -328,6 +328,7 @@ export default function PersonalisePanel({ activityId, children }: Props) {
                     duration_minutes: result.durationMinutes,
                     age_range: result.ageRange,
                     group_size_fit: result.groupSizeFit,
+                    card_items: result.cardItems,
                   },
                   childNames.join(","),
                 );

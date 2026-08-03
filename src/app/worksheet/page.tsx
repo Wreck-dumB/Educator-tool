@@ -14,13 +14,14 @@ interface Props {
     material?: string | string[];
     step?: string | string[];
     eylf?: string | string[];
+    card?: string | string[];
     duration?: string;
     age?: string;
     group?: string;
   }>;
 }
 
-const VALID_TYPES = new Set(["name_trace", "name_colouring", "drawing_frame", "writing_lines", "activity_sheet", "instructions"]);
+const VALID_TYPES = new Set(["name_trace", "name_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions"]);
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -28,17 +29,21 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, summary, material, step, eylf, duration, age, group } = await searchParams;
+  const { type, name, title, summary, material, step, eylf, card, duration, age, group } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
-      ? (type as "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions")
+      ? (type as "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions")
       : "name_trace";
   const resolvedNames = toArray(name)
     .flatMap((n) => n.split(","))
     .map((n) => n.trim().slice(0, 60))
     .filter(Boolean)
     .slice(0, 100);
+  const resolvedCards = toArray(card)
+    .map((c) => c.trim().slice(0, 60))
+    .filter(Boolean)
+    .slice(0, 16);
   const resolvedTitle =
     typeof title === "string" && title.trim()
       ? title.trim().slice(0, 120)
@@ -57,6 +62,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
     <WorksheetClient
       type={resolvedType}
       initialNames={resolvedNames}
+      cardItems={resolvedCards}
       title={resolvedTitle}
       summary={resolvedSummary}
       materials={resolvedMaterials}

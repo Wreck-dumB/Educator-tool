@@ -2,11 +2,12 @@
 
 import { useState, useMemo, useEffect } from "react";
 
-type TemplateType = "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions";
+type TemplateType = "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions";
 
 interface Props {
   type: TemplateType;
   initialNames: string[];
+  cardItems?: string[];
   title: string;
   summary?: string;
   materials?: string[];
@@ -224,6 +225,133 @@ function NameColouringTemplate({ name, title }: { name: string; title: string })
   );
 }
 
+// ─── Card Set Template — printable cut-out cards (flashcards, memory/matching games) ──
+interface CardFaceState {
+  imageUrl: string | null;
+  loading: boolean;
+  error: boolean;
+}
+
+const CARDS_PER_PAGE = 8;
+// Pollinations is free/keyless with no documented rate limit — firing many
+// requests at once trips its abuse protection (ERR_BLOCKED_BY_ORB, seen
+// empirically while building this). Spacing them out trades a bit of speed
+// for actually loading.
+const CARD_IMAGE_STAGGER_MS = 4000;
+
+function CardSetTemplate({ items, title }: { items: string[]; title: string }) {
+  // One fetch per unique item — a matching pair reuses the same image so the
+  // two cards actually look identical, not just share a text label.
+  const [images, setImages] = useState<CardFaceState[]>(() =>
+    items.map(() => ({ imageUrl: null, loading: true, error: false })),
+  );
+
+  function fetchCardImage(i: number, label: string) {
+    setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: true, error: false } : c)));
+    fetch("/api/generate-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: label, style: "colour" }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok) {
+          setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c)));
+        } else {
+          setImages((prev) => prev.map((c, idx) => (idx === i ? { imageUrl: data.imageUrl, loading: true, error: false } : c)));
+        }
+      })
+      .catch(() => {
+        setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c)));
+      });
+  }
+
+  useEffect(() => {
+    const timers = items.map((label, i) => setTimeout(() => fetchCardImage(i, label), i * CARD_IMAGE_STAGGER_MS));
+    return () => timers.forEach(clearTimeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Matching/memory games need pairs — each label prints twice, sharing one image
+  const faces = useMemo(() => items.flatMap((label, i) => [{ label, i }, { label, i }]), [items]);
+
+  const pages: { label: string; i: number }[][] = [];
+  for (let i = 0; i < faces.length; i += CARDS_PER_PAGE) pages.push(faces.slice(i, i + CARDS_PER_PAGE));
+
+  return (
+    <>
+      {pages.map((pageFaces, pageIdx) => (
+        <div
+          key={pageIdx}
+          className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4"
+          style={{
+            pageBreakAfter: pageIdx < pages.length - 1 ? "always" : "auto",
+            breakAfter: pageIdx < pages.length - 1 ? "page" : "auto",
+          }}
+        >
+          {pageIdx === 0 && (
+            <div className="mb-4 border-b border-ink/10 pb-3 print:hidden">
+              <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
+              <p className="mt-0.5 text-sm text-ink/50">
+                {faces.length} cards ({items.length} pairs) — cut along the dashed lines
+              </p>
+              <p className="mt-1 text-xs text-ink/40 print:hidden">
+                Pictures load one at a time and can take a while for a full set — if one shows &quot;retry&quot;, just click it.
+              </p>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            {pageFaces.map(({ label, i: itemIndex }, faceIdx) => {
+              const image = images[itemIndex];
+              return (
+                <div
+                  key={faceIdx}
+                  className="flex flex-col items-center justify-between rounded-xl border-2 border-dashed border-ink/30 p-3"
+                  style={{ minHeight: "300px" }}
+                >
+                  <div
+                    className="flex w-full flex-1 items-center justify-center overflow-hidden rounded-lg border border-ink/10 bg-white"
+                    style={{ minHeight: "210px" }}
+                  >
+                    {image?.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={image.imageUrl}
+                        alt={label}
+                        style={{ maxHeight: "220px", maxWidth: "100%", objectFit: "contain" }}
+                        onLoad={() =>
+                          setImages((prev) => prev.map((c, idx) => (idx === itemIndex ? { ...c, loading: false } : c)))
+                        }
+                        onError={() =>
+                          setImages((prev) =>
+                            prev.map((c, idx) => (idx === itemIndex ? { ...c, loading: false, error: true } : c)),
+                          )
+                        }
+                      />
+                    ) : image?.error ? (
+                      <button
+                        type="button"
+                        onClick={() => fetchCardImage(itemIndex, label)}
+                        className="text-xs font-medium text-coral-dark underline print:hidden"
+                      >
+                        Image failed — retry
+                      </button>
+                    ) : (
+                      <span className="text-xs text-ink/30">Generating…</span>
+                    )}
+                  </div>
+                  <p className="mt-2 text-center text-base font-bold text-ink">{label}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+      <p className="mt-2 text-right text-xs text-ink/25 print:hidden">DR. SparkPlay</p>
+    </>
+  );
+}
+
 // ─── Activity Sheet Template — child-facing, no instruction steps ─────────────
 function ActivitySheetTemplate({
   name, title, materials, imageUrl, imageStyle,
@@ -417,7 +545,7 @@ function InstructionsTemplate({
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -664,6 +792,9 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
           ))}
         </>
       )}
+
+      {/* ── Card set: not per-child, a shared deck the whole group uses ──── */}
+      {type === "card_set" && <CardSetTemplate items={cardItems} title={title} />}
 
       {/* ── Instructions flow (no image generation — print only) ─────────── */}
       {type === "instructions" && (

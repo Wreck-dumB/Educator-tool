@@ -801,6 +801,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       duration_minutes: s.durationMinutes,
                       age_range: s.ageRange,
                       group_size_fit: s.groupSizeFit,
+                      card_items: s.cardItems,
                     }, printNames.trim() || selectedChild?.first_name || undefined);
                     window.open(url, "_blank");
                   }}

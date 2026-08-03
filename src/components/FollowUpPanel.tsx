@@ -72,6 +72,7 @@ export default function FollowUpPanel({
           groupSizeFit: suggestion.group_size_fit ?? null,
           eylfCodes: suggestion.eylf_codes ?? [],
           suggestedTemplate: suggestion.suggested_template ?? null,
+          cardItems: suggestion.card_items ?? [],
         },
         "interest",
       );
