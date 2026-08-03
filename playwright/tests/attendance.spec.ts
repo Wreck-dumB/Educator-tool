@@ -2,7 +2,9 @@ import { test, expect } from "@playwright/test";
 
 test("attendance register loads", async ({ page }) => {
   await page.goto("/attendance");
-  await expect(page.getByRole("heading", { name: /attendance/i })).toBeVisible();
+  // Page is titled "Roll Call" in the UI (nav label matches); "attendance"
+  // only appears in the URL/description, not the heading itself.
+  await expect(page.getByRole("heading", { name: /roll call/i })).toBeVisible();
 });
 
 test("can sign in a child and then sign them out", async ({ page }) => {

@@ -22,8 +22,11 @@ test("can add a new child and see them in the list", async ({ page }) => {
 test("child detail page loads for an existing child", async ({ page }) => {
   await page.goto("/children");
 
-  // Click the first child link in the list (if any)
-  const firstChildLink = page.locator("a").filter({ hasText: /[A-Z]/ }).first();
+  // Click the first child link in the list (if any). Scoped to /children/{id}
+  // hrefs specifically -- a plain text/uppercase filter also matches the
+  // "DR. SparkPlay" logo link in the sidebar (which comes first in the DOM
+  // and points at /dashboard), causing false failures.
+  const firstChildLink = page.locator('a[href^="/children/"]').first();
   const count = await firstChildLink.count();
 
   if (count === 0) {
