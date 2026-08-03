@@ -6,6 +6,7 @@ import type { ChildProfile } from "@/lib/types/domain";
 import type { ActivitySuggestion } from "@/lib/types/domain";
 import { getMaterialIcon, getEnergyIcon, getGroupIcon, getEnergyBadgeClass } from "@/lib/icons";
 import { saveActivity } from "@/app/(app)/generate/save";
+import { detectPrintTemplate, buildWorksheetUrl } from "@/lib/utils/printable";
 
 interface PersonalisedResult extends ActivitySuggestion {
   adaptationNotes: string[];
@@ -309,15 +310,28 @@ export default function PersonalisePanel({ activityId, children }: Props) {
             <button
               type="button"
               onClick={() => {
-                const params = new URLSearchParams({ title: result.title });
-                childNames.forEach((n) => params.append("name", n));
-                if (result.suggestedTemplate === "name_trace") {
-                  params.set("type", "name_trace");
-                } else {
-                  params.set("type", "activity_sheet");
-                  result.materialsUsed.slice(0, 8).forEach((m) => params.append("material", m));
-                }
-                window.open(`/worksheet?${params.toString()}`, "_blank");
+                const tpl =
+                  result.suggestedTemplate ??
+                  detectPrintTemplate({
+                    materials_used: result.materialsUsed,
+                    title: result.title,
+                    steps: result.steps,
+                  });
+                const url = buildWorksheetUrl(
+                  tpl,
+                  {
+                    title: result.title,
+                    summary: result.summary,
+                    materials_used: result.materialsUsed,
+                    steps: result.steps,
+                    eylf_codes: result.eylfCodes,
+                    duration_minutes: result.durationMinutes,
+                    age_range: result.ageRange,
+                    group_size_fit: result.groupSizeFit,
+                  },
+                  childNames.join(","),
+                );
+                window.open(url, "_blank");
               }}
               className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
             >
