@@ -8,6 +8,7 @@ interface Props {
   type: TemplateType;
   initialNames: string[];
   cardItems?: string[];
+  imageSubject?: string;
   title: string;
   summary?: string;
   materials?: string[];
@@ -545,7 +546,7 @@ function InstructionsTemplate({
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], imageSubject = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -554,7 +555,10 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ti
   const [imageStyle, setImageStyle] = useState<"outline" | "colour">(
     type === "activity_sheet" ? "colour" : "outline",
   );
-  const [imagePrompt, setImagePrompt] = useState(title);
+  // The title (e.g. "Colour It In!") is an instruction, not a drawable
+  // subject — default the manual prompt to the real subject when we have
+  // one, and only fall back to the title as a last resort for manual use.
+  const [imagePrompt, setImagePrompt] = useState(imageSubject || title);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
 
@@ -590,12 +594,19 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ti
   // waiting for a manual click. Drawing frames get an outline (something to
   // colour/cut, matching their own default style) rather than a filled-in
   // colour picture, which would leave nothing for the child to actually do.
+  //
+  // Only fires when there's an actual concrete subject to draw. The activity
+  // title is often an instruction ("Colour It In!", "Creative Craft Time"),
+  // not a drawable object — generating from it produces an irrelevant,
+  // nonsensical image, which is worse than a blank page. No subject means a
+  // deliberately blank page, not a fallback to the title.
+  //
   // Deferred a tick so the image fetch (and its setState calls) isn't triggered
   // synchronously from the effect body.
   useEffect(() => {
-    if ((type !== "activity_sheet" && type !== "drawing_frame") || !title.trim()) return;
+    if ((type !== "activity_sheet" && type !== "drawing_frame") || !imageSubject.trim()) return;
     const style = type === "activity_sheet" ? "colour" : "outline";
-    const id = setTimeout(() => generateImage(title, style), 0);
+    const id = setTimeout(() => generateImage(imageSubject, style), 0);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

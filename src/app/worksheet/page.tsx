@@ -15,6 +15,7 @@ interface Props {
     step?: string | string[];
     eylf?: string | string[];
     card?: string | string[];
+    image_subject?: string;
     duration?: string;
     age?: string;
     group?: string;
@@ -29,7 +30,7 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, summary, material, step, eylf, card, duration, age, group } = await searchParams;
+  const { type, name, title, summary, material, step, eylf, card, image_subject, duration, age, group } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
@@ -44,6 +45,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
     .map((c) => c.trim().slice(0, 60))
     .filter(Boolean)
     .slice(0, 16);
+  const resolvedImageSubject = typeof image_subject === "string" ? image_subject.trim().slice(0, 150) : "";
   const resolvedTitle =
     typeof title === "string" && title.trim()
       ? title.trim().slice(0, 120)
@@ -63,6 +65,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
       type={resolvedType}
       initialNames={resolvedNames}
       cardItems={resolvedCards}
+      imageSubject={resolvedImageSubject}
       title={resolvedTitle}
       summary={resolvedSummary}
       materials={resolvedMaterials}

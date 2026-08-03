@@ -50,6 +50,7 @@ export interface RawActivitySuggestion {
   eylf_codes: string[];
   suggested_template?: "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
   card_items?: string[];
+  image_subject?: string;
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -94,6 +95,10 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
               type: "array",
               items: { type: "string" },
               description: "REQUIRED and must list every distinct card (e.g. ['Kangaroo', 'Koala', 'Wombat']) when — and only when — suggested_template is 'card_set'. One short label per card face. For a matching/memory game where each item appears twice, list each label ONCE here (the printable template duplicates it automatically to make the pair). Omit entirely for every other suggested_template value.",
+            },
+            image_subject: {
+              type: "string",
+              description: "Set this whenever a craft/materials activity or a 'drawing_frame' activity has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a smiling sun', 'a friendly dinosaur', 'a bowl of rainbow fruit', 'a leafy tree'). The activity's title is often an instruction-style phrase like 'Colour It In!' or 'Creative Craft Time' that is NOT itself a drawable subject — never pass the title through unchanged as this field. Leave this field OUT ENTIRELY whenever the activity is open-ended/free-choice with no specific depicted subject (e.g. 'children colour freely', 'draw whatever you like', a generic/unthemed colouring or craft activity) — in that case the printed sheet should be a clean blank page, not a picture of something arbitrary. Never invent a specific subject just to fill this field.",
             },
           },
         },

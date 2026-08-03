@@ -110,10 +110,17 @@ export function buildWorksheetUrl(
     age_range?: string | null;
     group_size_fit?: string | null;
     card_items?: string[];
+    image_subject?: string | null;
   },
   childName?: string,
 ): string {
   const params = new URLSearchParams({ type: templateType, title: activity.title });
+
+  // Concrete drawable subject for auto-generated illustrations — absent on
+  // purpose means "leave the page blank", never falls back to the title.
+  if ((templateType === "activity_sheet" || templateType === "drawing_frame") && activity.image_subject) {
+    params.set("image_subject", activity.image_subject);
+  }
 
   // Accepts a comma-separated list — one worksheet name per entry
   childName

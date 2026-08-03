@@ -97,6 +97,8 @@ export interface ActivitySuggestion {
   suggestedTemplate: "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */
   cardItems: string[];
+  /** Concrete drawable subject for auto-generated illustrations — null means "leave the page blank", not "use the title". */
+  imageSubject: string | null;
 }
 
 /** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */
