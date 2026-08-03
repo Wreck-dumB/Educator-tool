@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 
-type TemplateType = "name_trace" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions";
+type TemplateType = "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "instructions";
 
 interface Props {
   type: TemplateType;
@@ -23,6 +23,21 @@ function pickFontSize(nameLength: number, maxWidth: number): number {
     if (nameLength * 0.62 * size <= maxWidth) return size;
   }
   return 24;
+}
+
+// Bigger steps than pickFontSize — the name is the whole page's focal point here
+function pickColouringFontSize(nameLength: number, maxWidth: number): number {
+  for (const size of [220, 190, 160, 130, 105, 84, 66, 52]) {
+    if (nameLength * 0.62 * size <= maxWidth) return size;
+  }
+  return 40;
+}
+
+// Name recognition, not spelling — always Capitalised-then-lowercase regardless of input casing
+function capitaliseName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return "Name";
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 }
 
 // ─── ImageDisplay ─────────────────────────────────────────────────────────────
@@ -148,6 +163,63 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
       )}
 
       <p className="mt-2 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Name Colouring Template — big hollow letters to colour/glue, not trace ──
+function NameColouringTemplate({ name, title }: { name: string; title: string }) {
+  const displayName = capitaliseName(name);
+  const svgWidth = 760;
+
+  const fontSize = useMemo(
+    () => pickColouringFontSize(displayName.length, svgWidth - 40),
+    [displayName.length],
+  );
+  const svgHeight = fontSize * 1.4;
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-4 border-b border-ink/10 pb-3">
+        <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
+        {name.trim() && (
+          <p className="mt-0.5 text-sm text-ink/50">For <strong>{name.trim()}</strong></p>
+        )}
+      </div>
+
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        width="100%"
+        aria-label={`Colour in the name ${displayName}`}
+        style={{ display: "block" }}
+      >
+        <text
+          x={svgWidth / 2}
+          y={svgHeight * 0.75}
+          textAnchor="middle"
+          fontSize={fontSize}
+          fontWeight="bold"
+          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
+          fill="#ffffff"
+          stroke="#2b2b2b"
+          strokeWidth={Math.max(2.5, fontSize * 0.05)}
+          strokeLinejoin="round"
+          style={{ userSelect: "none" }}
+        >
+          {displayName}
+        </text>
+      </svg>
+
+      <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-widest text-ink/40">
+        🖌 Colour in the letters, or glue your cut-out pieces on:
+      </p>
+      <div
+        className="rounded-xl border-2 border-dashed border-ink/25"
+        style={{ height: "380px" }}
+        aria-label="Glue / decorating space"
+      />
+
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
     </div>
   );
 }
@@ -431,8 +503,8 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
         </button>
       </div>
 
-      {/* ── Name-trace + drawing-frame + writing-lines + activity-sheet: multi-child names ─ */}
-      {(type === "name_trace" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
+      {/* ── Name-trace + name-colouring + drawing-frame + writing-lines + activity-sheet: multi-child names ─ */}
+      {(type === "name_trace" || type === "name_colouring" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
         <>
           {/* Names panel — screen only */}
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
@@ -485,7 +557,9 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
             </div>
           </div>
 
-          {/* Image generation panel — screen only */}
+          {/* Image generation panel — screen only. Not for name-colouring: the
+              name itself, not a generated picture, is the page's content. */}
+          {type !== "name_colouring" && (
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
             <div className="mt-4 rounded-2xl border-2 border-dashed border-sage-light bg-sage-light/20 px-5 py-4">
               <p className="mb-3 text-sm font-semibold text-sage-dark">🎨 Activity image (optional)</p>
@@ -566,6 +640,7 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
               </p>
             </div>
           </div>
+          )}
 
           {/* One sheet per child — separated by page breaks on print */}
           {names.map((n, i) => (
@@ -581,6 +656,7 @@ export default function WorksheetClient({ type, initialNames, title, summary, ma
                 <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
               )}
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
+              {type === "name_colouring" && <NameColouringTemplate name={n} title={title} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "activity_sheet" && <ActivitySheetTemplate name={n} title={title} materials={materials} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}

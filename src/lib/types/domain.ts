@@ -94,7 +94,7 @@ export interface ActivitySuggestion {
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
   /** Set when the activity warrants a printable worksheet. */
-  suggestedTemplate: "name_trace" | "drawing_frame" | "writing_lines" | null;
+  suggestedTemplate: "name_trace" | "name_colouring" | "drawing_frame" | "writing_lines" | null;
 }
 
 /** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */

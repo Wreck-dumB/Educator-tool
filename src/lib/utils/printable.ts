@@ -3,6 +3,7 @@ export type PrintTemplateType =
   | "drawing_frame"
   | "writing_lines"
   | "name_trace"
+  | "name_colouring"
   | "instructions";
 
 export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
@@ -10,6 +11,7 @@ export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   drawing_frame: "Drawing frame",
   writing_lines: "Writing lines",
   name_trace: "Name tracing",
+  name_colouring: "Name colouring",
   instructions: "Instruction card",
 };
 
@@ -18,6 +20,7 @@ export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
   drawing_frame: "Large blank frame (drawing, sketching, design)",
   writing_lines: "Lined paper (writing, journalling, language activities)",
   name_trace: "Guided name-tracing lines (name writing practice only)",
+  name_colouring: "Child's name in big hollow letters to colour in or glue collage onto (name recognition, not handwriting)",
   instructions: "Steps + EYLF codes + time/group info (outdoor, physical, discussion, music)",
 };
 
@@ -26,10 +29,16 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
   drawing_frame: "bg-sage-light text-sage-dark",
   writing_lines: "bg-blue-50 text-blue-700",
   name_trace: "bg-amber-50 text-amber-700",
+  name_colouring: "bg-purple-50 text-purple-700",
   instructions: "bg-cream-dark text-ink/70",
 };
 
 // ─── Keyword sets ──────────────────────────────────────────────────────────────
+
+// Colouring/decorating the child's own name — distinct from tracing it for
+// handwriting practice. Checked before NAME_TRACE_KW.
+const NAME_COLOURING_KW =
+  /\b(colour\s*(?:ing)?\s+(?:in\s+)?(?:my|your|their|his|her)?\s*name|name\s+colour|decorat\w*\s+(?:my|your|their)?\s*name)\b/i;
 
 const NAME_TRACE_KW =
   /\b(trace\s+name|name\s+trac|write\s+(your|my|their)\s+name|name\s+practic|name\s+writ|practis\w*\s+name)\b/i;
@@ -56,7 +65,8 @@ type ActivityShape = {
 export function detectPrintTemplate(activity: ActivityShape): PrintTemplateType {
   const text = [activity.title, ...(activity.steps ?? [])].join(" ");
 
-  // Name tracing is very specific — only if the activity is literally about tracing names
+  // Both are very specific — only if the activity is literally about the child's own name
+  if (NAME_COLOURING_KW.test(text)) return "name_colouring";
   if (NAME_TRACE_KW.test(text)) return "name_trace";
 
   // Materials-based generation is by definition hands-on

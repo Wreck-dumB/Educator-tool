@@ -17,6 +17,7 @@ const TEMPLATE_OPTIONS: PrintTemplateType[] = [
   "drawing_frame",
   "writing_lines",
   "name_trace",
+  "name_colouring",
   "instructions",
 ];
 
