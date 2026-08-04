@@ -11,6 +11,7 @@ interface Props {
   cardPairs?: boolean;
   imageSubject?: string;
   letterText?: string;
+  illustratedFirstLetter?: boolean;
   title: string;
   summary?: string;
   materials?: string[];
@@ -36,6 +37,20 @@ function pickColouringFontSize(nameLength: number, maxWidth: number): number {
   }
   return 40;
 }
+
+// One real, recognisable Australian animal/icon per letter, for the
+// illustrated-first-letter name_colouring variant. Hardcoded rather than
+// asked of the AI per print — deterministic, instant, no extra AI call, and
+// every letter needs an answer (X and Z have no natural Australian animal,
+// so those two lean on well-known AU colloquialisms/native species instead).
+const AUSTRALIAN_LETTER_SUBJECTS: Record<string, string> = {
+  A: "an ant", B: "a bilby", C: "a crocodile", D: "a dingo", E: "an echidna",
+  F: "a fairy penguin", G: "a galah", H: "a humpback whale", I: "an ibis",
+  J: "a jabiru", K: "a kangaroo", L: "a lyrebird", M: "a magpie", N: "a numbat",
+  O: "an opal", P: "a platypus", Q: "a quokka", R: "a rainbow lorikeet",
+  S: "a sugar glider", T: "a tasmanian devil", U: "uluru", V: "a jar of vegemite",
+  W: "a wombat", X: "a christmas beetle", Y: "a yabby", Z: "a zebra finch",
+};
 
 // Name recognition, not spelling — always Capitalised-then-lowercase regardless of input casing
 function capitaliseName(name: string): string {
@@ -171,9 +186,19 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
   );
 }
 
-// ─── Name Colouring Template — big hollow letters to colour/glue, not trace ──
-function NameColouringTemplate({ name, title }: { name: string; title: string }) {
+const NAME_LETTER_IMAGE_STAGGER_MS = 3000;
+
+// ─── Name Colouring Template — big hollow letters to colour/glue, not trace.
+// Optionally illustrates the first letter as a themed Australian animal/icon
+// (resolved per name — every printed child can have a different first letter). ──
+function NameColouringTemplate({
+  name, title, illustrated = false, index = 0,
+}: {
+  name: string; title: string; illustrated?: boolean; index?: number;
+}) {
   const displayName = capitaliseName(name);
+  const firstChar = displayName.charAt(0);
+  const rest = displayName.slice(1);
   const svgWidth = 760;
 
   const fontSize = useMemo(
@@ -181,6 +206,31 @@ function NameColouringTemplate({ name, title }: { name: string; title: string })
     [displayName.length],
   );
   const svgHeight = fontSize * 1.4;
+  const charWidth = fontSize * 0.62;
+  const totalWidth = displayName.length * charWidth;
+  const startX = svgWidth / 2 - totalWidth / 2;
+  const baselineY = svgHeight * 0.75;
+  const strokeWidth = Math.max(2.5, fontSize * 0.05);
+  const clipId = `letter-clip-${index}`;
+
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!illustrated || !firstChar.trim()) return;
+    const subject = AUSTRALIAN_LETTER_SUBJECTS[firstChar.toUpperCase()] ?? "an australian animal";
+    const id = setTimeout(() => {
+      fetch("/api/generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: subject, style: "colour" }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => { if (data?.imageUrl) setImageUrl(data.imageUrl); })
+        .catch(() => {});
+    }, index * NAME_LETTER_IMAGE_STAGGER_MS);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [illustrated, firstChar]);
 
   return (
     <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
@@ -197,21 +247,66 @@ function NameColouringTemplate({ name, title }: { name: string; title: string })
         aria-label={`Colour in the name ${displayName}`}
         style={{ display: "block" }}
       >
+        {illustrated && (
+          <defs>
+            <clipPath id={clipId}>
+              <text
+                x={startX}
+                y={baselineY}
+                fontSize={fontSize}
+                fontWeight="bold"
+                fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
+              >
+                {firstChar}
+              </text>
+            </clipPath>
+          </defs>
+        )}
+        {illustrated && imageUrl && (
+          <g clipPath={`url(#${clipId})`}>
+            {/* Generously oversized vs. the letter's own ink area — "slice" then
+                shows a real recognisable chunk of the picture through the glyph's
+                strokes, not just a thin sliver of an over-cropped square image. */}
+            <image
+              href={imageUrl}
+              x={startX - charWidth * 0.3}
+              y={baselineY - fontSize * 1.05}
+              width={charWidth * 1.6}
+              height={fontSize * 1.5}
+              preserveAspectRatio="xMidYMid slice"
+            />
+          </g>
+        )}
         <text
-          x={svgWidth / 2}
-          y={svgHeight * 0.75}
-          textAnchor="middle"
+          x={startX}
+          y={baselineY}
           fontSize={fontSize}
           fontWeight="bold"
           fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
-          fill="#ffffff"
+          fill={illustrated && imageUrl ? "none" : "#ffffff"}
           stroke="#2b2b2b"
-          strokeWidth={Math.max(2.5, fontSize * 0.05)}
+          strokeWidth={strokeWidth}
           strokeLinejoin="round"
           style={{ userSelect: "none" }}
         >
-          {displayName}
+          {firstChar}
         </text>
+        {rest && (
+          <text
+            x={startX + charWidth}
+            y={baselineY}
+            fontSize={fontSize}
+            fontWeight="bold"
+            fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
+            fill="#ffffff"
+            stroke="#2b2b2b"
+            strokeWidth={strokeWidth}
+            strokeLinejoin="round"
+            style={{ userSelect: "none" }}
+          >
+            {rest}
+          </text>
+        )}
       </svg>
 
       <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-widest text-ink/40">
@@ -611,7 +706,7 @@ function InstructionsTemplate({
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", letterText = "", illustratedFirstLetter = false, title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -864,7 +959,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
                 <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
               )}
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
-              {type === "name_colouring" && <NameColouringTemplate name={n} title={title} />}
+              {type === "name_colouring" && <NameColouringTemplate name={n} title={title} illustrated={illustratedFirstLetter} index={i} />}
               {type === "letter_colouring" && <LetterColouringTemplate text={letterText} name={n} title={title} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}

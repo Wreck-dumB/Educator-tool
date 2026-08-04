@@ -118,6 +118,7 @@ export function buildWorksheetUrl(
     card_pairs?: boolean;
     image_subject?: string | null;
     letter_text?: string | null;
+    name_illustrated_first_letter?: boolean;
   },
   childName?: string,
 ): string {
@@ -150,6 +151,11 @@ export function buildWorksheetUrl(
   // Letter colouring: the exact letter/number/word to render
   if (templateType === "letter_colouring" && activity.letter_text) {
     params.set("letter_text", activity.letter_text);
+  }
+
+  // Name colouring: illustrate each printed child's first letter, resolved per name at print time
+  if (templateType === "name_colouring" && activity.name_illustrated_first_letter) {
+    params.set("illustrated_letter", "true");
   }
 
   // Drawing frame / writing lines: child name already set above, no extra params needed

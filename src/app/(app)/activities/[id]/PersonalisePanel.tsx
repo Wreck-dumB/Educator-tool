@@ -332,6 +332,7 @@ export default function PersonalisePanel({ activityId, children }: Props) {
                     card_pairs: result.cardPairs,
                     image_subject: result.imageSubject,
                     letter_text: result.letterText,
+                    name_illustrated_first_letter: result.nameIllustratedFirstLetter,
                   },
                   childNames.join(","),
                 );

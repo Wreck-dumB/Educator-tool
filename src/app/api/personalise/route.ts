@@ -99,5 +99,6 @@ export async function POST(request: Request) {
     cardPairs: true,
     imageSubject: null,
     letterText: null,
+    nameIllustratedFirstLetter: false,
   });
 }

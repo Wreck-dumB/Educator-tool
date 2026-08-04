@@ -53,6 +53,7 @@ export interface RawActivitySuggestion {
   card_pairs?: boolean;
   image_subject?: string;
   letter_text?: string;
+  name_illustrated_first_letter?: boolean;
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -109,6 +110,10 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             image_subject: {
               type: "string",
               description: "Set this whenever a craft/materials activity or a 'drawing_frame' activity has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a smiling sun', 'a friendly dinosaur', 'a bowl of rainbow fruit', 'a leafy tree'). The activity's title is often an instruction-style phrase like 'Colour It In!' or 'Creative Craft Time' that is NOT itself a drawable subject — never pass the title through unchanged as this field. Leave this field OUT ENTIRELY whenever the activity is open-ended/free-choice with no specific depicted subject (e.g. 'children colour freely', 'draw whatever you like', a generic/unthemed colouring or craft activity) — in that case the printed sheet should be a clean blank page, not a picture of something arbitrary. Never invent a specific subject just to fill this field.",
+            },
+            name_illustrated_first_letter: {
+              type: "boolean",
+              description: "Only relevant when suggested_template is 'name_colouring'. Set true only when the activity specifically asks for the first letter of each child's name to be illustrated as a themed picture (e.g. an Australian animal/icon starting with that letter), with the rest of the name staying plain hollow letters to colour. The exact letter-to-picture mapping is resolved per child at print time (child names aren't known when this activity is generated), so no further field is needed here — just this flag. Omit/false for a plain name_colouring activity with no illustrated letter.",
             },
           },
         },
