@@ -805,7 +805,6 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       card_pairs: s.cardPairs,
                       image_subject: s.imageSubject,
                       letter_text: s.letterText,
-                      name_illustrated_first_letter: s.nameIllustratedFirstLetter,
                     }, printNames.trim() || selectedChild?.first_name || undefined);
                     window.open(url, "_blank");
                   }}

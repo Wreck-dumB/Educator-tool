@@ -103,8 +103,6 @@ export interface ActivitySuggestion {
   imageSubject: string | null;
   /** Letter/number/word text when suggestedTemplate is "letter_colouring" — rendered as real text, never an AI-drawn picture. */
   letterText: string | null;
-  /** When suggestedTemplate is "name_colouring": illustrate each printed child's first letter as a themed picture, resolved per name at print time. */
-  nameIllustratedFirstLetter: boolean;
 }
 
 /** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */

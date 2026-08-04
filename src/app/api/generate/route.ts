@@ -177,7 +177,6 @@ export async function POST(request: Request) {
       // printed page is deliberately left blank.
       imageSubject: activity.image_subject?.trim() || null,
       letterText: suggestedTemplate === "letter_colouring" ? letterText : null,
-      nameIllustratedFirstLetter: suggestedTemplate === "name_colouring" && activity.name_illustrated_first_letter === true,
     };
   });
 
