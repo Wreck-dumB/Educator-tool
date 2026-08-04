@@ -802,6 +802,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       age_range: s.ageRange,
                       group_size_fit: s.groupSizeFit,
                       card_items: s.cardItems,
+                      card_pairs: s.cardPairs,
                       image_subject: s.imageSubject,
                       letter_text: s.letterText,
                     }, printNames.trim() || selectedChild?.first_name || undefined);

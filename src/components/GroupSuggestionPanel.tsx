@@ -83,6 +83,7 @@ export default function GroupSuggestionPanel({ followUps }: Props) {
           eylfCodes: suggestion.eylf_codes ?? [],
           suggestedTemplate: suggestion.suggested_template ?? null,
           cardItems: suggestion.card_items ?? [],
+          cardPairs: suggestion.card_pairs !== false,
           imageSubject: suggestion.image_subject?.trim() || null,
           letterText: suggestion.letter_text?.trim() || null,
         },

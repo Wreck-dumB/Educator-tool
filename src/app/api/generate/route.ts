@@ -170,6 +170,7 @@ export async function POST(request: Request) {
       eylfCodes: (activity.eylf_codes ?? []).filter((code) => validCodes.has(code)),
       suggestedTemplate: suggestedTemplate === "card_set" && cardItems.length === 0 ? null : suggestedTemplate,
       cardItems: suggestedTemplate === "card_set" ? cardItems : [],
+      cardPairs: activity.card_pairs !== false,
       // Never fall back to the title here — an instruction-style title like
       // "Colour It In!" is not a drawable subject, and generating an image
       // from it produces irrelevant/nonsensical output. No subject means the

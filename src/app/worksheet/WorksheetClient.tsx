@@ -8,6 +8,7 @@ interface Props {
   type: TemplateType;
   initialNames: string[];
   cardItems?: string[];
+  cardPairs?: boolean;
   imageSubject?: string;
   letterText?: string;
   title: string;
@@ -300,7 +301,7 @@ const CARDS_PER_PAGE = 8;
 // for actually loading.
 const CARD_IMAGE_STAGGER_MS = 4000;
 
-function CardSetTemplate({ items, title }: { items: string[]; title: string }) {
+function CardSetTemplate({ items, title, pairs = true }: { items: string[]; title: string; pairs?: boolean }) {
   // One fetch per unique item — a matching pair reuses the same image so the
   // two cards actually look identical, not just share a text label.
   const [images, setImages] = useState<CardFaceState[]>(() =>
@@ -333,8 +334,12 @@ function CardSetTemplate({ items, title }: { items: string[]; title: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Matching/memory games need pairs — each label prints twice, sharing one image
-  const faces = useMemo(() => items.flatMap((label, i) => [{ label, i }, { label, i }]), [items]);
+  // Matching/memory games need pairs — each label prints twice, sharing one
+  // image. Sorting/categorising activities want one unique card per label.
+  const faces = useMemo(
+    () => (pairs ? items.flatMap((label, i) => [{ label, i }, { label, i }]) : items.map((label, i) => ({ label, i }))),
+    [items, pairs],
+  );
 
   const pages: { label: string; i: number }[][] = [];
   for (let i = 0; i < faces.length; i += CARDS_PER_PAGE) pages.push(faces.slice(i, i + CARDS_PER_PAGE));
@@ -354,7 +359,7 @@ function CardSetTemplate({ items, title }: { items: string[]; title: string }) {
             <div className="mb-4 border-b border-ink/10 pb-3 print:hidden">
               <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
               <p className="mt-0.5 text-sm text-ink/50">
-                {faces.length} cards ({items.length} pairs) — cut along the dashed lines
+                {faces.length} cards{pairs ? ` (${items.length} pairs)` : ""} — cut along the dashed lines
               </p>
               <p className="mt-1 text-xs text-ink/40 print:hidden">
                 Pictures load one at a time and can take a while for a full set — if one shows &quot;retry&quot;, just click it.
@@ -606,7 +611,7 @@ function InstructionsTemplate({
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -870,7 +875,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], im
       )}
 
       {/* ── Card set: not per-child, a shared deck the whole group uses ──── */}
-      {type === "card_set" && <CardSetTemplate items={cardItems} title={title} />}
+      {type === "card_set" && <CardSetTemplate items={cardItems} title={title} pairs={cardPairs} />}
 
       {/* ── Instructions flow (no image generation — print only) ─────────── */}
       {type === "instructions" && (

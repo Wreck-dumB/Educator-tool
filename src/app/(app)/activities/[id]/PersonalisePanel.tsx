@@ -329,6 +329,7 @@ export default function PersonalisePanel({ activityId, children }: Props) {
                     age_range: result.ageRange,
                     group_size_fit: result.groupSizeFit,
                     card_items: result.cardItems,
+                    card_pairs: result.cardPairs,
                     image_subject: result.imageSubject,
                     letter_text: result.letterText,
                   },

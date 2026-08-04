@@ -15,6 +15,7 @@ interface Props {
     step?: string | string[];
     eylf?: string | string[];
     card?: string | string[];
+    card_pairs?: string;
     image_subject?: string;
     letter_text?: string;
     duration?: string;
@@ -31,7 +32,7 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, summary, material, step, eylf, card, image_subject, letter_text, duration, age, group } = await searchParams;
+  const { type, name, title, summary, material, step, eylf, card, card_pairs, image_subject, letter_text, duration, age, group } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
@@ -46,6 +47,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
     .map((c) => c.trim().slice(0, 60))
     .filter(Boolean)
     .slice(0, 16);
+  const resolvedCardPairs = card_pairs !== "false";
   const resolvedImageSubject = typeof image_subject === "string" ? image_subject.trim().slice(0, 150) : "";
   const resolvedLetterText = typeof letter_text === "string" ? letter_text.trim().slice(0, 20) : "";
   const resolvedTitle =
@@ -67,6 +69,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
       type={resolvedType}
       initialNames={resolvedNames}
       cardItems={resolvedCards}
+      cardPairs={resolvedCardPairs}
       imageSubject={resolvedImageSubject}
       letterText={resolvedLetterText}
       title={resolvedTitle}

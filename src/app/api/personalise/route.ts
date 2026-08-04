@@ -96,6 +96,7 @@ export async function POST(request: Request) {
     groupSizeFit: activity.group_size_fit ?? null,
     suggestedTemplate: null,
     cardItems: [],
+    cardPairs: true,
     imageSubject: null,
     letterText: null,
   });

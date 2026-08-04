@@ -115,6 +115,7 @@ export function buildWorksheetUrl(
     age_range?: string | null;
     group_size_fit?: string | null;
     card_items?: string[];
+    card_pairs?: boolean;
     image_subject?: string | null;
     letter_text?: string | null;
   },
@@ -140,9 +141,10 @@ export function buildWorksheetUrl(
     activity.materials_used?.forEach((m) => params.append("material", m));
   }
 
-  // Card set: one label per card face — the template duplicates each into a pair
+  // Card set: one label per card face — duplicated into a pair unless card_pairs is false
   if (templateType === "card_set") {
     activity.card_items?.forEach((c) => params.append("card", c));
+    if (activity.card_pairs === false) params.set("card_pairs", "false");
   }
 
   // Letter colouring: the exact letter/number/word to render

@@ -97,6 +97,8 @@ export interface ActivitySuggestion {
   suggestedTemplate: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */
   cardItems: string[];
+  /** Whether card_set duplicates each label into a matching pair (memory/snap games) vs one unique card each (sorting/categorising). Default true. */
+  cardPairs: boolean;
   /** Concrete drawable subject for auto-generated illustrations — null means "leave the page blank", not "use the title". */
   imageSubject: string | null;
   /** Letter/number/word text when suggestedTemplate is "letter_colouring" — rendered as real text, never an AI-drawn picture. */
