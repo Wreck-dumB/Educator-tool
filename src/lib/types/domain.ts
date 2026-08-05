@@ -94,7 +94,7 @@ export interface ActivitySuggestion {
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
   /** Set when the activity warrants a printable worksheet. */
-  suggestedTemplate: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
+  suggestedTemplate: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */
   cardItems: string[];
   /** Whether card_set duplicates each label into a matching pair (memory/snap games) vs one unique card each (sorting/categorising). Default true. */
@@ -103,6 +103,12 @@ export interface ActivitySuggestion {
   imageSubject: string | null;
   /** Letter/number/word text when suggestedTemplate is "letter_colouring" — rendered as real text, never an AI-drawn picture. */
   letterText: string | null;
+  /** Left-column labels when suggestedTemplate is "matching_pairs" — in matching order with matchingRight. */
+  matchingLeft: string[];
+  /** Right-column labels when suggestedTemplate is "matching_pairs" — in matching order with matchingLeft (worksheet shuffles before display). */
+  matchingRight: string[];
+  /** Counting groups when suggestedTemplate is "counting_groups" — each group shown as repeated emoji with a write-in number blank. */
+  countingGroups: { emoji: string; label: string; count: number }[];
 }
 
 /** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 
-type TemplateType = "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions";
+type TemplateType = "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups";
 
 interface Props {
   type: TemplateType;
@@ -19,6 +19,9 @@ interface Props {
   duration?: string;
   age?: string;
   group?: string;
+  matchingLeft?: string[];
+  matchingRight?: string[];
+  countingGroups?: { emoji: string; label: string; count: number }[];
 }
 
 // Andika Bold average char width ≈ 0.62× font size (wider than Arial Bold 0.58×)
@@ -610,8 +613,156 @@ function InstructionsTemplate({
   );
 }
 
+// ─── Matching Pairs Template ──────────────────────────────────────────────────
+function MatchingPairsTemplate({ title, matchingLeft, matchingRight }: {
+  title: string; matchingLeft: string[]; matchingRight: string[];
+}) {
+  // Deterministic shuffle: rotate by half-length so display order differs from answer order
+  const shuffledRight = useMemo(() => {
+    if (matchingRight.length <= 1) return matchingRight;
+    const mid = Math.ceil(matchingRight.length / 2);
+    return [...matchingRight.slice(mid), ...matchingRight.slice(0, mid)];
+  }, [matchingRight]);
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <p className="mb-8 text-center text-base font-semibold text-ink/60">
+        ✏️ Draw a line to connect each matching pair.
+      </p>
+
+      <div className="flex flex-col gap-5">
+        {matchingLeft.map((leftItem, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", height: "64px" }}>
+            {/* Left cell: item box + stub line + dot */}
+            <div style={{ flex: "2", display: "flex", alignItems: "center" }}>
+              <span
+                style={{
+                  border: "2px solid #aaa",
+                  borderRadius: "12px",
+                  padding: "10px 16px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  background: "white",
+                  whiteSpace: "nowrap",
+                  color: "#333",
+                }}
+              >
+                {leftItem}
+              </span>
+              <div style={{ flex: 1, height: "2px", background: "#bbb", marginLeft: "10px" }} />
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#888", flexShrink: 0 }} />
+            </div>
+
+            {/* Blank centre — children draw lines here */}
+            <div style={{ flex: "3" }} />
+
+            {/* Right cell: dot + stub line + item box */}
+            <div style={{ flex: "2", display: "flex", alignItems: "center" }}>
+              <div style={{ width: "10px", height: "10px", borderRadius: "50%", background: "#888", flexShrink: 0 }} />
+              <div style={{ flex: 1, height: "2px", background: "#bbb", marginRight: "10px" }} />
+              <span
+                style={{
+                  border: "2px solid #aaa",
+                  borderRadius: "12px",
+                  padding: "10px 16px",
+                  fontSize: "18px",
+                  fontWeight: "bold",
+                  background: "white",
+                  whiteSpace: "nowrap",
+                  color: "#333",
+                }}
+              >
+                {shuffledRight[i] ?? ""}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-8 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Counting Groups Template ─────────────────────────────────────────────────
+function CountingGroupsTemplate({ title, countingGroups }: {
+  title: string; countingGroups: { emoji: string; label: string; count: number }[];
+}) {
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <p className="mb-8 text-center text-base font-semibold text-ink/60">
+        ✏️ Count the objects in each box. Write the number.
+      </p>
+
+      <div className="flex flex-wrap justify-center gap-8">
+        {countingGroups.map((group, i) => (
+          <div
+            key={i}
+            style={{
+              border: "2px solid #ccc",
+              borderRadius: "16px",
+              padding: "16px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "12px",
+              width: "190px",
+            }}
+          >
+            {/* Emoji grid */}
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "4px",
+                justifyContent: "center",
+                width: "150px",
+                minHeight: "80px",
+                alignContent: "flex-start",
+              }}
+            >
+              {Array.from({ length: group.count }, (_, j) => (
+                <span key={j} style={{ fontSize: "30px", lineHeight: "1.2" }}>
+                  {group.emoji}
+                </span>
+              ))}
+            </div>
+
+            {/* Write-the-number blank */}
+            <div
+              style={{
+                border: "3px solid #555",
+                borderRadius: "10px",
+                width: "72px",
+                height: "60px",
+                background: "#f9f9f9",
+              }}
+              aria-label="Write the number here"
+            />
+
+            {/* Label */}
+            <span style={{ fontSize: "14px", fontWeight: "bold", color: "#555", textAlign: "center" }}>
+              {group.label}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-10 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group, matchingLeft = [], matchingRight = [], countingGroups = [] }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -889,6 +1040,16 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
           age={age}
           group={group}
         />
+      )}
+
+      {/* ── Matching pairs: two-column draw-the-line worksheet ────────────── */}
+      {type === "matching_pairs" && (
+        <MatchingPairsTemplate title={title} matchingLeft={matchingLeft} matchingRight={matchingRight} />
+      )}
+
+      {/* ── Counting groups: count-and-write-the-number worksheet ─────────── */}
+      {type === "counting_groups" && (
+        <CountingGroupsTemplate title={title} countingGroups={countingGroups} />
       )}
     </div>
   );

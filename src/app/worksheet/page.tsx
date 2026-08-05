@@ -21,10 +21,13 @@ interface Props {
     duration?: string;
     age?: string;
     group?: string;
+    ml?: string | string[];
+    mr?: string | string[];
+    cg?: string | string[];
   }>;
 }
 
-const VALID_TYPES = new Set(["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions"]);
+const VALID_TYPES = new Set(["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions", "matching_pairs", "counting_groups"]);
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -32,11 +35,11 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, summary, material, step, eylf, card, card_pairs, image_subject, letter_text, duration, age, group } = await searchParams;
+  const { type, name, title, summary, material, step, eylf, card, card_pairs, image_subject, letter_text, duration, age, group, ml, mr, cg } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
-      ? (type as "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions")
+      ? (type as "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups")
       : "name_trace";
   const resolvedNames = toArray(name)
     .flatMap((n) => n.split(","))
@@ -63,6 +66,15 @@ export default async function WorksheetPage({ searchParams }: Props) {
   const resolvedDuration = typeof duration === "string" ? duration.slice(0, 20) : "";
   const resolvedAge = typeof age === "string" ? age.slice(0, 40) : "";
   const resolvedGroup = typeof group === "string" ? group.slice(0, 40) : "";
+  const resolvedMatchingLeft = toArray(ml).map((v) => v.trim().slice(0, 20)).filter(Boolean).slice(0, 6);
+  const resolvedMatchingRight = toArray(mr).map((v) => v.trim().slice(0, 20)).filter(Boolean).slice(0, 6);
+  const resolvedCountingGroups = toArray(cg).flatMap((v) => {
+    const parts = v.split("|");
+    if (parts.length !== 3) return [];
+    const count = parseInt(parts[2], 10);
+    if (!Number.isInteger(count) || count < 1 || count > 10) return [];
+    return [{ emoji: parts[0].slice(0, 10), label: parts[1].trim().slice(0, 20), count }];
+  }).slice(0, 5);
 
   return (
     <WorksheetClient
@@ -80,6 +92,9 @@ export default async function WorksheetPage({ searchParams }: Props) {
       duration={resolvedDuration}
       age={resolvedAge}
       group={resolvedGroup}
+      matchingLeft={resolvedMatchingLeft}
+      matchingRight={resolvedMatchingRight}
+      countingGroups={resolvedCountingGroups}
     />
   );
 }

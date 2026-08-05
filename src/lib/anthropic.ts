@@ -48,11 +48,14 @@ export interface RawActivitySuggestion {
   energy_level?: "calm" | "moderate" | "high";
   group_size_fit?: "solo" | "small_group" | "whole_group";
   eylf_codes: string[];
-  suggested_template?: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | null;
+  suggested_template?: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | null;
   card_items?: string[];
   card_pairs?: boolean;
   image_subject?: string;
   letter_text?: string;
+  matching_left?: string[];
+  matching_right?: string[];
+  counting_groups?: { emoji: string; label: string; count: number }[];
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -90,25 +93,54 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             },
             suggested_template: {
               type: "string",
-              enum: ["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "card_set"],
-              description: "Set this for activities where a printable template helps children engage: 'name_trace' — the activity is HANDWRITING PRACTICE, forming/tracing letters of their own name (dotted trace-guide lines printed per child); 'name_colouring' — the activity is NAME RECOGNITION or decoration, not handwriting — the child's own name printed in big hollow outline letters to colour in, paint, or glue cut-out collage materials onto, with open space on the page for that gluing/decorating (printed per child); 'letter_colouring' — the activity is about a specific alphabet letter, number, or short word (NOT the child's own name) shown as one big hollow shape to colour in or decorate (e.g. 'colour the letter S', 'trace and colour the number 5', 'decorate the word CAT') — rendered as real text, not an AI-drawn picture, so it's always shaped correctly; 'drawing_frame' — activity involves free drawing, illustrating, painting, or colouring a picture/scene on paper (blank bordered space printed per child); 'writing_lines' — activity involves handwriting practice, forming letters, writing words or sentences beyond just their own name (ruled handwriting lines printed per child); 'card_set' — the activity fundamentally IS a set of physical cut-out cards: flashcards, memory/matching pairs, snap, go fish, alphabet/number cards (see card_pairs), OR sorting/categorising cards (e.g. 'sort these into school things vs home things') — each card shows one picture + one short label, printed as a grid ready to cut out and laminate. Always set one of these six for any art, literacy, drawing, colouring, painting, handwriting, flashcard, or card-game activity — pick 'card_set' specifically whenever the finished product is a deck of individual cards rather than a single worksheet page, pick 'name_colouring' specifically whenever the activity is about colouring/decorating/gluing onto the child's own name, and pick 'letter_colouring' whenever it's about a letter/number/word that is NOT the child's own name. A generic 'name' mentioned in passing (e.g. an animal's name printed on a flashcard) is NOT the child's own name — don't pick name_trace/name_colouring just because the word 'name' appears. Never use image_subject/an AI-drawn picture to depict a letter, number, or word — text rendered by an image generator is frequently wrong-shaped; always use 'letter_colouring' instead. Leave absent only for purely oral, physical, or construction activities with no paper component.",
+              enum: ["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups"],
+              description: "Set this for activities where a printable template helps children engage: 'name_trace' — HANDWRITING PRACTICE tracing their own name (dotted trace-guide lines per child); 'name_colouring' — NAME RECOGNITION, the child's own name in big hollow letters to colour/glue/decorate (per child); 'letter_colouring' — a specific alphabet letter, number, or short word (NOT the child's own name) in a big hollow shape to colour (e.g. 'colour the letter S', 'decorate the word CAT') — always use this instead of image_subject for letters/numbers since AI-drawn text is unreliable; 'drawing_frame' — free drawing/illustrating/painting, blank bordered space per child; 'writing_lines' — handwriting practice beyond their own name, ruled lines per child; 'card_set' — the product IS a deck of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, sorting cards) — each card has one picture + label, printed as a grid to cut out; 'matching_pairs' — the activity EXPLICITLY has children DRAW LINES connecting two columns of paired items (e.g. 'match animal to its sound', 'connect number to quantity', 'match word to picture') — prints a two-column worksheet with blank space in the middle for children to draw lines; REQUIRED fields: matching_left + matching_right; 'counting_groups' — the activity EXPLICITLY has children COUNT groups of objects and WRITE the number (e.g. 'count the dinosaurs', 'how many of each?') — prints groups of emoji with a write-the-number blank below each; REQUIRED field: counting_groups. Pick 'card_set' for decks of cards, 'matching_pairs' for draw-the-line matching, 'counting_groups' for count-and-write-the-number, 'name_colouring' for colouring/decorating the child's own name, 'letter_colouring' for a specific letter/number/word. Leave absent only for purely oral, physical, or construction activities with no paper component.",
             },
             card_items: {
               type: "array",
               items: { type: "string" },
-              description: "REQUIRED and must list every distinct card (e.g. ['Kangaroo', 'Koala', 'Wombat']) when — and only when — suggested_template is 'card_set'. One short label per card face. For a matching/memory game where each item appears twice, list each label ONCE here (the printable template duplicates it automatically to make the pair, unless card_pairs is false). Omit entirely for every other suggested_template value.",
+              description: "REQUIRED and must list every distinct card (e.g. ['Kangaroo', 'Koala', 'Wombat']) when — and only when — suggested_template is 'card_set'. One short label per card face. Omit entirely for every other suggested_template value.",
             },
             card_pairs: {
               type: "boolean",
-              description: "Only relevant when suggested_template is 'card_set'. True (the default — omit this field to get it) for matching/memory/snap/go-fish games where each card_items label should print as a duplicated PAIR. Set explicitly to false for sorting, categorising, or one-card-per-item activities (e.g. 'sort these into school things vs home things', a flashcard set with no matching game) where each label should print as a single unique card, not a pair.",
+              description: "Only relevant when suggested_template is 'card_set'. True (default) for matching/memory/snap games where each label prints as a PAIR. False for sorting or one-card-per-item sets.",
             },
             letter_text: {
               type: "string",
-              description: "REQUIRED when — and only when — suggested_template is 'letter_colouring'. The exact text to render in big hollow letters, e.g. 'S', 'Ss', '5', 'CAT'. Keep it short (a single letter, number, or one short word) — this fills most of the printed page. Omit entirely for every other suggested_template value.",
+              description: "REQUIRED when — and only when — suggested_template is 'letter_colouring'. The exact text to render in big hollow letters, e.g. 'S', 'Ss', '5', 'CAT'. Keep it short. Omit entirely for every other suggested_template value.",
             },
             image_subject: {
               type: "string",
-              description: "Set this whenever a craft/materials activity or a 'drawing_frame' activity has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a smiling sun', 'a friendly dinosaur', 'a bowl of rainbow fruit', 'a leafy tree'). The activity's title is often an instruction-style phrase like 'Colour It In!' or 'Creative Craft Time' that is NOT itself a drawable subject — never pass the title through unchanged as this field. Leave this field OUT ENTIRELY whenever the activity is open-ended/free-choice with no specific depicted subject (e.g. 'children colour freely', 'draw whatever you like', a generic/unthemed colouring or craft activity) — in that case the printed sheet should be a clean blank page, not a picture of something arbitrary. Never invent a specific subject just to fill this field.",
+              description: "Set this whenever a craft/materials activity or a 'drawing_frame' activity has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a smiling sun', 'a friendly dinosaur'). Leave OUT ENTIRELY whenever the activity is open-ended/free-choice with no specific depicted subject, or when using letter_colouring (never use image generation for letters/numbers). Never invent a subject just to fill this field.",
+            },
+            matching_left: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 3,
+              maxItems: 6,
+              description: "REQUIRED when — and only when — suggested_template is 'matching_pairs'. 3–6 short labels for the LEFT column (e.g. ['Cat', 'Dog', 'Cow', 'Sheep']). Must have the SAME COUNT as matching_right. List items in the ORDER that matches their matching_right partners — the worksheet shuffles the right side before printing. Omit entirely for every other suggested_template value.",
+            },
+            matching_right: {
+              type: "array",
+              items: { type: "string" },
+              minItems: 3,
+              maxItems: 6,
+              description: "REQUIRED when — and only when — suggested_template is 'matching_pairs'. 3–6 short labels for the RIGHT column, in MATCHING ORDER with matching_left (e.g. if left is ['Cat','Dog','Cow'], right is ['Meow','Woof','Moo']). The worksheet shuffles this column before display so children must find the connections. Omit entirely for every other suggested_template value.",
+            },
+            counting_groups: {
+              type: "array",
+              minItems: 2,
+              maxItems: 5,
+              description: "REQUIRED when — and only when — suggested_template is 'counting_groups'. 2–5 groups for the counting worksheet. Omit entirely for every other suggested_template value.",
+              items: {
+                type: "object",
+                required: ["emoji", "label", "count"],
+                properties: {
+                  emoji: { type: "string", description: "A single emoji to represent the objects being counted (e.g. '🦕', '🌸', '🍎'). Use a concrete, recognisable emoji." },
+                  label: { type: "string", description: "Short noun label below the count box (e.g. 'dinosaurs', 'flowers'). Keep under 15 characters." },
+                  count: { type: "integer", minimum: 1, maximum: 10, description: "How many emoji to display (children count these and write the number). Use varied counts across groups." },
+                },
+              },
             },
           },
         },

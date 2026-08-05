@@ -176,12 +176,18 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
 
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
+        if (res.status === 429) {
+          setError(data.error ?? "You've hit the generation limit — please wait a few minutes and try again.");
+        } else if (res.status === 502) {
+          setError("Activity generation is temporarily unavailable — please try again in a moment.");
+        } else {
+          setError(data.error ?? "Something went wrong — please try again.");
+        }
       } else {
         setSuggestions(data.activities ?? []);
       }
     } catch {
-      setError("Could not reach the server");
+      setError("Could not reach the server — check your internet connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -805,6 +811,9 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       card_pairs: s.cardPairs,
                       image_subject: s.imageSubject,
                       letter_text: s.letterText,
+                      matching_left: s.matchingLeft,
+                      matching_right: s.matchingRight,
+                      counting_groups: s.countingGroups,
                     }, printNames.trim() || selectedChild?.first_name || undefined);
                     window.open(url, "_blank");
                   }}

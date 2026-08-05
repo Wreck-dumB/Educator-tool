@@ -6,7 +6,9 @@ export type PrintTemplateType =
   | "name_colouring"
   | "letter_colouring"
   | "card_set"
-  | "instructions";
+  | "instructions"
+  | "matching_pairs"
+  | "counting_groups";
 
 export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   activity_sheet: "Activity sheet",
@@ -17,6 +19,8 @@ export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   letter_colouring: "Letter/number colouring",
   card_set: "Card set",
   instructions: "Instruction card",
+  matching_pairs: "Matching pairs",
+  counting_groups: "Counting worksheet",
 };
 
 export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
@@ -28,6 +32,8 @@ export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
   letter_colouring: "One letter, number, or short word in big hollow text to colour in (alphabet/number recognition, not the child's own name)",
   card_set: "Printable cut-out cards, one picture + label per card (flashcards, memory/matching, snap, go fish)",
   instructions: "Steps + EYLF codes + time/group info (outdoor, physical, discussion, music)",
+  matching_pairs: "Two-column draw-the-line worksheet — children draw lines connecting each item to its matching pair",
+  counting_groups: "Groups of objects — children count each group and write the number in the blank",
 };
 
 export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
@@ -39,6 +45,8 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
   letter_colouring: "bg-indigo-50 text-indigo-700",
   card_set: "bg-teal-50 text-teal-700",
   instructions: "bg-cream-dark text-ink/70",
+  matching_pairs: "bg-violet-50 text-violet-700",
+  counting_groups: "bg-orange-50 text-orange-700",
 };
 
 // ─── Keyword sets ──────────────────────────────────────────────────────────────
@@ -118,6 +126,9 @@ export function buildWorksheetUrl(
     card_pairs?: boolean;
     image_subject?: string | null;
     letter_text?: string | null;
+    matching_left?: string[];
+    matching_right?: string[];
+    counting_groups?: { emoji: string; label: string; count: number }[];
   },
   childName?: string,
 ): string {
@@ -150,6 +161,17 @@ export function buildWorksheetUrl(
   // Letter colouring: the exact letter/number/word to render
   if (templateType === "letter_colouring" && activity.letter_text) {
     params.set("letter_text", activity.letter_text);
+  }
+
+  // Matching pairs: left + right columns (worksheet shuffles right before display)
+  if (templateType === "matching_pairs") {
+    activity.matching_left?.forEach((v) => params.append("ml", v));
+    activity.matching_right?.forEach((v) => params.append("mr", v));
+  }
+
+  // Counting groups: emoji|label|count per group
+  if (templateType === "counting_groups") {
+    activity.counting_groups?.forEach((g) => params.append("cg", `${g.emoji}|${g.label}|${g.count}`));
   }
 
   // Drawing frame / writing lines: child name already set above, no extra params needed

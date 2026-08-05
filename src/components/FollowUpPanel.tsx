@@ -76,6 +76,9 @@ export default function FollowUpPanel({
           cardPairs: suggestion.card_pairs !== false,
           imageSubject: suggestion.image_subject?.trim() || null,
           letterText: suggestion.letter_text?.trim() || null,
+          matchingLeft: [],
+          matchingRight: [],
+          countingGroups: [],
         },
         "interest",
       );
