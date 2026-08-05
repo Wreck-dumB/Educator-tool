@@ -136,7 +136,10 @@ export function buildWorksheetUrl(
 
   // Concrete drawable subject for auto-generated illustrations — absent on
   // purpose means "leave the page blank", never falls back to the title.
-  if ((templateType === "activity_sheet" || templateType === "drawing_frame") && activity.image_subject) {
+  if (
+    (templateType === "activity_sheet" || templateType === "drawing_frame" || templateType === "name_colouring") &&
+    activity.image_subject
+  ) {
     params.set("image_subject", activity.image_subject);
   }
 

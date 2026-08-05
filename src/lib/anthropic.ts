@@ -111,7 +111,7 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             },
             image_subject: {
               type: "string",
-              description: "Set this whenever a craft/materials activity or a 'drawing_frame' activity has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a smiling sun', 'a friendly dinosaur'). Leave OUT ENTIRELY whenever the activity is open-ended/free-choice with no specific depicted subject, or when using letter_colouring (never use image generation for letters/numbers). Never invent a subject just to fill this field.",
+              description: "Set this whenever a craft/materials activity, a 'drawing_frame' activity, or a 'name_colouring' activity has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a smiling sun', 'a friendly dinosaur'). For 'name_colouring' specifically: only set this when the educator's request names or clearly implies a theme (e.g. 'name colouring sheet with a dinosaur', 'space-themed name sheet') — a plain 'colour in my name' request with no theme should leave this OUT so the sheet prints with just the name. Leave OUT ENTIRELY whenever the activity is open-ended/free-choice with no specific depicted subject, or when using letter_colouring (never use image generation for letters/numbers). Never invent a subject just to fill this field.",
             },
             matching_left: {
               type: "array",

@@ -48,13 +48,36 @@ function capitaliseName(name: string): string {
 }
 
 // ─── ImageDisplay ─────────────────────────────────────────────────────────────
+// The free image service occasionally can't serve a picture (down, rate
+// limited, blocked). Previously that failure was invisible — the <img> had no
+// onError, so a broken request just left a permanent blank box with no
+// feedback and no indication anything had gone wrong. Now it shows a clear
+// message instead, and the rest of the sheet (name, etc.) still prints fine.
+// Keyed by imageUrl at every call site so a new/regenerated image starts
+// with fresh loaded/failed state (a remount) instead of a reset effect.
 function ImageDisplay({
   imageUrl, imageStyle, compact = false,
 }: {
   imageUrl: string; imageStyle?: "outline" | "colour"; compact?: boolean;
 }) {
+  const [loaded, setLoaded] = useState(false);
+  const [failed, setFailed] = useState(false);
+
   const isOutline = imageStyle === "outline";
   const height = compact ? 160 : 440;
+
+  if (failed) {
+    return (
+      <div
+        className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-coral-light bg-coral-light/10 px-4 text-center print:hidden"
+        style={{ height: `${height}px`, width: "100%" }}
+      >
+        <p className="text-sm font-medium text-coral-dark">Image couldn&apos;t be generated</p>
+        <p className="text-xs text-ink/40">The free image service may be busy or unavailable right now — try again shortly.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center">
       {isOutline && (
@@ -66,11 +89,14 @@ function ImageDisplay({
         className={`flex items-center justify-center overflow-hidden rounded-lg ${isOutline ? "border-4 border-dashed border-ink/40" : "border-2 border-ink/20"}`}
         style={{ height: `${height}px`, width: "100%" }}
       >
+        {!loaded && <span className="text-xs text-ink/30 print:hidden">Generating…</span>}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={imageUrl}
           alt="Activity image"
-          style={{ maxHeight: `${height - 8}px`, maxWidth: "100%", objectFit: "contain" }}
+          style={{ maxHeight: `${height - 8}px`, maxWidth: "100%", objectFit: "contain", display: loaded ? "block" : "none" }}
+          onLoad={() => setLoaded(true)}
+          onError={() => setFailed(true)}
         />
       </div>
     </div>
@@ -165,7 +191,7 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
 
       {imageUrl && (
         <div className="mt-4">
-          <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} compact />
+          <ImageDisplay key={imageUrl} imageUrl={imageUrl} imageStyle={imageStyle} compact />
         </div>
       )}
 
@@ -175,7 +201,11 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
 }
 
 // ─── Name Colouring Template — big hollow letters to colour/glue, not trace ──
-function NameColouringTemplate({ name, title }: { name: string; title: string }) {
+function NameColouringTemplate({
+  name, title, imageUrl, imageStyle,
+}: {
+  name: string; title: string; imageUrl?: string; imageStyle?: "outline" | "colour";
+}) {
   const displayName = capitaliseName(name);
   const svgWidth = 760;
 
@@ -220,11 +250,15 @@ function NameColouringTemplate({ name, title }: { name: string; title: string })
       <p className="mb-2 mt-6 text-xs font-bold uppercase tracking-widest text-ink/40">
         🖌 Colour in the letters, or glue your cut-out pieces on:
       </p>
-      <div
-        className="rounded-xl border-2 border-dashed border-ink/25"
-        style={{ height: "380px" }}
-        aria-label="Glue / decorating space"
-      />
+      {imageUrl ? (
+        <ImageDisplay key={imageUrl} imageUrl={imageUrl} imageStyle={imageStyle} />
+      ) : (
+        <div
+          className="rounded-xl border-2 border-dashed border-ink/25"
+          style={{ height: "380px" }}
+          aria-label="Glue / decorating space"
+        />
+      )}
 
       <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
     </div>
@@ -450,7 +484,7 @@ function ActivitySheetTemplate({
       )}
 
       {imageUrl ? (
-        <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} />
+        <ImageDisplay key={imageUrl} imageUrl={imageUrl} imageStyle={imageStyle} />
       ) : (
         <div className="rounded-xl border-2 border-ink/20" style={{ height: "380px" }} aria-label="Working space" />
       )}
@@ -488,7 +522,7 @@ function WritingLinesTemplate({ name, title, imageUrl, imageStyle }: {
 
       {imageUrl && (
         <div className="mb-4">
-          <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} compact />
+          <ImageDisplay key={imageUrl} imageUrl={imageUrl} imageStyle={imageStyle} compact />
         </div>
       )}
 
@@ -535,7 +569,7 @@ function DrawingFrameTemplate({ title, name, imageUrl, imageStyle }: {
         <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
       </div>
       {imageUrl ? (
-        <ImageDisplay imageUrl={imageUrl} imageStyle={imageStyle} />
+        <ImageDisplay key={imageUrl} imageUrl={imageUrl} imageStyle={imageStyle} />
       ) : (
         <div className="rounded-lg border-2 border-ink/20" style={{ height: "460px" }} aria-label="Working space" />
       )}
@@ -777,6 +811,11 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
   const [imagePrompt, setImagePrompt] = useState(imageSubject || title);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState<string | null>(null);
+  // Tracks only whether the small preview thumbnail's own <img> failed to
+  // load — deliberately separate from imageUrl so a preview failure doesn't
+  // wipe the shared URL out from under the full-size ImageDisplay elsewhere
+  // on the sheet, which has its own independent load/error handling.
+  const [previewFailed, setPreviewFailed] = useState(false);
 
   async function generateImage(promptOverride?: string, styleOverride?: "outline" | "colour") {
     const prompt = promptOverride ?? imagePrompt;
@@ -784,6 +823,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
     setImageLoading(true);
     setImageError(null);
     setImageUrl(null);
+    setPreviewFailed(false);
     try {
       const res = await fetch("/api/generate-image", {
         method: "POST",
@@ -820,7 +860,8 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
   // Deferred a tick so the image fetch (and its setState calls) isn't triggered
   // synchronously from the effect body.
   useEffect(() => {
-    if ((type !== "activity_sheet" && type !== "drawing_frame") || !imageSubject.trim()) return;
+    const autoTypes: TemplateType[] = ["activity_sheet", "drawing_frame", "name_colouring"];
+    if (!autoTypes.includes(type) || !imageSubject.trim()) return;
     const style = type === "activity_sheet" ? "colour" : "outline";
     const id = setTimeout(() => generateImage(imageSubject, style), 0);
     return () => clearTimeout(id);
@@ -916,9 +957,10 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
             </div>
           </div>
 
-          {/* Image generation panel — screen only. Not for name/letter colouring:
-              the text itself, not a generated picture, is the page's content. */}
-          {type !== "name_colouring" && type !== "letter_colouring" && (
+          {/* Image generation panel — screen only. Not for letter colouring:
+              the text itself, not a generated picture, is the page's content.
+              Name colouring gets it too — an optional themed stencil under the name. */}
+          {type !== "letter_colouring" && (
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
             <div className="mt-4 rounded-2xl border-2 border-dashed border-sage-light bg-sage-light/20 px-5 py-4">
               <p className="mb-3 text-sm font-semibold text-sage-dark">🎨 Activity image (optional)</p>
@@ -966,18 +1008,29 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
 
               {imageUrl && (
                 <div className="mt-3 flex items-center gap-3">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageUrl}
-                    alt="Generated preview"
-                    className="h-16 w-16 rounded border border-sage-light object-contain bg-white"
-                    onLoad={() => setImageLoading(false)}
-                    onError={() => {
-                      setImageError("Image failed to load — please try again.");
-                      setImageUrl(null);
-                      setImageLoading(false);
-                    }}
-                  />
+                  {previewFailed ? (
+                    <div className="flex h-16 w-16 items-center justify-center rounded border border-coral-light bg-coral-light/10 text-center text-[10px] text-coral-dark">
+                      Unavailable
+                    </div>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={imageUrl}
+                      alt="Generated preview"
+                      className="h-16 w-16 rounded border border-sage-light object-contain bg-white"
+                      onLoad={() => setImageLoading(false)}
+                      onError={() => {
+                        // Deliberately not clearing imageUrl here — the
+                        // full-size picture elsewhere on the sheet handles
+                        // its own load/error state independently and should
+                        // still get a chance to try (and show its own
+                        // message if it also fails).
+                        setImageError("Preview couldn't load — the picture on the sheet may still be generating.");
+                        setPreviewFailed(true);
+                        setImageLoading(false);
+                      }}
+                    />
+                  )}
                   {imageLoading ? (
                     <span className="text-sm text-sage-dark/70">Loading image…</span>
                   ) : (
@@ -1015,7 +1068,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
                 <hr className="mx-auto my-6 max-w-[820px] border-dashed border-ink/10 print:hidden" />
               )}
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
-              {type === "name_colouring" && <NameColouringTemplate name={n} title={title} />}
+              {type === "name_colouring" && <NameColouringTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "letter_colouring" && <LetterColouringTemplate text={letterText} name={n} title={title} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
