@@ -141,12 +141,12 @@ function TraceRow({
       <line x1="0" y1={baseline} x2={svgWidth} y2={baseline} stroke="#b0b0b0" strokeWidth="1" />
       <line x1="0" y1={descLine} x2={svgWidth} y2={descLine} stroke="#e8e8e8" strokeWidth="0.6" />
       {showText && (
-        <text x="4" y={baseline} fontSize={fontSize} fontWeight="bold"
+        <text x="4" y={baseline} fontSize={fontSize} fontWeight={dotted ? "normal" : "bold"}
           fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
           fill={dotted ? "none" : fill}
           stroke={dotted ? fill : undefined}
-          strokeWidth={dotted ? fontSize * 0.05 : undefined}
-          strokeDasharray={dotted ? `${fontSize * 0.025} ${fontSize * 0.09}` : undefined}
+          strokeWidth={dotted ? fontSize * 0.02 : undefined}
+          strokeDasharray={dotted ? `${fontSize * 0.012} ${fontSize * 0.045}` : undefined}
           strokeLinecap={dotted ? "round" : undefined}
           style={{ userSelect: "none" }}>
           {name}
