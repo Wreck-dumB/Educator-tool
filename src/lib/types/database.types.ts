@@ -344,6 +344,23 @@ export interface Database {
           generation_mode: GenerationMode;
           is_archived: boolean;
           created_at: string;
+          suggested_template:
+            | "name_trace"
+            | "name_colouring"
+            | "letter_colouring"
+            | "drawing_frame"
+            | "writing_lines"
+            | "card_set"
+            | "matching_pairs"
+            | "counting_groups"
+            | null;
+          card_items: string[];
+          card_pairs: boolean;
+          image_subject: string | null;
+          letter_text: string | null;
+          matching_left: string[];
+          matching_right: string[];
+          counting_groups: { emoji: string; label: string; count: number }[];
         };
         Insert: {
           id?: string;
@@ -360,6 +377,23 @@ export interface Database {
           generation_mode: GenerationMode;
           is_archived?: boolean;
           created_at?: string;
+          suggested_template?:
+            | "name_trace"
+            | "name_colouring"
+            | "letter_colouring"
+            | "drawing_frame"
+            | "writing_lines"
+            | "card_set"
+            | "matching_pairs"
+            | "counting_groups"
+            | null;
+          card_items?: string[];
+          card_pairs?: boolean;
+          image_subject?: string | null;
+          letter_text?: string | null;
+          matching_left?: string[];
+          matching_right?: string[];
+          counting_groups?: { emoji: string; label: string; count: number }[];
         };
         Update: Partial<Database["public"]["Tables"]["generated_activities"]["Insert"]>;
         Relationships: [];

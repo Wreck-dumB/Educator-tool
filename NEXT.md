@@ -2,6 +2,10 @@
 
 Parked ideas and planned work, so nothing gets lost between sessions.
 
+## Recently fixed
+- [x] **Worksheets always printed the same generic template** — the AI generator already picked a tailored print template per activity (`name_trace`, `letter_colouring`, `card_set`, `matching_pairs`, `counting_groups`, etc.) plus the structured data each needs, but none of it was ever saved — `saveActivity()` dropped those fields on insert, so the Worksheets page had no choice but to re-guess from title/step text, which can never produce the 4 data-driven templates. Migration 0057 adds the missing columns (`suggested_template`, `card_items`, `card_pairs`, `image_subject`, `letter_text`, `matching_left`, `matching_right`, `counting_groups`); `save.ts` now persists them; `WorksheetGenerator.tsx` now prefers the stored template and lists all 10 template types, not just 6. (commit pending) **MANUAL STEP: migration 0057 needs to be applied to the live Supabase DB** (paste `supabase/migrations/0057_activity_worksheet_template.sql` into the Supabase SQL editor, or `supabase db push` if the CLI is linked) — until then, saved activities keep behaving as before.
+  - Note: worksheet pictures (activity sheet/drawing frame/card set/name colouring images) are still broken independent of this — see "Image generation (Pollinations)" below.
+
 ## Admin removal + access & compliance (in progress)
 Building in order, top to bottom.
 

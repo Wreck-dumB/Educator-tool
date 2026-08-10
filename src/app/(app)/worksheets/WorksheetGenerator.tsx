@@ -18,6 +18,10 @@ const TEMPLATE_OPTIONS: PrintTemplateType[] = [
   "writing_lines",
   "name_trace",
   "name_colouring",
+  "letter_colouring",
+  "card_set",
+  "matching_pairs",
+  "counting_groups",
   "instructions",
 ];
 
@@ -43,7 +47,7 @@ export default function WorksheetGenerator({
   }, [activities, search]);
 
   function templateFor(a: ActivityWithOutcomes): PrintTemplateType {
-    return overrides[a.id] ?? detectPrintTemplate(a);
+    return overrides[a.id] ?? a.suggested_template ?? detectPrintTemplate(a);
   }
 
   function openPrintable(a: ActivityWithOutcomes) {
@@ -101,7 +105,7 @@ export default function WorksheetGenerator({
       {/* Activity list */}
       <div className="mt-4 divide-y divide-coral-light rounded-2xl border border-coral-light bg-white">
         {filtered.map((a) => {
-          const detected = detectPrintTemplate(a);
+          const detected = a.suggested_template ?? detectPrintTemplate(a);
           const current = overrides[a.id] ?? detected;
           const isOverridden = !!overrides[a.id] && overrides[a.id] !== detected;
 

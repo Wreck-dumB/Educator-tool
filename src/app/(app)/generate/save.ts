@@ -37,6 +37,14 @@ export async function saveActivity(
       energy_level: suggestion.energyLevel,
       group_size_fit: suggestion.groupSizeFit,
       generation_mode: generationMode,
+      suggested_template: suggestion.suggestedTemplate,
+      card_items: suggestion.cardItems,
+      card_pairs: suggestion.cardPairs,
+      image_subject: suggestion.imageSubject,
+      letter_text: suggestion.letterText,
+      matching_left: suggestion.matchingLeft,
+      matching_right: suggestion.matchingRight,
+      counting_groups: suggestion.countingGroups,
     })
     .select("id")
     .single();
