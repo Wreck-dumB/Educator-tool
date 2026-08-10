@@ -109,6 +109,8 @@ interface TraceRowProps {
   fill: string;
   label?: string;
   showText?: boolean;
+  /** Render the name as a dashed/dotted outline to trace over, instead of solid fill. */
+  dotted?: boolean;
   name: string;
   fontSize: number;
   capHeight: number;
@@ -118,7 +120,7 @@ interface TraceRowProps {
 }
 
 function TraceRow({
-  y, fill, label, showText = true,
+  y, fill, label, showText = true, dotted = false,
   name, fontSize, capHeight, xHeight, descender, svgWidth,
 }: TraceRowProps) {
   const baseline = y + capHeight + 8;
@@ -140,7 +142,13 @@ function TraceRow({
       <line x1="0" y1={descLine} x2={svgWidth} y2={descLine} stroke="#e8e8e8" strokeWidth="0.6" />
       {showText && (
         <text x="4" y={baseline} fontSize={fontSize} fontWeight="bold"
-          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif" fill={fill} style={{ userSelect: "none" }}>
+          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
+          fill={dotted ? "none" : fill}
+          stroke={dotted ? fill : undefined}
+          strokeWidth={dotted ? fontSize * 0.05 : undefined}
+          strokeDasharray={dotted ? `${fontSize * 0.025} ${fontSize * 0.09}` : undefined}
+          strokeLinecap={dotted ? "round" : undefined}
+          style={{ userSelect: "none" }}>
           {name}
         </text>
       )}
@@ -184,8 +192,8 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
 
       <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%"
         aria-label={`Name tracing worksheet for ${displayName}`} style={{ display: "block" }}>
-        <TraceRow {...shared} y={row1Y} fill="#cccccc" label="Trace" />
-        <TraceRow {...shared} y={row2Y} fill="#e0e0e0" label="Trace again" />
+        <TraceRow {...shared} y={row1Y} fill="#999999" dotted label="Trace" />
+        <TraceRow {...shared} y={row2Y} fill="#c4c4c4" dotted label="Trace again" />
         <TraceRow {...shared} y={row3Y} fill="transparent" showText={false} label="Your turn" />
       </svg>
 
