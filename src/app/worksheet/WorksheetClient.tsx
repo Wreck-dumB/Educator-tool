@@ -1,6 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
+import {
+  SINGLE_LINE_FONT,
+  SINGLE_LINE_FONT_CAP_TOP,
+  SINGLE_LINE_FONT_BASELINE,
+  SINGLE_LINE_FONT_SPACE_WIDTH,
+} from "@/lib/utils/singleLineFont";
 
 type TemplateType = "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups";
 
@@ -104,6 +110,44 @@ function ImageDisplay({
 }
 
 // ─── TraceRow ────────────────────────────────────────────────────────────────
+// A normal/bold font's letters are filled shapes — tracing their *outline*
+// always produces two parallel dashed edges per stroke, never one line. A
+// true single-line dotted guide needs letterforms built from single-path
+// line data instead, which SINGLE_LINE_FONT provides.
+const SINGLE_LINE_GLYPH_HEIGHT = SINGLE_LINE_FONT_BASELINE - SINGLE_LINE_FONT_CAP_TOP;
+const SINGLE_LINE_DEFAULT_ADVANCE = 8;
+
+function SingleLineName({ name, x, baseline, capHeight, stroke }: {
+  name: string; x: number; baseline: number; capHeight: number; stroke: string;
+}) {
+  const scale = capHeight / SINGLE_LINE_GLYPH_HEIGHT;
+  let cursor = 0;
+  const glyphs: { d: string; x: number }[] = [];
+  for (const char of name) {
+    if (char === " ") {
+      cursor += SINGLE_LINE_FONT_SPACE_WIDTH;
+      continue;
+    }
+    const glyph = SINGLE_LINE_FONT[char] ?? SINGLE_LINE_FONT[char.toUpperCase()] ?? SINGLE_LINE_FONT[char.toLowerCase()];
+    if (!glyph) {
+      cursor += SINGLE_LINE_DEFAULT_ADVANCE;
+      continue;
+    }
+    glyphs.push({ d: glyph.d, x: cursor });
+    cursor += glyph.width + 1;
+  }
+
+  return (
+    <g transform={`translate(${x}, ${baseline - SINGLE_LINE_FONT_BASELINE * scale}) scale(${scale})`}>
+      {glyphs.map((g, i) => (
+        <path key={i} d={g.d} transform={`translate(${g.x}, 0)`}
+          fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
+          strokeDasharray="1 3.4" vectorEffect="non-scaling-stroke" />
+      ))}
+    </g>
+  );
+}
+
 interface TraceRowProps {
   y: number;
   fill: string;
@@ -111,6 +155,8 @@ interface TraceRowProps {
   showText?: boolean;
   /** Render the name as a dashed/dotted outline to trace over, instead of solid fill. */
   dotted?: boolean;
+  /** Render a true single-line dotted guide (SINGLE_LINE_FONT) instead of an outlined font. */
+  singleLine?: boolean;
   name: string;
   fontSize: number;
   capHeight: number;
@@ -120,7 +166,7 @@ interface TraceRowProps {
 }
 
 function TraceRow({
-  y, fill, label, showText = true, dotted = false,
+  y, fill, label, showText = true, dotted = false, singleLine = false,
   name, fontSize, capHeight, xHeight, descender, svgWidth,
 }: TraceRowProps) {
   const baseline = y + capHeight + 8;
@@ -140,7 +186,10 @@ function TraceRow({
       <line x1="0" y1={midLine}  x2={svgWidth} y2={midLine}  stroke="#e2e2e2" strokeWidth="0.8" strokeDasharray="4 3" />
       <line x1="0" y1={baseline} x2={svgWidth} y2={baseline} stroke="#b0b0b0" strokeWidth="1" />
       <line x1="0" y1={descLine} x2={svgWidth} y2={descLine} stroke="#e8e8e8" strokeWidth="0.6" />
-      {showText && (
+      {showText && singleLine && (
+        <SingleLineName name={name} x={4} baseline={baseline} capHeight={capHeight} stroke={fill} />
+      )}
+      {showText && !singleLine && (
         <text x="4" y={baseline} fontSize={fontSize} fontWeight={dotted ? "normal" : "bold"}
           fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
           fill={dotted ? "none" : fill}
@@ -193,7 +242,7 @@ function NameTraceTemplate({ name, title, imageUrl, imageStyle }: {
       <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%"
         aria-label={`Name tracing worksheet for ${displayName}`} style={{ display: "block" }}>
         <TraceRow {...shared} y={row1Y} fill="#999999" dotted label="Trace" />
-        <TraceRow {...shared} y={row2Y} fill="#c4c4c4" dotted label="Trace again" />
+        <TraceRow {...shared} y={row2Y} fill="#999999" singleLine label="Trace again — single line" />
         <TraceRow {...shared} y={row3Y} fill="transparent" showText={false} label="Your turn" />
       </svg>
 
