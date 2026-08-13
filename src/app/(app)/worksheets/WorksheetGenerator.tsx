@@ -18,6 +18,7 @@ const TEMPLATE_OPTIONS: PrintTemplateType[] = [
   "writing_lines",
   "name_trace",
   "name_colouring",
+  "name_label",
   "letter_colouring",
   "card_set",
   "matching_pairs",

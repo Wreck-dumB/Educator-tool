@@ -347,6 +347,7 @@ export interface Database {
           suggested_template:
             | "name_trace"
             | "name_colouring"
+            | "name_label"
             | "letter_colouring"
             | "drawing_frame"
             | "writing_lines"
@@ -380,6 +381,7 @@ export interface Database {
           suggested_template?:
             | "name_trace"
             | "name_colouring"
+            | "name_label"
             | "letter_colouring"
             | "drawing_frame"
             | "writing_lines"

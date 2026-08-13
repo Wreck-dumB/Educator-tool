@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
   }
 
-  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups"]);
+  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups"]);
   // Card decks get large fast (pairs double the print count) — cap unique
   // labels so a print run stays a reasonable number of pages/images.
   const MAX_CARD_ITEMS = 16;
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
     // detectPrintTemplate() picks a sane fallback at print time.
     let suggestedTemplate =
       activity.suggested_template && VALID_TEMPLATES.has(activity.suggested_template)
-        ? (activity.suggested_template as "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups")
+        ? (activity.suggested_template as "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups")
         : null;
     if (suggestedTemplate === "letter_colouring" && !letterText) suggestedTemplate = null;
     if (suggestedTemplate === "matching_pairs" && (matchingLeft.length < 2 || matchingLeft.length !== matchingRight.length)) suggestedTemplate = null;

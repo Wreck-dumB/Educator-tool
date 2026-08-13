@@ -27,7 +27,7 @@ interface Props {
   }>;
 }
 
-const VALID_TYPES = new Set(["name_trace", "name_colouring", "letter_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions", "matching_pairs", "counting_groups"]);
+const VALID_TYPES = new Set(["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "activity_sheet", "card_set", "instructions", "matching_pairs", "counting_groups"]);
 
 function toArray(v: string | string[] | undefined): string[] {
   if (!v) return [];
@@ -39,7 +39,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
 
   const resolvedType =
     type && VALID_TYPES.has(type)
-      ? (type as "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups")
+      ? (type as "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups")
       : "name_trace";
   const resolvedNames = toArray(name)
     .flatMap((n) => n.split(","))

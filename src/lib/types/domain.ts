@@ -94,7 +94,7 @@ export interface ActivitySuggestion {
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
   /** Set when the activity warrants a printable worksheet. */
-  suggestedTemplate: "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | null;
+  suggestedTemplate: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */
   cardItems: string[];
   /** Whether card_set duplicates each label into a matching pair (memory/snap games) vs one unique card each (sorting/categorising). Default true. */

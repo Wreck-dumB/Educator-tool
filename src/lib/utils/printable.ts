@@ -4,6 +4,7 @@ export type PrintTemplateType =
   | "writing_lines"
   | "name_trace"
   | "name_colouring"
+  | "name_label"
   | "letter_colouring"
   | "card_set"
   | "instructions"
@@ -16,6 +17,7 @@ export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   writing_lines: "Writing lines",
   name_trace: "Name tracing",
   name_colouring: "Name colouring",
+  name_label: "Name label",
   letter_colouring: "Letter/number colouring",
   card_set: "Card set",
   instructions: "Instruction card",
@@ -29,6 +31,7 @@ export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
   writing_lines: "Lined paper (writing, journalling, language activities)",
   name_trace: "Guided name-tracing lines (name writing practice only)",
   name_colouring: "Child's name in big hollow letters to colour in or glue collage onto (name recognition, not handwriting)",
+  name_label: "Child's name in solid bold text, ready to cut out — for place markers, cubby labels, name tags, table settings (not for tracing or colouring)",
   letter_colouring: "One letter, number, or short word in big hollow text to colour in (alphabet/number recognition, not the child's own name)",
   card_set: "Printable cut-out cards, one picture + label per card (flashcards, memory/matching, snap, go fish)",
   instructions: "Steps + EYLF codes + time/group info (outdoor, physical, discussion, music)",
@@ -42,6 +45,7 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
   writing_lines: "bg-blue-50 text-blue-700",
   name_trace: "bg-amber-50 text-amber-700",
   name_colouring: "bg-purple-50 text-purple-700",
+  name_label: "bg-rose-50 text-rose-700",
   letter_colouring: "bg-indigo-50 text-indigo-700",
   card_set: "bg-teal-50 text-teal-700",
   instructions: "bg-cream-dark text-ink/70",
@@ -50,6 +54,12 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
 };
 
 // ─── Keyword sets ──────────────────────────────────────────────────────────────
+
+// A plain solid-text name for cutting out — place markers, cubby/desk labels,
+// name tags, table settings. Distinct from both colouring (hollow) and
+// tracing (dotted). Checked before NAME_COLOURING_KW/NAME_TRACE_KW.
+const NAME_LABEL_KW =
+  /\b(name\s+(?:label|tag|plate|placemarker|card)|place\s*(?:\s|-)?marker|place\s*card|cubby\s+label|desk\s+label|table\s+setting)\b/i;
 
 // Colouring/decorating the child's own name — distinct from tracing it for
 // handwriting practice. Checked before NAME_TRACE_KW.
@@ -81,7 +91,8 @@ type ActivityShape = {
 export function detectPrintTemplate(activity: ActivityShape): PrintTemplateType {
   const text = [activity.title, ...(activity.steps ?? [])].join(" ");
 
-  // Both are very specific — only if the activity is literally about the child's own name
+  // All three are very specific — only if the activity is literally about the child's own name
+  if (NAME_LABEL_KW.test(text)) return "name_label";
   if (NAME_COLOURING_KW.test(text)) return "name_colouring";
   if (NAME_TRACE_KW.test(text)) return "name_trace";
 
@@ -137,7 +148,7 @@ export function buildWorksheetUrl(
   // Concrete drawable subject for auto-generated illustrations — absent on
   // purpose means "leave the page blank", never falls back to the title.
   if (
-    (templateType === "activity_sheet" || templateType === "drawing_frame" || templateType === "name_colouring") &&
+    (templateType === "activity_sheet" || templateType === "drawing_frame" || templateType === "name_colouring" || templateType === "name_label") &&
     activity.image_subject
   ) {
     params.set("image_subject", activity.image_subject);

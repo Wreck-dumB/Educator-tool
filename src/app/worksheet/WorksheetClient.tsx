@@ -8,7 +8,7 @@ import {
   SINGLE_LINE_FONT_SPACE_WIDTH,
 } from "@/lib/utils/singleLineFont";
 
-type TemplateType = "name_trace" | "name_colouring" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups";
+type TemplateType = "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups";
 
 interface Props {
   type: TemplateType;
@@ -315,6 +315,60 @@ function NameColouringTemplate({
           style={{ height: "380px" }}
           aria-label="Glue / decorating space"
         />
+      )}
+
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Name Label Template — solid bold text, ready to cut out (place markers,
+// cubby/desk labels, name tags). No hollow outline, no dotted trace guide. ──
+function NameLabelTemplate({ name, title, imageUrl, imageStyle }: {
+  name: string; title: string; imageUrl?: string; imageStyle?: "outline" | "colour";
+}) {
+  const displayName = capitaliseName(name);
+  const svgWidth = 760;
+
+  const fontSize = useMemo(
+    () => pickColouringFontSize(displayName.length, svgWidth - 40),
+    [displayName.length],
+  );
+  const svgHeight = fontSize * 1.4;
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-4 border-b border-ink/10 pb-3">
+        <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
+        {name.trim() && (
+          <p className="mt-0.5 text-sm text-ink/50">For <strong>{name.trim()}</strong></p>
+        )}
+      </div>
+
+      <svg
+        viewBox={`0 0 ${svgWidth} ${svgHeight}`}
+        width="100%"
+        aria-label={`Name label for ${displayName}`}
+        style={{ display: "block" }}
+      >
+        <text
+          x={svgWidth / 2}
+          y={svgHeight * 0.75}
+          textAnchor="middle"
+          fontSize={fontSize}
+          fontWeight="bold"
+          fontFamily="var(--font-andika), 'Andika', Arial, sans-serif"
+          fill="#2b2b2b"
+          style={{ userSelect: "none" }}
+        >
+          {displayName}
+        </text>
+      </svg>
+
+      {imageUrl && (
+        <div className="mt-4">
+          <ImageDisplay key={imageUrl} imageUrl={imageUrl} imageStyle={imageStyle} compact />
+        </div>
       )}
 
       <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
@@ -961,7 +1015,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
       </div>
 
       {/* ── Name-trace + name-colouring + drawing-frame + writing-lines + activity-sheet: multi-child names ─ */}
-      {(type === "name_trace" || type === "name_colouring" || type === "letter_colouring" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
+      {(type === "name_trace" || type === "name_colouring" || type === "name_label" || type === "letter_colouring" || type === "drawing_frame" || type === "writing_lines" || type === "activity_sheet") && (
         <>
           {/* Names panel — screen only */}
           <div className="mx-auto max-w-[820px] px-4 print:hidden">
@@ -1126,6 +1180,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
               )}
               {type === "name_trace" && <NameTraceTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "name_colouring" && <NameColouringTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
+              {type === "name_label" && <NameLabelTemplate name={n} title={title} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "letter_colouring" && <LetterColouringTemplate text={letterText} name={n} title={title} />}
               {type === "drawing_frame" && <DrawingFrameTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
               {type === "writing_lines" && <WritingLinesTemplate title={title} name={n || undefined} imageUrl={imageUrl ?? undefined} imageStyle={imageStyle} />}
