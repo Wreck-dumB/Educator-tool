@@ -10,7 +10,8 @@ export interface PosterCanvasHandle {
   getJSON: () => object;
   downloadPNG: () => void;
   addClipArt: (src: string) => void;
-  applyAICopy: (title: string, subtitle: string, body: string, footer: string) => void;
+  addPhoto: (src: string) => void;
+  applyAICopy: (title: string, subtitle: string, body: string, footer: string, photoUrl?: string | null) => void;
   setBackground: (color: string) => void;
   addText: (size: "heading" | "subtitle" | "body") => void;
   deleteSelected: () => void;
@@ -33,6 +34,9 @@ export interface SelectedInfo {
 
 const CANVAS_W = 560;
 const CANVAS_H = 794; // A4 ratio
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const isTextObj = (o: any) => o?.type === "i-text" || o?.type === "text" || o?.type === "textbox";
 
 const BG_PRESETS = [
   { label: "White", value: "#ffffff" },
@@ -82,7 +86,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
         canvas.loadFromJSON(initialJson, () => canvas.renderAll());
       } else {
         // Default starter layout
-        const heading = new fabric.IText("Your Headline Here", {
+        const heading = new fabric.Textbox("Your Headline Here", {
           left: 50,
           top: 60,
           width: 460,
@@ -112,7 +116,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
   function notifySelection(canvas: FabricCanvas) {
     const obj = canvas.getActiveObject();
     if (!obj) { onSelectionChange?.(null); return; }
-    if (obj.type === "i-text" || obj.type === "text") {
+    if (isTextObj(obj)) {
       onSelectionChange?.({
         type: "text",
         fontSize: obj.fontSize,
@@ -159,57 +163,140 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
   }, []);
 
   const applyAICopy = useCallback(
-    (title: string, subtitle: string, body: string, footer: string) => {
+    (title: string, subtitle: string, body: string, footer: string, photoUrl?: string | null) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
       import("fabric").then(({ fabric }) => {
-        // Remove existing text objects
-        const toRemove = canvas.getObjects().filter(
-          (o: FabricCanvas) => o.type === "i-text" || o.type === "text"
-        );
+        // Remove existing text objects and any previously auto-added AI photo
+        // (both legacy i-text and current textbox) — but leave clip art /
+        // manually uploaded photos alone.
+        const toRemove = canvas
+          .getObjects()
+          .filter((o: FabricCanvas) => isTextObj(o) || o.data?.source === "ai-photo");
         toRemove.forEach((o: FabricCanvas) => canvas.remove(o));
 
-        let y = 60;
-        if (title) {
-          const t = new fabric.IText(title, {
-            left: 50, top: y, width: 460,
-            fontSize: 52, fontFamily: "Georgia, serif", fontWeight: "bold",
-            fill: "#e8430a",
-          });
-          canvas.add(t);
-          y += (t.height ?? 60) + 20;
+        const footerReserve = footer ? 60 : 20;
+        const safeBottom = CANVAS_H - footerReserve;
+        const imageGap = 20;
+
+        // Shrink font sizes (and the reserved photo band) together, in a few
+        // steps, until title/subtitle/photo/body actually fit above the
+        // footer instead of running off the bottom of the poster.
+        let scale = 1;
+        let blocks: FabricCanvas[] = [];
+        let y = 0;
+        let imageRect: { top: number; height: number } | null = null;
+        for (let attempt = 0; attempt < 6; attempt++) {
+          blocks.forEach((b) => canvas.remove(b));
+          blocks = [];
+          y = 60;
+          imageRect = null;
+
+          if (title) {
+            const t = new fabric.Textbox(title, {
+              left: 50, top: y, width: 460,
+              fontSize: Math.round(52 * scale), fontFamily: "Georgia, serif", fontWeight: "bold",
+              fill: "#e8430a",
+            });
+            canvas.add(t);
+            blocks.push(t);
+            y += (t.height ?? 60) + 20 * scale;
+          }
+          if (subtitle) {
+            const t = new fabric.Textbox(subtitle, {
+              left: 50, top: y, width: 460,
+              fontSize: Math.round(28 * scale), fontFamily: "Georgia, serif",
+              fill: "#444444",
+            });
+            canvas.add(t);
+            blocks.push(t);
+            y += (t.height ?? 36) + 20 * scale;
+          }
+          if (photoUrl) {
+            const bandHeight = Math.round(220 * scale);
+            imageRect = { top: y, height: bandHeight };
+            y += bandHeight + imageGap * scale;
+          }
+          if (body) {
+            const t = new fabric.Textbox(body, {
+              left: 50, top: y, width: 460,
+              fontSize: Math.round(22 * scale), fontFamily: "Arial, sans-serif",
+              fill: "#333333",
+            });
+            canvas.add(t);
+            blocks.push(t);
+            y += (t.height ?? 80) + 20 * scale;
+          }
+
+          if (y <= safeBottom || scale <= 0.5) break;
+          scale -= 0.1;
         }
-        if (subtitle) {
-          const t = new fabric.IText(subtitle, {
-            left: 50, top: y, width: 460,
-            fontSize: 28, fontFamily: "Georgia, serif",
-            fill: "#444444",
-          });
-          canvas.add(t);
-          y += (t.height ?? 36) + 20;
-        }
-        if (body) {
-          const t = new fabric.IText(body, {
-            left: 50, top: y, width: 460,
-            fontSize: 22, fontFamily: "Arial, sans-serif",
-            fill: "#333333",
-          });
-          canvas.add(t);
-          y += (t.height ?? 80) + 20;
-        }
+
         if (footer) {
-          const t = new fabric.IText(footer, {
-            left: 50, top: CANVAS_H - 80, width: 460,
-            fontSize: 20, fontFamily: "Arial, sans-serif", fontStyle: "italic",
+          const t = new fabric.Textbox(footer, {
+            left: 50, top: CANVAS_H - 50, width: 460,
+            fontSize: 16, fontFamily: "Arial, sans-serif", fontStyle: "italic",
             fill: "#666666",
           });
           canvas.add(t);
         }
         canvas.renderAll();
+
+        // Load the photo into its reserved band, cropped to cover it neatly
+        // instead of distorting or overflowing into the text above/below.
+        if (photoUrl && imageRect) {
+          const rect = imageRect;
+          fabric.Image.fromURL(
+            photoUrl,
+            (img: FabricCanvas) => {
+              if (!img.width || !img.height || !fabricRef.current) return;
+              const rectX = 50, rectW = 460;
+              const coverScale = Math.max(rectW / img.width, rect.height / img.height);
+              img.scale(coverScale);
+              img.set({
+                left: rectX + (rectW - img.width * coverScale) / 2,
+                top: rect.top + (rect.height - img.height * coverScale) / 2,
+                clipPath: new fabric.Rect({
+                  left: rectX, top: rect.top, width: rectW, height: rect.height,
+                  absolutePositioned: true,
+                }),
+                data: { source: "ai-photo" },
+              });
+              fabricRef.current.add(img);
+              fabricRef.current.sendToBack(img);
+              fabricRef.current.renderAll();
+            },
+            { crossOrigin: "anonymous" }
+          );
+        }
       });
     },
     []
   );
+
+  const addPhoto = useCallback((src: string) => {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    import("fabric").then(({ fabric }) => {
+      fabric.Image.fromURL(
+        src,
+        (img: FabricCanvas) => {
+          if (!img.width || !img.height) return;
+          const scale = Math.min((CANVAS_W - 40) / img.width, (CANVAS_H - 40) / img.height, 1);
+          img.scale(scale);
+          img.set({
+            left: (CANVAS_W - img.width * scale) / 2,
+            top: (CANVAS_H - img.height * scale) / 2,
+          });
+          canvas.add(img);
+          canvas.sendToBack(img);
+          canvas.setActiveObject(img);
+          canvas.renderAll();
+        },
+        { crossOrigin: "anonymous" }
+      );
+    });
+  }, []);
 
   const setBackground = useCallback((color: string) => {
     const canvas = fabricRef.current;
@@ -227,7 +314,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
         body: { text: "Add your text here", fontSize: 20, fontWeight: "normal", fill: "#333333", fontFamily: "Arial, sans-serif" },
       };
       const cfg = configs[size];
-      const t = new fabric.IText(cfg.text, {
+      const t = new fabric.Textbox(cfg.text, {
         left: 50, top: 100,
         width: 460,
         fontSize: cfg.fontSize,
@@ -266,7 +353,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
 
   const boldSelected = useCallback(() => {
     const obj = fabricRef.current?.getActiveObject();
-    if (!obj || (obj.type !== "i-text" && obj.type !== "text")) return;
+    if (!isTextObj(obj)) return;
     obj.set("fontWeight", obj.fontWeight === "bold" ? "normal" : "bold");
     fabricRef.current.renderAll();
     notifySelection(fabricRef.current);
@@ -275,7 +362,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
 
   const italicSelected = useCallback(() => {
     const obj = fabricRef.current?.getActiveObject();
-    if (!obj || (obj.type !== "i-text" && obj.type !== "text")) return;
+    if (!isTextObj(obj)) return;
     obj.set("fontStyle", obj.fontStyle === "italic" ? "normal" : "italic");
     fabricRef.current.renderAll();
     notifySelection(fabricRef.current);
@@ -293,7 +380,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
 
   const setSelectedFontSize = useCallback((size: number) => {
     const obj = fabricRef.current?.getActiveObject();
-    if (!obj || (obj.type !== "i-text" && obj.type !== "text")) return;
+    if (!isTextObj(obj)) return;
     obj.set("fontSize", size);
     fabricRef.current.renderAll();
     notifySelection(fabricRef.current);
@@ -303,17 +390,17 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
   const getSelectedInfo = useCallback((): SelectedInfo | null => {
     const obj = fabricRef.current?.getActiveObject();
     if (!obj) return null;
-    if (obj.type === "i-text" || obj.type === "text") {
+    if (isTextObj(obj)) {
       return { type: "text", fontSize: obj.fontSize, bold: obj.fontWeight === "bold", italic: obj.fontStyle === "italic", fill: obj.fill };
     }
     return { type: obj.type === "image" || obj.type === "group" ? "image" : "other" };
   }, []);
 
   useImperativeHandle(ref, () => ({
-    getJSON, downloadPNG, addClipArt, applyAICopy, setBackground,
+    getJSON, downloadPNG, addClipArt, addPhoto, applyAICopy, setBackground,
     addText, deleteSelected, bringForward, sendBackward,
     boldSelected, italicSelected, setSelectedColor, setSelectedFontSize, getSelectedInfo,
-  }), [getJSON, downloadPNG, addClipArt, applyAICopy, setBackground, addText, deleteSelected, bringForward, sendBackward, boldSelected, italicSelected, setSelectedColor, setSelectedFontSize, getSelectedInfo]);
+  }), [getJSON, downloadPNG, addClipArt, addPhoto, applyAICopy, setBackground, addText, deleteSelected, bringForward, sendBackward, boldSelected, italicSelected, setSelectedColor, setSelectedFontSize, getSelectedInfo]);
 
   return (
     <div className="relative">

@@ -34,11 +34,13 @@ export default function PosterMaker({ initialJson, posterId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showAI, setShowAI] = useState(true);
+  const [imageCredit, setImageCredit] = useState<string | null>(null);
 
   async function handleGenerateCopy() {
     if (!aiInput.trim()) return;
     setAiLoading(true);
     setError(null);
+    setImageCredit(null);
     try {
       const res = await fetch("/api/poster-copy", {
         method: "POST",
@@ -49,11 +51,28 @@ export default function PosterMaker({ initialJson, posterId }: Props) {
       if (!res.ok) { setError(data.error ?? "Generation failed"); return; }
       const copy: PosterCopySuggestion = data.copy;
       setPosterName(copy.title);
+
+      let photoUrl: string | null = null;
+      if (copy.imageSearchSuggestion) {
+        try {
+          const imgRes = await fetch(`/api/image-search?q=${encodeURIComponent(copy.imageSearchSuggestion)}`);
+          const imgData = await imgRes.json();
+          const first = imgRes.ok ? imgData.images?.[0] : null;
+          if (first) {
+            photoUrl = first.fullUrl;
+            if (first.requiresAttribution) setImageCredit(first.credit);
+          }
+        } catch {
+          // Wording still generates fine — a missing photo isn't fatal.
+        }
+      }
+
       canvasRef.current?.applyAICopy(
         copy.title,
         copy.subtitle ?? "",
         copy.bodyText ?? "",
-        copy.footerText ?? ""
+        copy.footerText ?? "",
+        photoUrl
       );
     } catch {
       setError("Could not reach the server");
@@ -71,7 +90,7 @@ export default function PosterMaker({ initialJson, posterId }: Props) {
       formData.set("file", file);
       const result = await uploadPosterImage(formData);
       if ("error" in result) { setError(result.error); return; }
-      canvasRef.current?.addClipArt(result.previewUrl);
+      canvasRef.current?.addPhoto(result.previewUrl);
     } finally {
       setUploading(false);
     }
@@ -133,6 +152,11 @@ export default function PosterMaker({ initialJson, posterId }: Props) {
               >
                 {aiLoading ? "Writing…" : "Generate wording"}
               </button>
+              {imageCredit && (
+                <p className="mt-2 text-[11px] text-ink/40">
+                  Background photo: {imageCredit} — free to use, but keep this credit if you can.
+                </p>
+              )}
             </div>
           )}
         </div>
