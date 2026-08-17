@@ -41,6 +41,29 @@ export async function logObservation(formData: FormData) {
     redirect(withErrorParam(returnTo, "No active service membership"));
   }
 
+  // Defense-in-depth: RLS already scopes program_entries to this user's own
+  // service, but explicitly re-verify the linked entry's program actually
+  // belongs to this owner before trusting the client-supplied ID — mirrors
+  // requireOwnerForProgram's pattern in programs/actions.ts. A mismatch is
+  // dropped silently rather than failing the whole observation save.
+  let verifiedProgramEntryId: string | null = null;
+  if (programEntryId) {
+    const { data: entry } = await supabase
+      .from("program_entries")
+      .select("program_id")
+      .eq("id", programEntryId)
+      .maybeSingle();
+    if (entry) {
+      const { data: program } = await supabase
+        .from("programs")
+        .select("id")
+        .eq("id", entry.program_id)
+        .eq("owner_user_id", ownerUserId)
+        .maybeSingle();
+      verifiedProgramEntryId = program ? programEntryId : null;
+    }
+  }
+
   // Upload photo once — shared across all child records
   let photoUrl: string | null = null;
   let photoFailed = false;
@@ -78,7 +101,7 @@ export async function logObservation(formData: FormData) {
         owner_user_id: ownerUserId,
         child_id: childId,
         activity_id: activityId,
-        program_entry_id: programEntryId,
+        program_entry_id: verifiedProgramEntryId,
         note_text: noteText,
         photo_url: photoUrl,
         observation_type: observationType,
