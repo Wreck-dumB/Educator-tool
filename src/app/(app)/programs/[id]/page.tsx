@@ -7,6 +7,7 @@ import { getMaterialStatuses, itemsToSource } from "@/lib/materialsMatch";
 import { getMyStaffRole } from "@/lib/supabase/staff";
 import { sendMaterialAlertNow } from "../actions";
 import PrintButton from "@/components/PrintButton";
+import ProgramEditor from "./ProgramEditor";
 
 export default async function ProgramDetailPage({
   params,
@@ -53,11 +54,6 @@ export default async function ProgramDetailPage({
     if (a.status !== b.status) return a.status === "not_in_inventory" ? -1 : 1;
     return a.name.localeCompare(b.name);
   });
-
-  const entriesByDay = program.entries.reduce<Record<string, typeof program.entries>>((acc, e) => {
-    (acc[e.day_date] ??= []).push(e);
-    return acc;
-  }, {});
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 print:px-0 print:py-0">
@@ -128,8 +124,24 @@ export default async function ProgramDetailPage({
           </div>
         )}
 
-        <div className="mt-6 space-y-4">
-          {Object.entries(entriesByDay).map(([day, entries]) => (
+        <div className="mt-6 print:hidden">
+          <ProgramEditor
+            programId={program.id}
+            startDate={program.start_date}
+            endDate={program.end_date}
+            status={program.status}
+            initialBlocks={program.blocks}
+            initialEntries={program.entries}
+          />
+        </div>
+
+        <div className="mt-6 hidden space-y-4 print:block">
+          {Object.entries(
+            program.entries.reduce<Record<string, typeof program.entries>>((acc, e) => {
+              (acc[e.day_date] ??= []).push(e);
+              return acc;
+            }, {}),
+          ).map(([day, entries]) => (
             <div key={day} className="break-inside-avoid">
               <p className="text-xs font-semibold uppercase tracking-wide text-ink/50 print:text-black">
                 {new Date(day).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" })}

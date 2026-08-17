@@ -63,6 +63,13 @@ export interface CulturalDay {
   confidence: CulturalDayConfidence;
 }
 
+export type ProgramStatus = "draft" | "published";
+
+export interface ProgramBlock {
+  key: string;
+  label: string;
+}
+
 export interface Hazard {
   hazard: string;
   who_could_be_harmed: string;
@@ -555,6 +562,8 @@ export interface Database {
           end_date: string;
           cultural_days: CulturalDay[];
           room_id: string | null;
+          status: ProgramStatus;
+          blocks: ProgramBlock[];
           created_at: string;
         };
         Insert: {
@@ -565,6 +574,8 @@ export interface Database {
           end_date: string;
           cultural_days?: CulturalDay[];
           room_id?: string | null;
+          status?: ProgramStatus;
+          blocks?: ProgramBlock[];
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["programs"]["Insert"]>;
@@ -579,6 +590,8 @@ export interface Database {
           notes: string | null;
           activity_id: string | null;
           eylf_codes: string[];
+          block_key: string | null;
+          order_index: number;
           created_at: string;
         };
         Insert: {
@@ -589,6 +602,8 @@ export interface Database {
           notes?: string | null;
           activity_id?: string | null;
           eylf_codes?: string[];
+          block_key?: string | null;
+          order_index?: number;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["program_entries"]["Insert"]>;

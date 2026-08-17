@@ -26,7 +26,7 @@ export async function sendMaterialAlertNow(): Promise<{ notificationsCreated: nu
   revalidatePath("/dashboard");
   return { notificationsCreated: count };
 }
-import type { ProgramEntrySuggestion } from "@/lib/types/domain";
+import type { ProgramEntrySuggestion, ProgramBlock, ProgramStatus } from "@/lib/types/domain";
 import type { CulturalDay } from "@/lib/types/database.types";
 
 export async function addActivityToProgram(formData: FormData) {
@@ -113,6 +113,8 @@ export async function saveProgram(
         notes: e.notes,
         activity_id: e.activityId,
         eylf_codes: e.eylfCodes,
+        block_key: e.blockKey,
+        order_index: e.orderIndex,
       })),
     );
     if (entriesError) {
@@ -122,4 +124,101 @@ export async function saveProgram(
 
   revalidatePath("/programs");
   return { id: program.id };
+}
+
+async function requireOwnerForProgram(supabase: Awaited<ReturnType<typeof createClient>>, programId: string) {
+  const ownerUserId = await getMyServiceOwnerId();
+  if (!ownerUserId) return null;
+  const { data: program } = await supabase
+    .from("programs")
+    .select("id")
+    .eq("id", programId)
+    .eq("owner_user_id", ownerUserId)
+    .maybeSingle();
+  return program ? ownerUserId : null;
+}
+
+export async function updateProgramEntry(
+  entryId: string,
+  programId: string,
+  updates: { title?: string; notes?: string | null; blockKey?: string | null; orderIndex?: number },
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const { error } = await supabase
+    .from("program_entries")
+    .update({
+      ...(updates.title !== undefined ? { title: updates.title } : {}),
+      ...(updates.notes !== undefined ? { notes: updates.notes } : {}),
+      ...(updates.blockKey !== undefined ? { block_key: updates.blockKey } : {}),
+      ...(updates.orderIndex !== undefined ? { order_index: updates.orderIndex } : {}),
+    })
+    .eq("id", entryId)
+    .eq("program_id", programId);
+
+  if (error) return { error: error.message };
+  revalidatePath(`/programs/${programId}`);
+  return { ok: true };
+}
+
+export async function deleteProgramEntry(entryId: string, programId: string): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const { error } = await supabase.from("program_entries").delete().eq("id", entryId).eq("program_id", programId);
+  if (error) return { error: error.message };
+  revalidatePath(`/programs/${programId}`);
+  return { ok: true };
+}
+
+export async function swapProgramEntryOrder(
+  programId: string,
+  entryA: { id: string; orderIndex: number },
+  entryB: { id: string; orderIndex: number },
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const [resA, resB] = await Promise.all([
+    supabase.from("program_entries").update({ order_index: entryB.orderIndex }).eq("id", entryA.id).eq("program_id", programId),
+    supabase.from("program_entries").update({ order_index: entryA.orderIndex }).eq("id", entryB.id).eq("program_id", programId),
+  ]);
+  if (resA.error) return { error: resA.error.message };
+  if (resB.error) return { error: resB.error.message };
+
+  revalidatePath(`/programs/${programId}`);
+  return { ok: true };
+}
+
+export async function updateProgramBlocks(
+  programId: string,
+  blocks: ProgramBlock[],
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const { error } = await supabase.from("programs").update({ blocks }).eq("id", programId);
+  if (error) return { error: error.message };
+  revalidatePath(`/programs/${programId}`);
+  return { ok: true };
+}
+
+export async function setProgramStatus(
+  programId: string,
+  status: ProgramStatus,
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const { error } = await supabase.from("programs").update({ status }).eq("id", programId);
+  if (error) return { error: error.message };
+  revalidatePath(`/programs/${programId}`);
+  revalidatePath(`/programs/${programId}/calendar`);
+  return { ok: true };
 }

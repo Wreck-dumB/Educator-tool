@@ -1,6 +1,6 @@
-import type { Database, PolicyStep } from "./database.types";
+import type { Database, PolicyStep, ProgramBlock, ProgramStatus } from "./database.types";
 
-export type { PolicyStep };
+export type { PolicyStep, ProgramBlock, ProgramStatus };
 
 export type EylfOutcome = Database["public"]["Tables"]["eylf_outcomes"]["Row"];
 export type ChildProfile = Database["public"]["Tables"]["children"]["Row"];
@@ -171,6 +171,8 @@ export interface ProgramEntrySuggestion {
   notes: string | null;
   eylfCodes: string[];
   activityId: string | null;
+  blockKey: string | null;
+  orderIndex: number;
 }
 
 /** A candidate program returned by the generation engine, before it's saved. */

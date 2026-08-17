@@ -77,17 +77,26 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate program" }, { status: 502 });
   }
 
+  const dayCounters = new Map<string, number>();
   const entries = rawEntries
     .filter((e) => DATE_RE.test(e.day_date) && e.day_date >= startDate && e.day_date <= endDate)
-    .map((e) => ({
-      dayDate: e.day_date,
-      title: e.title,
-      notes: e.notes ?? null,
-      eylfCodes: (e.eylf_codes ?? []).filter((c) => validCodes.has(c)),
-      activityId: e.reused_activity_title
-        ? activityByTitle.get(e.reused_activity_title.trim().toLowerCase()) ?? null
-        : null,
-    }));
+    .map((e) => {
+      const orderIndex = dayCounters.get(e.day_date) ?? 0;
+      dayCounters.set(e.day_date, orderIndex + 1);
+      return {
+        dayDate: e.day_date,
+        title: e.title,
+        notes: e.notes ?? null,
+        eylfCodes: (e.eylf_codes ?? []).filter((c) => validCodes.has(c)),
+        activityId: e.reused_activity_title
+          ? activityByTitle.get(e.reused_activity_title.trim().toLowerCase()) ?? null
+          : null,
+        // AI drafts start unsorted — the educator assigns each entry to a
+        // block of the day (Morning Tea, Lunch, etc.) in the editor.
+        blockKey: null,
+        orderIndex,
+      };
+    });
 
   return NextResponse.json({
     entries,
