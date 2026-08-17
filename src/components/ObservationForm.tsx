@@ -19,6 +19,7 @@ interface Props {
   children: Child[];
   outcomes: EylfOutcome[];
   activityId?: string;
+  programEntryId?: string;
   defaultEylfCodes?: string[];
   returnTo?: string;
   defaultChildId?: string;
@@ -142,6 +143,7 @@ export default function ObservationForm({
   children,
   outcomes,
   activityId,
+  programEntryId,
   defaultEylfCodes = [],
   returnTo = "/observations",
   defaultChildId,
@@ -239,6 +241,7 @@ export default function ObservationForm({
   return (
     <form action={action} encType="multipart/form-data" className="space-y-4">
       {activityId && <input type="hidden" name="activity_id" value={activityId} />}
+      {programEntryId && <input type="hidden" name="program_entry_id" value={programEntryId} />}
       <input type="hidden" name="return_to" value={returnTo} />
 
       {/* ── Observation type ───────────────────────────────────────────── */}
@@ -330,8 +333,6 @@ export default function ObservationForm({
                   >
                     <input
                       type="checkbox"
-                      name="child_id"
-                      value={c.id}
                       checked={checked}
                       onChange={() => toggleChild(c.id)}
                       className="h-4 w-4 rounded border-coral-light accent-coral"
@@ -363,6 +364,15 @@ export default function ObservationForm({
         {selectedIds.size === 0 && !dropdownOpen && (
           <p className="mt-1 text-xs text-coral-dark">Select at least one child</p>
         )}
+
+        {/* Actual submitted value — kept separate from the checkboxes above
+            because those live inside `{dropdownOpen && ...}` and unmount
+            entirely once the panel closes (e.g. after "Done"), which would
+            otherwise silently drop the selection from the form on submit
+            even though the trigger button still shows it as selected. */}
+        {[...selectedIds].map((id) => (
+          <input key={id} type="hidden" name="child_id" value={id} />
+        ))}
       </div>
 
       {/* ── Optional title (learning story, work sample, dev note) ─────── */}

@@ -3,23 +3,8 @@ import Link from "next/link";
 import { getProgram } from "@/lib/supabase/programs";
 import { getRooms } from "@/lib/supabase/rooms";
 import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
+import { isWeekday, eachDateInRange } from "@/lib/programDates";
 import PrintButton from "@/components/PrintButton";
-
-function isWeekday(dateStr: string): boolean {
-  const day = new Date(`${dateStr}T00:00:00`).getDay();
-  return day >= 1 && day <= 5;
-}
-
-function eachDateInRange(start: string, end: string): string[] {
-  const dates: string[] = [];
-  const cur = new Date(`${start}T00:00:00`);
-  const endD = new Date(`${end}T00:00:00`);
-  while (cur <= endD) {
-    dates.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
-  }
-  return dates;
-}
 
 function formatDayHeading(dateStr: string): { weekday: string; date: string } {
   const d = new Date(`${dateStr}T00:00:00`);

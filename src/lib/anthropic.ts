@@ -926,6 +926,7 @@ function buildProgramUserPrompt(
   outcomeGaps: { code: string; subOutcomeText: string; timesCovered: number }[],
   culturalDays: RawCulturalDay[],
   existingActivities: { title: string; eylfCodes: string[] }[],
+  recentlyUsedTitles: string[],
   educatorNotes?: string,
 ): string {
   const lines: string[] = [`Program date range: ${startDate} to ${endDate}.`];
@@ -955,6 +956,14 @@ function buildProgramUserPrompt(
     );
   }
 
+  if (recentlyUsedTitles.length > 0) {
+    lines.push(
+      `Used in this centre's last few programs — favor different activities for variety across the week unless there's a good reason to repeat one (e.g. a genuinely weekly routine like a library visit):\n${recentlyUsedTitles
+        .map((t) => `- ${t}`)
+        .join("\n")}`,
+    );
+  }
+
   if (educatorNotes) {
     lines.push(`Educator's guidance for this program: ${educatorNotes}`);
   }
@@ -970,11 +979,12 @@ export async function generateProgram(
   outcomeGaps: { code: string; subOutcomeText: string; timesCovered: number }[],
   culturalDays: RawCulturalDay[],
   existingActivities: { title: string; eylfCodes: string[] }[],
+  recentlyUsedTitles: string[],
   educatorNotes?: string,
 ): Promise<RawProgramEntry[]> {
   const result = await callTool<{ entries: RawProgramEntry[] }>(
     buildProgramSystemPrompt(outcomes),
-    buildProgramUserPrompt(startDate, endDate, outcomeGaps, culturalDays, existingActivities, educatorNotes),
+    buildProgramUserPrompt(startDate, endDate, outcomeGaps, culturalDays, existingActivities, recentlyUsedTitles, educatorNotes),
     PROPOSE_PROGRAM_TOOL,
   );
   return result.entries ?? [];

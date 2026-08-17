@@ -141,7 +141,14 @@ async function requireOwnerForProgram(supabase: Awaited<ReturnType<typeof create
 export async function updateProgramEntry(
   entryId: string,
   programId: string,
-  updates: { title?: string; notes?: string | null; blockKey?: string | null; orderIndex?: number },
+  updates: {
+    title?: string;
+    notes?: string | null;
+    blockKey?: string | null;
+    orderIndex?: number;
+    activityId?: string | null;
+    steps?: string[];
+  },
 ): Promise<{ ok: true } | { error: string }> {
   const supabase = await createClient();
   const owned = await requireOwnerForProgram(supabase, programId);
@@ -154,6 +161,8 @@ export async function updateProgramEntry(
       ...(updates.notes !== undefined ? { notes: updates.notes } : {}),
       ...(updates.blockKey !== undefined ? { block_key: updates.blockKey } : {}),
       ...(updates.orderIndex !== undefined ? { order_index: updates.orderIndex } : {}),
+      ...(updates.activityId !== undefined ? { activity_id: updates.activityId } : {}),
+      ...(updates.steps !== undefined ? { steps: updates.steps } : {}),
     })
     .eq("id", entryId)
     .eq("program_id", programId);

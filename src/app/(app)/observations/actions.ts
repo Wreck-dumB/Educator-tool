@@ -5,6 +5,14 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 
+// returnTo can already carry its own query string (e.g. the program Today
+// view's `?date=`), so a naive `${returnTo}?error=...` would produce a
+// malformed double-`?` URL — append with `&` when one is already present.
+function withErrorParam(returnTo: string, message: string): string {
+  const separator = returnTo.includes("?") ? "&" : "?";
+  return `${returnTo}${separator}error=${encodeURIComponent(message)}`;
+}
+
 export async function logObservation(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -15,6 +23,7 @@ export async function logObservation(formData: FormData) {
   // Support both single child_id (old form) and multiple child_ids (group observation)
   const childIds = (formData.getAll("child_id") as string[]).filter(Boolean);
   const activityId = (formData.get("activity_id") as string) || null;
+  const programEntryId = (formData.get("program_entry_id") as string) || null;
   const noteText = (formData.get("note_text") as string)?.trim();
   const eylfCodes = formData.getAll("eylf_codes") as string[];
   const returnTo = (formData.get("return_to") as string) || "/observations";
@@ -24,12 +33,12 @@ export async function logObservation(formData: FormData) {
   const observationContext = (formData.get("observation_context") as string)?.trim() || null;
 
   if (childIds.length === 0 || !noteText) {
-    redirect(`${returnTo}?error=${encodeURIComponent("Please choose at least one child and write a note")}`);
+    redirect(withErrorParam(returnTo, "Please choose at least one child and write a note"));
   }
 
   const ownerUserId = await getMyServiceOwnerId();
   if (!ownerUserId) {
-    redirect(`${returnTo}?error=${encodeURIComponent("No active service membership")}`);
+    redirect(withErrorParam(returnTo, "No active service membership"));
   }
 
   // Upload photo once — shared across all child records
@@ -69,6 +78,7 @@ export async function logObservation(formData: FormData) {
         owner_user_id: ownerUserId,
         child_id: childId,
         activity_id: activityId,
+        program_entry_id: programEntryId,
         note_text: noteText,
         photo_url: photoUrl,
         observation_type: observationType,
@@ -79,7 +89,7 @@ export async function logObservation(formData: FormData) {
     .select("id, child_id");
 
   if (error || !insertedObs || insertedObs.length === 0) {
-    redirect(`${returnTo}?error=${encodeURIComponent(error?.message ?? "Could not save observation")}`);
+    redirect(withErrorParam(returnTo, error?.message ?? "Could not save observation"));
   }
 
   if (eylfOutcomeIds.length > 0) {

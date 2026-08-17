@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getEylfOutcomes, getOutcomeCoverage } from "@/lib/supabase/eylf";
 import { getActivities } from "@/lib/supabase/activities";
+import { getRecentProgramEntryTitles } from "@/lib/supabase/programs";
 import { generateCulturalDays, generateProgram, type RawCulturalDay } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
 import { withBathurst1000 } from "@/lib/bathurst1000";
@@ -45,7 +46,11 @@ export async function POST(request: Request) {
   }
   const validCodes = new Set(outcomes.map((o) => o.code));
 
-  const [coverage, activities] = await Promise.all([getOutcomeCoverage(30), getActivities()]);
+  const [coverage, activities, recentlyUsedTitles] = await Promise.all([
+    getOutcomeCoverage(30),
+    getActivities(),
+    getRecentProgramEntryTitles(),
+  ]);
   const existingActivities = activities.slice(0, 30).map((a) => ({ title: a.title, eylfCodes: a.eylf_codes }));
   const activityByTitle = new Map(activities.map((a) => [a.title.trim().toLowerCase(), a.id]));
 
@@ -70,6 +75,7 @@ export async function POST(request: Request) {
       coverage,
       culturalDays,
       existingActivities,
+      recentlyUsedTitles,
       educatorNotes,
     );
   } catch (err) {

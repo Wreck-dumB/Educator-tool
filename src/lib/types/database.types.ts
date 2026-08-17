@@ -425,6 +425,7 @@ export interface Database {
           owner_user_id: string;
           child_id: string;
           activity_id: string | null;
+          program_entry_id: string | null;
           note_text: string;
           photo_url: string | null;
           observed_at: string;
@@ -440,6 +441,7 @@ export interface Database {
           owner_user_id: string;
           child_id: string;
           activity_id?: string | null;
+          program_entry_id?: string | null;
           note_text: string;
           photo_url?: string | null;
           observed_at?: string;
@@ -592,6 +594,7 @@ export interface Database {
           eylf_codes: string[];
           block_key: string | null;
           order_index: number;
+          steps: string[];
           created_at: string;
         };
         Insert: {
@@ -604,6 +607,7 @@ export interface Database {
           eylf_codes?: string[];
           block_key?: string | null;
           order_index?: number;
+          steps?: string[];
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["program_entries"]["Insert"]>;

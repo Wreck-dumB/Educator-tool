@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProgram } from "@/lib/supabase/programs";
-import { getActivitiesByIds } from "@/lib/supabase/activities";
+import { getActivities, getActivitiesByIds } from "@/lib/supabase/activities";
 import { getMaterials } from "@/lib/supabase/materials";
 import { getMaterialStatuses, itemsToSource } from "@/lib/materialsMatch";
 import { getMyStaffRole } from "@/lib/supabase/staff";
@@ -23,10 +23,12 @@ export default async function ProgramDetailPage({
   const futureEntries = program.entries.filter((e) => e.activity_id && e.day_date >= today);
   const activityIds = [...new Set(futureEntries.map((e) => e.activity_id!))];
 
-  const [activities, inventory] = await Promise.all([
+  const [activities, inventory, allActivities] = await Promise.all([
     getActivitiesByIds(activityIds),
     getMaterials(),
+    getActivities(),
   ]);
+  const activityOptions = allActivities.map((a) => ({ id: a.id, title: a.title }));
 
   const activityById = new Map(activities.map((a) => [a.id, a]));
 
@@ -132,6 +134,7 @@ export default async function ProgramDetailPage({
             status={program.status}
             initialBlocks={program.blocks}
             initialEntries={program.entries}
+            activities={activityOptions}
           />
         </div>
 

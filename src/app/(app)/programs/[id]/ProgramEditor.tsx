@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import type { ProgramEntry, ProgramBlock, ProgramStatus } from "@/lib/types/domain";
 import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
+import { isWeekday, eachDateInRange } from "@/lib/programDates";
 import { primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import {
   updateProgramEntry,
@@ -13,22 +15,6 @@ import {
 } from "../actions";
 
 const UNSORTED_KEY = "__unsorted__";
-
-function isWeekday(dateStr: string): boolean {
-  const day = new Date(`${dateStr}T00:00:00`).getDay();
-  return day >= 1 && day <= 5;
-}
-
-function eachDateInRange(start: string, end: string): string[] {
-  const dates: string[] = [];
-  const cur = new Date(`${start}T00:00:00`);
-  const endD = new Date(`${end}T00:00:00`);
-  while (cur <= endD) {
-    dates.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
-  }
-  return dates;
-}
 
 function formatDay(dateStr: string): string {
   // Fixed locale, not the environment default: this renders inside a client
@@ -43,6 +29,11 @@ function formatDay(dateStr: string): string {
   });
 }
 
+interface ActivityOption {
+  id: string;
+  title: string;
+}
+
 interface Props {
   programId: string;
   startDate: string;
@@ -50,9 +41,10 @@ interface Props {
   status: ProgramStatus;
   initialBlocks: ProgramBlock[];
   initialEntries: ProgramEntry[];
+  activities: ActivityOption[];
 }
 
-export default function ProgramEditor({ programId, startDate, endDate, status, initialBlocks, initialEntries }: Props) {
+export default function ProgramEditor({ programId, startDate, endDate, status, initialBlocks, initialEntries, activities }: Props) {
   const [blocks, setBlocks] = useState<ProgramBlock[]>(initialBlocks.length > 0 ? initialBlocks : DEFAULT_PROGRAM_BLOCKS);
   const [entries, setEntries] = useState<ProgramEntry[]>(initialEntries);
   const [programStatus, setProgramStatusLocal] = useState<ProgramStatus>(status);
@@ -112,6 +104,24 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
         { id: entry.id, orderIndex: entry.order_index },
         { id: other.id, orderIndex: other.order_index },
       );
+      if ("error" in result) setError(result.error);
+    });
+  }
+
+  function handleActivityLink(entry: ProgramEntry, activityId: string) {
+    const resolved = activityId || null;
+    patchEntry(entry.id, { activity_id: resolved });
+    startTransition(async () => {
+      const result = await updateProgramEntry(entry.id, programId, { activityId: resolved });
+      if ("error" in result) setError(result.error);
+    });
+  }
+
+  function handleStepsCommit(entry: ProgramEntry, stepsText: string) {
+    const steps = stepsText.split("\n").map((s) => s.trim()).filter(Boolean);
+    patchEntry(entry.id, { steps });
+    startTransition(async () => {
+      const result = await updateProgramEntry(entry.id, programId, { steps });
       if ("error" in result) setError(result.error);
     });
   }
@@ -184,14 +194,24 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
             </span>
           )}
         </div>
-        <a
-          href={`/programs/${programId}/calendar`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-sm font-medium text-coral-dark hover:underline"
-        >
-          View printable weekly calendar →
-        </a>
+        <div className="flex flex-wrap items-center gap-4">
+          <a
+            href={`/programs/${programId}/today`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-medium text-coral-dark hover:underline"
+          >
+            Open today&rsquo;s room guide →
+          </a>
+          <a
+            href={`/programs/${programId}/calendar`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-medium text-coral-dark hover:underline"
+          >
+            View printable weekly calendar →
+          </a>
+        </div>
       </div>
 
       <div className="mt-4 overflow-x-auto rounded-2xl border border-coral-light">
@@ -214,10 +234,13 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
                   <EntryCell
                     entries={entriesFor(date, null)}
                     blocks={blocks}
+                    activities={activities}
                     onTextCommit={handleTextCommit}
                     onBlockChange={handleBlockChange}
                     onReorder={handleReorder}
                     onDelete={handleDelete}
+                    onActivityLink={handleActivityLink}
+                    onStepsCommit={handleStepsCommit}
                   />
                 </td>
               ))}
@@ -240,10 +263,13 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
                     <EntryCell
                       entries={entriesFor(date, block.key)}
                       blocks={blocks}
+                      activities={activities}
                       onTextCommit={handleTextCommit}
                       onBlockChange={handleBlockChange}
                       onReorder={handleReorder}
                       onDelete={handleDelete}
+                      onActivityLink={handleActivityLink}
+                      onStepsCommit={handleStepsCommit}
                     />
                   </td>
                 ))}
@@ -262,18 +288,25 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
 function EntryCell({
   entries,
   blocks,
+  activities,
   onTextCommit,
   onBlockChange,
   onReorder,
   onDelete,
+  onActivityLink,
+  onStepsCommit,
 }: {
   entries: ProgramEntry[];
   blocks: ProgramBlock[];
+  activities: { id: string; title: string }[];
   onTextCommit: (entry: ProgramEntry, field: "title" | "notes", value: string) => void;
   onBlockChange: (entry: ProgramEntry, newBlockKey: string) => void;
   onReorder: (entry: ProgramEntry, direction: "up" | "down") => void;
   onDelete: (entry: ProgramEntry) => void;
+  onActivityLink: (entry: ProgramEntry, activityId: string) => void;
+  onStepsCommit: (entry: ProgramEntry, stepsText: string) => void;
 }) {
+  const activityTitleById = new Map(activities.map((a) => [a.id, a.title]));
   if (entries.length === 0) return <span className="text-xs text-ink/30">—</span>;
   return (
     <div className="space-y-2">
@@ -292,6 +325,50 @@ function EntryCell({
             onBlur={(e) => onTextCommit(entry, "notes", e.target.value)}
             className="mt-0.5 w-full resize-none rounded-md border-none bg-transparent p-0.5 text-[11px] text-ink/60 placeholder:text-ink/30 focus:outline-none focus:ring-1 focus:ring-coral"
           />
+
+          {entry.activity_id ? (
+            <div className="mt-1 flex items-center justify-between gap-1">
+              <Link
+                href={`/activities/${entry.activity_id}`}
+                target="_blank"
+                className="truncate text-[10px] font-medium text-sage-dark hover:underline"
+                title={activityTitleById.get(entry.activity_id) ?? "View linked activity"}
+              >
+                📌 {activityTitleById.get(entry.activity_id) ?? "Linked activity"}
+              </Link>
+              <button
+                type="button"
+                onClick={() => onActivityLink(entry, "")}
+                className="shrink-0 text-[10px] text-ink/30 hover:text-coral-dark"
+                title="Unlink from this activity"
+              >
+                unlink
+              </button>
+            </div>
+          ) : (
+            <div className="mt-1 space-y-1">
+              {activities.length > 0 && (
+                <select
+                  defaultValue=""
+                  onChange={(e) => { if (e.target.value) onActivityLink(entry, e.target.value); }}
+                  className="w-full rounded-md border border-coral-light/60 bg-white px-1 py-0.5 text-[10px] text-ink/60"
+                >
+                  <option value="" disabled>Link to a saved activity…</option>
+                  {activities.map((a) => (
+                    <option key={a.id} value={a.id}>{a.title}</option>
+                  ))}
+                </select>
+              )}
+              <textarea
+                defaultValue={entry.steps.join("\n")}
+                rows={2}
+                placeholder="Quick directions (one step per line)…"
+                onBlur={(e) => onStepsCommit(entry, e.target.value)}
+                className="w-full resize-none rounded-md border border-coral-light/60 bg-white p-1 text-[10px] text-ink/60 placeholder:text-ink/30 focus:outline-none focus:ring-1 focus:ring-coral"
+              />
+            </div>
+          )}
+
           <div className="mt-1 flex items-center gap-1">
             <select
               value={entry.block_key ?? UNSORTED_KEY}
