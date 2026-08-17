@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Nunito, Fredoka } from "next/font/google";
 import PwaRegister from "@/components/PwaRegister";
+import InstallPrompt from "@/components/InstallPrompt";
 import "./globals.css";
 
 const nunito = Nunito({
@@ -48,6 +49,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col bg-cream text-ink">
         {children}
         <PwaRegister />
+        <InstallPrompt />
       </body>
     </html>
   );
