@@ -5,6 +5,7 @@ import { getObservations } from "@/lib/supabase/observations";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { personaliseActivity, type ChildObservationSummary } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -62,6 +63,17 @@ export async function POST(request: Request) {
   }
   if (typeof body.interests === "string" && body.interests.trim()) {
     interests = body.interests.trim().slice(0, 200);
+  }
+
+  // Free text (stored profile fields or client-supplied) routinely contains
+  // the child's real first name even though we deliberately never send it —
+  // redact before it reaches the AI prompt. See childNameGuard.ts.
+  if (interests) interests = await redactEnrolledChildNames(interests);
+  if (additionalNeeds) additionalNeeds = await redactEnrolledChildNames(additionalNeeds);
+  if (recentObservations.length > 0) {
+    recentObservations = await Promise.all(
+      recentObservations.map(async (o) => ({ ...o, noteText: await redactEnrolledChildNames(o.noteText) })),
+    );
   }
 
   const outcomes = await getEylfOutcomes();

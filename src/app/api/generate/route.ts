@@ -4,6 +4,7 @@ import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getObservations } from "@/lib/supabase/observations";
 import { generateActivitySuggestions, type GenerationInput } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 import type { ActivitySuggestion } from "@/lib/types/domain";
 
 const VALID_MODES = ["materials", "time", "outcome", "interest", "surprise_me"];
@@ -122,6 +123,24 @@ export async function POST(request: Request) {
         eylfCodes: o.eylf_codes,
       }));
     }
+  }
+
+  // Free text — whether pulled from a child's stored profile/observations or
+  // typed fresh by the educator — routinely contains a real child's first
+  // name even though we never send it deliberately. Redact any enrolled
+  // child's name before it reaches the AI prompt, no matter which field it
+  // came in on.
+  if (input.childInterest) input.childInterest = await redactEnrolledChildNames(input.childInterest);
+  if (input.additionalNeeds) input.additionalNeeds = await redactEnrolledChildNames(input.additionalNeeds);
+  if (input.ideaDescription) input.ideaDescription = await redactEnrolledChildNames(input.ideaDescription);
+  if (input.targetMilestone) input.targetMilestone = await redactEnrolledChildNames(input.targetMilestone);
+  if (input.childRecentObservations) {
+    input.childRecentObservations = await Promise.all(
+      input.childRecentObservations.map(async (o) => ({
+        ...o,
+        noteText: await redactEnrolledChildNames(o.noteText),
+      })),
+    );
   }
 
   const outcomes = await getEylfOutcomes();

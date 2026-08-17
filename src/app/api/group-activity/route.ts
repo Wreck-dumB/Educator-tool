@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateGroupActivity } from "@/lib/anthropic";
 import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { isRateLimited } from "@/lib/rateLimit";
+import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -27,8 +28,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Select at least 2 follow-ups to suggest a group activity." }, { status: 400 });
   }
 
+  // Each note routinely names the child it's about — redact before this
+  // reaches the AI prompt. See childNameGuard.ts.
+  const redactedNotes = await Promise.all(followUpNotes.map((n) => redactEnrolledChildNames(n)));
+
   const outcomes = await getEylfOutcomes();
-  const activity = await generateGroupActivity(followUpNotes, outcomes);
+  const activity = await generateGroupActivity(redactedNotes, outcomes);
 
   return NextResponse.json(activity);
 }
