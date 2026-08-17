@@ -105,6 +105,7 @@ const NAV_GROUPS = [
     items: [
       { href: "/staff", label: "Staff" },
       { href: "/staff/roster", label: "Staff Roster" },
+      { href: "/staff/roster/leave", label: "Leave Calendar" },
       { href: "/compliance", label: "Compliance Tracker" },
       { href: "/closures", label: "Service Closures" },
       { href: "/broadcasts", label: "Broadcasts" },

@@ -2189,6 +2189,30 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["staff_roster"]["Insert"]>;
         Relationships: [];
       };
+      staff_leave: {
+        Row: {
+          id: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          leave_date: string;
+          leave_type: "annual" | "sick" | "public_holiday" | "other";
+          notes: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          owner_user_id: string;
+          staff_user_id: string;
+          leave_date: string;
+          leave_type?: "annual" | "sick" | "public_holiday" | "other";
+          notes?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["staff_leave"]["Insert"]>;
+        Relationships: [];
+      };
       staff_notifications: {
         Row: {
           id: string;
