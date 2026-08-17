@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { decryptField } from "@/lib/encryption";
 import { inputClass, cardClass, primaryButtonClass } from "@/lib/ui";
 import { updateHealthPlan } from "../../actions";
 
@@ -13,8 +14,17 @@ const PLAN_TYPE_LABELS: Record<string, string> = {
 export default async function EditHealthPlanPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: plan } = await supabase.from("child_health_plans").select("*").eq("id", id).maybeSingle();
-  if (!plan) notFound();
+  const { data: planRow } = await supabase.from("child_health_plans").select("*").eq("id", id).maybeSingle();
+  if (!planRow) notFound();
+  // triggers/signs_and_symptoms/emergency_steps/emergency_medication may be
+  // encrypted at rest (see lib/encryption.ts) — must decrypt before editing.
+  const plan = {
+    ...planRow,
+    triggers: decryptField(planRow.triggers),
+    signs_and_symptoms: decryptField(planRow.signs_and_symptoms),
+    emergency_steps: decryptField(planRow.emergency_steps) ?? planRow.emergency_steps,
+    emergency_medication: decryptField(planRow.emergency_medication),
+  };
 
   return (
     <div className="mx-auto max-w-xl">

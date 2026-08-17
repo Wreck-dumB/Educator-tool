@@ -6,6 +6,7 @@ import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { personaliseActivity, type ChildObservationSummary } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
 import { redactEnrolledChildNames } from "@/lib/childNameGuard";
+import { decryptField } from "@/lib/encryption";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -48,7 +49,8 @@ export async function POST(request: Request) {
 
     if (child) {
       interests = child.current_interests ?? null;
-      additionalNeeds = child.additional_needs ?? null;
+      // additional_needs may be encrypted at rest (see lib/encryption.ts).
+      additionalNeeds = decryptField(child.additional_needs);
       const obs = await getObservations(childId);
       recentObservations = obs.slice(0, 5).map((o) => ({
         noteText: o.note_text.slice(0, 300),

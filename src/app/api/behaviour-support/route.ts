@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
+import { redactEnrolledChildNames } from "@/lib/childNameGuard";
+import { decryptField } from "@/lib/encryption";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -99,6 +101,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Child not found" }, { status: 404 });
   }
 
+  // additional_needs may be encrypted at rest (see lib/encryption.ts).
+  const additionalNeeds = decryptField(child.additional_needs);
+
   // Build age string
   let ageText = "age unknown";
   if (child.date_of_birth) {
@@ -126,9 +131,13 @@ export async function POST(request: Request) {
       ? observations.map((o) => `- ${new Date(o.observed_at).toLocaleDateString("en-AU")}: ${o.note_text}`).join("\n")
       : "No observations on record.";
 
-  const userPrompt = `Child: the child (${ageText})
+  // Free text below is staff-written prose and routinely contains the
+  // child's real first name even though structured identity fields are
+  // withheld — redact every enrolled child's name before it reaches the AI.
+  // See childNameGuard.ts.
+  const userPrompt = await redactEnrolledChildNames(`Child: the child (${ageText})
 Current interests: ${child.current_interests || "not recorded"}
-Additional needs: ${child.additional_needs || "none recorded"}
+Additional needs: ${additionalNeeds || "none recorded"}
 
 Recent incidents (most recent first):
 ${incidentSummary}
@@ -139,7 +148,7 @@ ${observationSummary}
 Current situation described by educator:
 ${situation}
 
-Propose support strategies using the propose_support_strategies tool.`;
+Propose support strategies using the propose_support_strategies tool.`);
 
   if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });

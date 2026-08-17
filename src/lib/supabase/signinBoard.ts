@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { decryptField } from "@/lib/encryption";
 
 export interface ChildSignInRow {
   id: string;
@@ -200,8 +201,11 @@ export async function getOnsiteData(date: string, ownerUserId: string) {
   }
 
   return {
+    // additional_needs may be encrypted at rest (see lib/encryption.ts) — this
+    // feeds the live onsite/sign-in board, so it must be decrypted here.
     children: (children ?? []).map((c) => ({
       ...c,
+      additional_needs: decryptField(c.additional_needs),
       room_name: c.room_id ? (roomById.get(c.room_id) ?? null) : null,
       signed_in_at: signedInAtByChild.get(c.id) ?? "",
     })),

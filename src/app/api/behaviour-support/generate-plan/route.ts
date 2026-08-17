@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
+import { redactEnrolledChildNames } from "@/lib/childNameGuard";
+import { decryptField } from "@/lib/encryption";
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
@@ -118,6 +120,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Child not found" }, { status: 404 });
   }
 
+  // additional_needs may be encrypted at rest (see lib/encryption.ts).
+  const additionalNeeds = decryptField(child.additional_needs);
+
   let ageText = "age unknown";
   if (child.date_of_birth) {
     const dob = new Date(child.date_of_birth);
@@ -129,10 +134,14 @@ export async function POST(request: Request) {
     ageText = rem > 0 ? `${years} yr ${rem} mo` : `${years} yr`;
   }
 
-  const prompt = `Child age: ${ageText}
+  // Free text below is staff-written prose and routinely contains the
+  // child's real first name even though structured identity fields are
+  // withheld — redact every enrolled child's name before it reaches the AI.
+  // See childNameGuard.ts.
+  const prompt = await redactEnrolledChildNames(`Child age: ${ageText}
 Known strengths: ${childStrengths || child.current_interests || "not provided"}
 Current interests: ${childInterests || child.current_interests || "not recorded"}
-Additional needs or context: ${child.additional_needs || "none recorded"}
+Additional needs or context: ${additionalNeeds || "none recorded"}
 
 Behaviour described:
 ${behaviourDescription}
@@ -145,7 +154,7 @@ Frequency: ${frequency}
 Hypothesised function (what need the behaviour may be meeting):
 ${behaviourFunction || "not specified"}
 
-Please generate structured Behaviour Support Plan strategies using the generate_bsp_strategies tool.`;
+Please generate structured Behaviour Support Plan strategies using the generate_bsp_strategies tool.`);
 
   if (aiBackendMode() === "api" && !process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json({ error: "AI not configured" }, { status: 500 });

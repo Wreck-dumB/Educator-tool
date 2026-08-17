@@ -3,6 +3,7 @@ import type { Database } from "@/lib/types/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { getMyStaffRole } from "@/lib/supabase/staff";
+import { decryptField } from "@/lib/encryption";
 import { cardClass, inputClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { addComplianceRecord, deleteComplianceRecord } from "./actions";
 
@@ -43,7 +44,7 @@ export default async function CompliancePage({
   const myRole = await getMyStaffRole();
   const canManage = myRole === "director" || myRole === "2ic";
 
-  const [{ data: records }, { data: memberships }, { data: profiles }] = await Promise.all([
+  const [{ data: recordsRaw }, { data: memberships }, { data: profiles }] = await Promise.all([
     ownerUserId
       ? supabase
           .from("staff_compliance")
@@ -60,6 +61,9 @@ export default async function CompliancePage({
       : { data: [] },
     supabase.from("profiles").select("id, display_name"),
   ]);
+
+  // reference_number may be encrypted at rest (see lib/encryption.ts).
+  const records = (recordsRaw ?? []).map((r) => ({ ...r, reference_number: decryptField(r.reference_number) }));
 
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
   const staffList = (memberships ?? []).map((m) => ({

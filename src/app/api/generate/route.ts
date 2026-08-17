@@ -5,6 +5,7 @@ import { getObservations } from "@/lib/supabase/observations";
 import { generateActivitySuggestions, type GenerationInput } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
 import { redactEnrolledChildNames } from "@/lib/childNameGuard";
+import { decryptField } from "@/lib/encryption";
 import type { ActivitySuggestion } from "@/lib/types/domain";
 
 const VALID_MODES = ["materials", "time", "outcome", "interest", "surprise_me"];
@@ -114,7 +115,8 @@ export async function POST(request: Request) {
         input.childInterest = child.current_interests;
       }
       if (!input.additionalNeeds && child.additional_needs) {
-        input.additionalNeeds = child.additional_needs;
+        // additional_needs may be encrypted at rest (see lib/encryption.ts).
+        input.additionalNeeds = decryptField(child.additional_needs) ?? undefined;
       }
       const observations = await getObservations(body.childId);
       input.childRecentObservations = observations.slice(0, 5).map((o) => ({

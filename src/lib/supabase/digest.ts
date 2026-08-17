@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { decryptField } from "@/lib/encryption";
 import type { ChildProfile, ChildContact, AttendanceRecord } from "@/lib/types/domain";
 import type { DailySleep, DailyFood, DailyNappy } from "@/lib/supabase/dailyCare";
 
@@ -40,7 +41,8 @@ export async function getDigestData(date: string): Promise<ChildDigestData[]> {
       .lt("observed_at", `${nextDateStr}T00:00:00`),
   ]);
 
-  const childList = children ?? [];
+  // additional_needs may be encrypted at rest (see lib/encryption.ts).
+  const childList = (children ?? []).map((c) => ({ ...c, additional_needs: decryptField(c.additional_needs) }));
 
   const contactsByChild = new Map<string, ChildContact[]>();
   for (const c of allContacts ?? []) {

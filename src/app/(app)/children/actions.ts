@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { encryptField } from "@/lib/encryption";
 
 export async function createChild(formData: FormData) {
   const supabase = await createClient();
@@ -31,7 +32,7 @@ export async function createChild(formData: FormData) {
     first_name: firstName,
     date_of_birth: dateOfBirth,
     current_interests: currentInterests,
-    additional_needs: additionalNeeds,
+    additional_needs: encryptField(additionalNeeds),
   });
 
   if (error) {
@@ -61,7 +62,7 @@ export async function updateChild(formData: FormData) {
       first_name: firstName,
       date_of_birth: dateOfBirth,
       current_interests: currentInterests,
-      additional_needs: additionalNeeds,
+      additional_needs: encryptField(additionalNeeds),
     })
     .eq("id", id);
 

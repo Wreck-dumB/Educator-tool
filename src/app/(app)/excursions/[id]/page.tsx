@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { decryptField } from "@/lib/encryption";
 import { getExcursion, getExcursionAttendees } from "@/lib/supabase/excursions";
 import { getChildren } from "@/lib/supabase/children";
 import { getMyStaffRole } from "@/lib/supabase/staff";
@@ -43,14 +44,23 @@ export default async function ExcursionDetailPage({
   });
 
   // Check health plans for attendees
-  const { data: healthPlans } = await supabase
+  const { data: healthPlansRaw } = await supabase
     .from("child_health_plans")
     .select("child_id, plan_name, plan_type, emergency_steps, emergency_medication")
     .in("child_id", attendeeIds.length > 0 ? attendeeIds : ["00000000-0000-0000-0000-000000000000"])
     .eq("is_active", true);
 
+  // emergency_steps/emergency_medication may be encrypted at rest (see
+  // lib/encryption.ts) — this is an emergency plan shown on an excursion
+  // sheet, so it must be decrypted here.
+  const healthPlans = (healthPlansRaw ?? []).map((p) => ({
+    ...p,
+    emergency_steps: decryptField(p.emergency_steps) ?? p.emergency_steps,
+    emergency_medication: decryptField(p.emergency_medication),
+  }));
+
   const plansByChild = new Map<string, typeof healthPlans>();
-  for (const plan of healthPlans ?? []) {
+  for (const plan of healthPlans) {
     const existing = plansByChild.get(plan.child_id) ?? [];
     existing.push(plan);
     plansByChild.set(plan.child_id, existing);

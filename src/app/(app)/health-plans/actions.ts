@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { encryptField } from "@/lib/encryption";
 
 export async function createHealthPlan(formData: FormData) {
   const supabase = await createClient();
@@ -16,10 +17,10 @@ export async function createHealthPlan(formData: FormData) {
     child_id: formData.get("child_id") as string,
     plan_type: formData.get("plan_type") as "asthma" | "anaphylaxis" | "diabetes" | "allergies" | "epilepsy" | "other",
     plan_name: formData.get("plan_name") as string,
-    triggers: (formData.get("triggers") as string) || null,
-    signs_and_symptoms: (formData.get("signs_and_symptoms") as string) || null,
-    emergency_steps: formData.get("emergency_steps") as string,
-    emergency_medication: (formData.get("emergency_medication") as string) || null,
+    triggers: encryptField((formData.get("triggers") as string) || null),
+    signs_and_symptoms: encryptField((formData.get("signs_and_symptoms") as string) || null),
+    emergency_steps: encryptField(formData.get("emergency_steps") as string),
+    emergency_medication: encryptField((formData.get("emergency_medication") as string) || null),
     review_date: reviewDateRaw || null,
   });
 
@@ -37,10 +38,10 @@ export async function updateHealthPlan(formData: FormData) {
     .update({
       plan_name: formData.get("plan_name") as string,
       plan_type: formData.get("plan_type") as "asthma" | "anaphylaxis" | "diabetes" | "allergies" | "epilepsy" | "other",
-      triggers: (formData.get("triggers") as string) || null,
-      signs_and_symptoms: (formData.get("signs_and_symptoms") as string) || null,
-      emergency_steps: formData.get("emergency_steps") as string,
-      emergency_medication: (formData.get("emergency_medication") as string) || null,
+      triggers: encryptField((formData.get("triggers") as string) || null),
+      signs_and_symptoms: encryptField((formData.get("signs_and_symptoms") as string) || null),
+      emergency_steps: encryptField(formData.get("emergency_steps") as string),
+      emergency_medication: encryptField((formData.get("emergency_medication") as string) || null),
       review_date: reviewDateRaw || null,
       updated_at: new Date().toISOString(),
     })
