@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`behaviour-support:${user.id}`, 10, 60 * 60 * 1000)) {
+  if (await isRateLimited(`behaviour-support:${user.id}`, 10, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "You've hit the support strategy limit for now — try again in a bit." },
       { status: 429 },

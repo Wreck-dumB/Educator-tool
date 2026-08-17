@@ -77,6 +77,13 @@ export async function runToolCall<T>({ model, system, messages, tool, maxTokens 
       messages,
       tools: [tool],
       tool_choice: { type: "tool", name: tool.name },
+      // Claude Sonnet 5 runs adaptive thinking by default when this is omitted,
+      // and thinking tokens count against max_tokens — several routes here use
+      // tight budgets (as low as 1024) sized for a non-thinking response, so
+      // leaving thinking on risks silent truncation. These are forced
+      // structured-output tool calls, not open-ended reasoning tasks, so
+      // disabling it keeps the existing token budgets meaningful.
+      thinking: { type: "disabled" },
     });
     if (message.stop_reason === "max_tokens") {
       throw new Error("AI_RESPONSE_TRUNCATED: the response was cut off before it finished — try a shorter document/description or fewer amendment notes");

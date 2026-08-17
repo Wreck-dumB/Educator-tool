@@ -1,18 +1,23 @@
-// Simple in-memory sliding-window limiter. This resets on cold start and is
-// per-instance only — fine for a single-user personal trial, but should move
-// to a shared store (e.g. a Supabase table or Upstash) before multi-user use.
-const requestLog = new Map<string, number[]>();
+import { createAdminClient } from "@/lib/supabase/admin";
 
-export function isRateLimited(key: string, maxRequests: number, windowMs: number): boolean {
-  const now = Date.now();
-  const timestamps = (requestLog.get(key) ?? []).filter((t) => now - t < windowMs);
+// Shared-store fixed-window limiter backed by Supabase (migration 0062), so the
+// count is enforced across serverless instances and survives cold starts —
+// replaces the old in-memory Map, which reset per instance and wasn't actually
+// shared once more than one instance was warm.
+export async function isRateLimited(key: string, maxRequests: number, windowMs: number): Promise<boolean> {
+  const windowStart = new Date(Math.floor(Date.now() / windowMs) * windowMs).toISOString();
 
-  if (timestamps.length >= maxRequests) {
-    requestLog.set(key, timestamps);
-    return true;
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("increment_rate_limit", {
+    p_key: key,
+    p_window_start: windowStart,
+  });
+
+  if (error) {
+    // Fail open — a counter-table hiccup shouldn't take down every AI route.
+    console.error("rate limit check failed:", error);
+    return false;
   }
 
-  timestamps.push(now);
-  requestLog.set(key, timestamps);
-  return false;
+  return (data as number) > maxRequests;
 }

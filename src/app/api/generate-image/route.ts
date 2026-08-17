@@ -22,7 +22,7 @@ export async function POST(request: Request) {
   // Pollinations is free and keyless (no real per-call cost) — this is just an
   // abuse guard, not a cost control. Raised from 20 so a single printable card
   // set (up to 16 items × 2 for pairs = 32 images) doesn't hit the ceiling.
-  if (isRateLimited(`img:${user.id}`, 100, 60 * 60 * 1000)) {
+  if (await isRateLimited(`img:${user.id}`, 100, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Image generation limit reached — try again in an hour." }, { status: 429 });
   }
 

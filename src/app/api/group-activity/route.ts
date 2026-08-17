@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  if (isRateLimited(`group-activity:${user.id}`, 20, 60 * 60 * 1000)) {
+  if (await isRateLimited(`group-activity:${user.id}`, 20, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Rate limit reached — try again shortly." }, { status: 429 });
   }
 

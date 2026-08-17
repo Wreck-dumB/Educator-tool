@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`cultural-days:${user.id}`, 60, 60 * 60 * 1000)) {
+  if (await isRateLimited(`cultural-days:${user.id}`, 60, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "You've hit the lookup limit for now — try again in a bit." },
       { status: 429 },

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`reflection-questions:${user.id}`, 10, 60 * 60 * 1000)) {
+  if (await isRateLimited(`reflection-questions:${user.id}`, 10, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "You've hit the limit for reflection questions — try again later." },
       { status: 429 },

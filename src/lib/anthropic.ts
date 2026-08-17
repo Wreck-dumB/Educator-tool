@@ -11,7 +11,7 @@ export interface MealPlanAssignment {
   custom_title: string | null;
 }
 
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-5";
 
 export interface ChildObservationSummary {
   noteText: string;

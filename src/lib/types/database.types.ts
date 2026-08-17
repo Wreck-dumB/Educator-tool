@@ -2549,6 +2549,10 @@ export interface Database {
         Args: { _owner_user_id: string; _date: string };
         Returns: boolean;
       };
+      increment_rate_limit: {
+        Args: { p_key: string; p_window_start: string };
+        Returns: number;
+      };
     };
   };
 }

@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`document-review-regenerate:${user.id}`, 5, 60 * 60 * 1000)) {
+  if (await isRateLimited(`document-review-regenerate:${user.id}`, 5, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "You've reached the document review limit for now — try again in an hour." },
       { status: 429 },

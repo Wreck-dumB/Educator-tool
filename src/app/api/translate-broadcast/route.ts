@@ -11,7 +11,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`translate:${user.id}`, 30, 60 * 60 * 1000)) {
+  if (await isRateLimited(`translate:${user.id}`, 30, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "Translation limit reached — try again in an hour." },
       { status: 429 },

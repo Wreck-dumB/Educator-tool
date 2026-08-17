@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`image-search:${user.id}`, 60, 60 * 60 * 1000)) {
+  if (await isRateLimited(`image-search:${user.id}`, 60, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "You've hit the image search limit for now — try again in a bit." },
       { status: 429 },

@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`room-daily-report:${user.id}`, 10, 60 * 60 * 1000)) {
+  if (await isRateLimited(`room-daily-report:${user.id}`, 10, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Rate limit reached — try again later." }, { status: 429 });
   }
 

@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`bsp-plan:${user.id}`, 20, 60 * 60 * 1000)) {
+  if (await isRateLimited(`bsp-plan:${user.id}`, 20, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "You've hit the plan generation limit — try again in a bit." },
       { status: 429 },

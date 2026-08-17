@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
-  if (isRateLimited(`transition:${user.id}`, 10, 60 * 60 * 1000)) {
+  if (await isRateLimited(`transition:${user.id}`, 10, 60 * 60 * 1000)) {
     return NextResponse.json(
       { error: "Generation limit reached — try again in an hour." },
       { status: 429 },

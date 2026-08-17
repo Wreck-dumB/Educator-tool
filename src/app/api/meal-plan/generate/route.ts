@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  if (isRateLimited(`meal-plan:${user.id}`, 5, 60 * 60 * 1000)) {
+  if (await isRateLimited(`meal-plan:${user.id}`, 5, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Rate limited — 5 AI fills per hour" }, { status: 429 });
   }
 
