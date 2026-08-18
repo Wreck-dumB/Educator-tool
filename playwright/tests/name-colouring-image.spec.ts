@@ -23,20 +23,21 @@ test("name_colouring worksheet auto-generates and displays the stencil image", a
   // Name renders immediately (pure SVG text, no network call)
   await expect(page.locator("svg text").filter({ hasText: "Mia" })).toBeVisible();
 
-  // The request fires (correct prompt reaches Pollinations) even though the
-  // free image service is currently returning 402 (insufficient balance) for
-  // every model - a real external outage discovered while testing this fix,
-  // unrelated to the app's own code.
+  // The request fires (correct prompt reaches Pollinations) and the image
+  // actually loads. model=flux previously required Pollinations auth and
+  // reliably 429'd/timed out for anonymous callers; the route now requests
+  // model=sana, which resolves for anonymous callers.
   const img = page.locator("img[alt='Activity image']");
   await expect(img).toHaveCount(1, { timeout: 10_000 });
   const src = await img.getAttribute("src");
   expect(src).toContain("pollinations.ai");
   expect(src).toContain("dinosaur");
+  await expect(img).toHaveJSProperty("complete", true, { timeout: 30_000 });
+  await expect(img).not.toHaveCSS("display", "none");
 
-  // Because the service is down, the new graceful-degradation UI should
-  // kick in instead of a silent permanent blank box: a clear failure
-  // message, not a broken <img> with zero feedback.
-  await expect(page.getByText("Image couldn't be generated")).toBeVisible({ timeout: 30_000 });
+  // The graceful-degradation failure message should not appear on a
+  // successful generation.
+  await expect(page.getByText("Image couldn't be generated")).toHaveCount(0);
 
   // The old always-blank dashed glue box should no longer be present when an
   // image_subject was supplied (it's been replaced by the image/error UI).
