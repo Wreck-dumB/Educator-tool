@@ -97,6 +97,12 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // /monitoring is Sentry's tunnel route (withSentryConfig's tunnelRoute in
+    // next.config.ts) - pure pass-through proxying error reports to Sentry's
+    // ingest API, not a real app page. It must skip auth/redirect logic
+    // entirely, or error reports sent before a user is authenticated (e.g.
+    // a crash on the login page itself) would get redirected to /login
+    // instead of actually reaching Sentry.
+    "/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
