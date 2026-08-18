@@ -35,10 +35,21 @@ export default function InstallPrompt() {
       if (daysSince < DISMISS_DAYS) return;
     }
 
+    // react-hooks/set-state-in-effect (new in this eslint-plugin-react-hooks
+    // version) wants effects to only sync FROM external systems, not set
+    // state synchronously in the body - but this genuinely can't be a lazy
+    // useState initializer instead, since isIos()/isStandalone() read
+    // browser-only APIs unavailable during this "use client" component's
+    // initial SSR pass; computing them there would risk a hydration
+    // mismatch rather than fix anything. This is exactly the sanctioned
+    // "detect a client-only capability on mount" case, just one the newer
+    // rule can't distinguish from a genuine anti-pattern.
+    /* eslint-disable react-hooks/set-state-in-effect -- see comment above */
     if (isIos()) {
       setShowIosHint(true);
       setVisible(true);
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const handler = (e: Event) => {
       e.preventDefault();

@@ -72,9 +72,9 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
     let canvas: FabricCanvas;
 
     (async () => {
-      const { fabric } = await import("fabric");
+      const fabric = await import("fabric");
 
-      canvas = new fabric.Canvas(canvasElRef.current, {
+      canvas = new fabric.Canvas(canvasElRef.current!, {
         width: CANVAS_W,
         height: CANVAS_H,
         backgroundColor: "#fffbf5",
@@ -148,17 +148,19 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
   const addClipArt = useCallback((src: string) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    import("fabric").then(({ fabric }) => {
-      fabric.loadSVGFromURL(src, (objects: object[], options: object) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const group = (fabric.util as any).groupSVGElements(objects, options);
-        const scale = Math.min(160 / (group.width ?? 160), 160 / (group.height ?? 160));
-        group.scale(scale);
-        group.set({ left: CANVAS_W / 2 - (group.width * scale) / 2, top: CANVAS_H / 2 - (group.height * scale) / 2 });
-        canvas.add(group);
-        canvas.setActiveObject(group);
-        canvas.renderAll();
-      });
+    // loadSVGFromURL became promise-based in fabric v7 (was callback-style
+    // in the v5 API this was originally written against) - it also now
+    // resolves { objects, options } instead of passing them as callback args,
+    // and objects can include nulls for elements fabric couldn't parse.
+    import("fabric").then(async (fabric) => {
+      const { objects, options } = await fabric.loadSVGFromURL(src);
+      const group = fabric.util.groupSVGElements(objects.filter((o) => o !== null), options);
+      const scale = Math.min(160 / (group.width ?? 160), 160 / (group.height ?? 160));
+      group.scale(scale);
+      group.set({ left: CANVAS_W / 2 - (group.width * scale) / 2, top: CANVAS_H / 2 - (group.height * scale) / 2 });
+      canvas.add(group);
+      canvas.setActiveObject(group);
+      canvas.renderAll();
     });
   }, []);
 
@@ -166,7 +168,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
     (title: string, subtitle: string, body: string, footer: string, photoUrl?: string | null) => {
       const canvas = fabricRef.current;
       if (!canvas) return;
-      import("fabric").then(({ fabric }) => {
+      import("fabric").then((fabric) => {
         // Remove existing text objects and any previously auto-added AI photo
         // (both legacy i-text and current textbox) — but leave clip art /
         // manually uploaded photos alone.
@@ -246,28 +248,28 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
         // instead of distorting or overflowing into the text above/below.
         if (photoUrl && imageRect) {
           const rect = imageRect;
-          fabric.Image.fromURL(
-            photoUrl,
-            (img: FabricCanvas) => {
-              if (!img.width || !img.height || !fabricRef.current) return;
-              const rectX = 50, rectW = 460;
-              const coverScale = Math.max(rectW / img.width, rect.height / img.height);
-              img.scale(coverScale);
-              img.set({
-                left: rectX + (rectW - img.width * coverScale) / 2,
-                top: rect.top + (rect.height - img.height * coverScale) / 2,
-                clipPath: new fabric.Rect({
-                  left: rectX, top: rect.top, width: rectW, height: rect.height,
-                  absolutePositioned: true,
-                }),
-                data: { source: "ai-photo" },
-              });
-              fabricRef.current.add(img);
-              fabricRef.current.sendToBack(img);
-              fabricRef.current.renderAll();
-            },
-            { crossOrigin: "anonymous" }
-          );
+          // fabric.Image.fromURL became promise-based in v7 (was
+          // callback-style in the v5 API this was originally written
+          // against) - the options object also moved from the 3rd/callback
+          // position to the 2nd argument.
+          fabric.Image.fromURL(photoUrl, { crossOrigin: "anonymous" }).then((img) => {
+            if (!img.width || !img.height || !fabricRef.current) return;
+            const rectX = 50, rectW = 460;
+            const coverScale = Math.max(rectW / img.width, rect.height / img.height);
+            img.scale(coverScale);
+            img.set({
+              left: rectX + (rectW - img.width * coverScale) / 2,
+              top: rect.top + (rect.height - img.height * coverScale) / 2,
+              clipPath: new fabric.Rect({
+                left: rectX, top: rect.top, width: rectW, height: rect.height,
+                absolutePositioned: true,
+              }),
+              data: { source: "ai-photo" },
+            });
+            fabricRef.current.add(img);
+            fabricRef.current.sendToBack(img);
+            fabricRef.current.renderAll();
+          });
         }
       });
     },
@@ -277,24 +279,20 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
   const addPhoto = useCallback((src: string) => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    import("fabric").then(({ fabric }) => {
-      fabric.Image.fromURL(
-        src,
-        (img: FabricCanvas) => {
-          if (!img.width || !img.height) return;
-          const scale = Math.min((CANVAS_W - 40) / img.width, (CANVAS_H - 40) / img.height, 1);
-          img.scale(scale);
-          img.set({
-            left: (CANVAS_W - img.width * scale) / 2,
-            top: (CANVAS_H - img.height * scale) / 2,
-          });
-          canvas.add(img);
-          canvas.sendToBack(img);
-          canvas.setActiveObject(img);
-          canvas.renderAll();
-        },
-        { crossOrigin: "anonymous" }
-      );
+    import("fabric").then((fabric) => {
+      fabric.Image.fromURL(src, { crossOrigin: "anonymous" }).then((img) => {
+        if (!img.width || !img.height) return;
+        const scale = Math.min((CANVAS_W - 40) / img.width, (CANVAS_H - 40) / img.height, 1);
+        img.scale(scale);
+        img.set({
+          left: (CANVAS_W - img.width * scale) / 2,
+          top: (CANVAS_H - img.height * scale) / 2,
+        });
+        canvas.add(img);
+        canvas.sendToBack(img);
+        canvas.setActiveObject(img);
+        canvas.renderAll();
+      });
     });
   }, []);
 
@@ -307,7 +305,7 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
   const addText = useCallback((size: "heading" | "subtitle" | "body") => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    import("fabric").then(({ fabric }) => {
+    import("fabric").then((fabric) => {
       const configs = {
         heading: { text: "Heading", fontSize: 52, fontWeight: "bold", fill: "#e8430a", fontFamily: "Georgia, serif" },
         subtitle: { text: "Subtitle", fontSize: 28, fontWeight: "normal", fill: "#444444", fontFamily: "Georgia, serif" },
