@@ -54,6 +54,54 @@ function extractJson<T>(text: string): T {
   return JSON.parse(jsonSlice) as T;
 }
 
+// True when every key is exactly "0", "1", ... "n-1" - the shape the model
+// occasionally emits for what should have been a JSON array.
+function isArrayLikeObject(obj: Record<string, unknown>): boolean {
+  const keys = Object.keys(obj);
+  return keys.length > 0 && keys.every((k, i) => k === String(i));
+}
+
+// Large/deeply-nested tool schemas (e.g. an array of several multi-field
+// objects) can make the model emit the payload wrong in three ways: a
+// nested field JSON-encoded as a string instead of native structure (at any
+// depth, sometimes the whole payload); an array field emitted as an object
+// keyed "0"/"1"/"2"... instead of a real array; or - for schemas with a
+// single top-level property (activities/recipes/days/entries/items) - the
+// whole payload double-wrapped in that same key, e.g.
+// {"activities": {"activities": [...]}}. None of these are schema
+// violations caught by max_tokens. Recursively parse any string that looks
+// like JSON, coerce array-like objects into real arrays, and unwrap a
+// self-duplicated single top-level key, so any of these still come out as
+// the expected structure. Plain-text fields (titles, summaries) never start
+// with { or [, so this is safe to apply everywhere.
+function deepParseJsonStrings(value: unknown): unknown {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    const looksLikeJson = (trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"));
+    if (!looksLikeJson) return value;
+    try {
+      return deepParseJsonStrings(JSON.parse(trimmed));
+    } catch {
+      return value;
+    }
+  }
+  if (Array.isArray(value)) return value.map(deepParseJsonStrings);
+  if (value && typeof value === "object") {
+    let parsed = Object.fromEntries(Object.entries(value).map(([k, v]) => [k, deepParseJsonStrings(v)])) as Record<string, unknown>;
+    // Unwrap {"k": {"k": ...}} - the model duplicating the single top-level
+    // key instead of putting the real payload directly under it.
+    while (true) {
+      const keys = Object.keys(parsed);
+      if (keys.length !== 1) break;
+      const inner = parsed[keys[0]];
+      if (!inner || typeof inner !== "object" || Array.isArray(inner) || Object.keys(inner).length !== 1 || Object.keys(inner)[0] !== keys[0]) break;
+      parsed = inner as Record<string, unknown>;
+    }
+    return isArrayLikeObject(parsed) ? Object.values(parsed) : parsed;
+  }
+  return value;
+}
+
 export interface ToolCallArgs {
   model: string;
   system?: string;
@@ -90,7 +138,7 @@ export async function runToolCall<T>({ model, system, messages, tool, maxTokens 
     }
     const toolUse = message.content.find((b): b is Anthropic.ToolUseBlock => b.type === "tool_use");
     if (!toolUse) throw new Error("Model did not return a tool call");
-    return toolUse.input as T;
+    return deepParseJsonStrings(toolUse.input) as T;
   }
 
   const proxySystem = `${system ?? ""}\n\nRespond with ONLY one valid JSON object (no markdown code fences, no commentary before or after) that matches exactly this JSON Schema:\n${JSON.stringify(tool.input_schema)}`;
