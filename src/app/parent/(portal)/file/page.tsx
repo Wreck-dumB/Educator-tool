@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getChildren } from "@/lib/supabase/children";
 import { cardClass } from "@/lib/ui";
 import PrintButton from "./PrintButton";
+import WithdrawConsentButton from "@/components/WithdrawConsentButton";
 
 const IMMUNISATION_LABELS: Record<string, string> = {
   up_to_date: "Up to date",
@@ -42,6 +43,12 @@ export default async function ParentFilePage() {
   if (!user) redirect("/login");
 
   const children = await getChildren();
+
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("media_consent_at, media_consent_withdrawn_at")
+    .eq("id", user.id)
+    .maybeSingle();
 
   return (
     <div className="space-y-6">
@@ -136,6 +143,27 @@ export default async function ParentFilePage() {
         documents — are available on the other tabs. This page shows the enrolment and health
         information held on file.
       </p>
+
+      {myProfile?.media_consent_at && (
+        <div className={`p-5 print:hidden ${cardClass}`}>
+          <h2 className="font-display text-sm font-semibold text-ink">Photo &amp; media consent</h2>
+          {myProfile.media_consent_withdrawn_at ? (
+            <p className="mt-1 text-sm text-ink/60">
+              You withdrew consent on {new Date(myProfile.media_consent_withdrawn_at).toLocaleDateString("en-AU")}.
+              Contact the service if you have questions.
+            </p>
+          ) : (
+            <>
+              <p className="mt-1 text-sm text-ink/60">
+                You accepted photo/media consent on {new Date(myProfile.media_consent_at).toLocaleDateString("en-AU")}.
+              </p>
+              <div className="mt-3">
+                <WithdrawConsentButton />
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

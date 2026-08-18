@@ -643,6 +643,7 @@ export interface Database {
           terms_version: string | null;
           media_consent_at: string | null;
           media_consent_version: string | null;
+          media_consent_withdrawn_at: string | null;
         };
         Insert: {
           id: string;
@@ -653,6 +654,7 @@ export interface Database {
           terms_version?: string | null;
           media_consent_at?: string | null;
           media_consent_version?: string | null;
+          media_consent_withdrawn_at?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["profiles"]["Insert"]>;
         Relationships: [];
@@ -2461,6 +2463,10 @@ export interface Database {
       };
       accept_media_consent: {
         Args: { _version?: string };
+        Returns: void;
+      };
+      withdraw_media_consent: {
+        Args: Record<string, never>;
         Returns: void;
       };
       is_linked_parent: {

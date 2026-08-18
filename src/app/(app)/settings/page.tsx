@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getMyStaffRole } from "@/lib/supabase/staff";
 import SettingsClient from "./SettingsClient";
+import WithdrawConsentButton from "@/components/WithdrawConsentButton";
+import { cardClass } from "@/lib/ui";
 
 export default async function SettingsPage() {
   const supabase = await createClient();
@@ -22,6 +24,12 @@ export default async function SettingsPage() {
   const logoUrl = service?.logo_path
     ? `${supabaseUrl}/storage/v1/object/public/service-logos/${service.logo_path}`
     : null;
+
+  const { data: myProfile } = await supabase
+    .from("profiles")
+    .select("media_consent_at, media_consent_withdrawn_at")
+    .eq("id", user.id)
+    .maybeSingle();
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -44,6 +52,26 @@ export default async function SettingsPage() {
         materialAlertLeadDays={service?.material_alert_lead_days ?? 14}
         jurisdiction={service?.jurisdiction ?? "national"}
       />
+
+      {myProfile?.media_consent_at && !myProfile.media_consent_withdrawn_at && (
+        <div className={`mt-6 p-5 ${cardClass}`}>
+          <h2 className="font-display text-sm font-semibold text-ink">Your photo &amp; media consent</h2>
+          <p className="mt-1 text-sm text-ink/60">
+            You accepted photo/media consent on {new Date(myProfile.media_consent_at).toLocaleDateString("en-AU")}.
+          </p>
+          <div className="mt-3">
+            <WithdrawConsentButton />
+          </div>
+        </div>
+      )}
+      {myProfile?.media_consent_withdrawn_at && (
+        <div className={`mt-6 p-5 ${cardClass}`}>
+          <h2 className="font-display text-sm font-semibold text-ink">Your photo &amp; media consent</h2>
+          <p className="mt-1 text-sm text-ink/60">
+            You withdrew consent on {new Date(myProfile.media_consent_withdrawn_at).toLocaleDateString("en-AU")}.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

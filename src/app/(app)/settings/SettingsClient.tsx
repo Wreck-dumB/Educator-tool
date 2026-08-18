@@ -560,6 +560,24 @@ export default function SettingsClient({
           </button>
         )}
       </section>
+
+      {isDirector && (
+        <section className="rounded-2xl border border-ink/10 bg-white p-5 space-y-2">
+          <h2 className="font-display text-lg font-semibold text-ink">Data backup &amp; export</h2>
+          <p className="text-sm text-ink/60">
+            Download every record your service owns — children, staff, observations, incidents, health plans,
+            policies, invoices, and everything else — as one JSON file. Useful as a backup, or if you ever need
+            to move your data elsewhere.
+          </p>
+          <a
+            href="/api/data-export"
+            className="inline-block rounded-full bg-coral px-5 py-2 text-sm font-semibold text-white hover:bg-coral-dark transition-colors"
+          >
+            Export all my data
+          </a>
+          <p className="text-xs text-ink/40">Director-only. Limited to 3 exports per hour.</p>
+        </section>
+      )}
     </div>
   );
 }
