@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generatePolicy } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { findEnrolledChildNameMentions } from "@/lib/childNameGuard";
 
 export async function POST(request: Request) {
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
       { error: "You've hit the generation limit for now — try again in a bit." },
       { status: 429 },
     );
+  }
+
+  const credit = await checkAndConsumeCredit("policy");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);

@@ -1230,6 +1230,13 @@ export interface Database {
           updated_by: string | null;
           updated_at: string;
           created_at: string;
+          plan: "starter" | "standard" | "premium" | null;
+          credit_balance: number;
+          credit_monthly_allowance: number;
+          credit_reset_at: string | null;
+          stripe_customer_id: string | null;
+          stripe_subscription_id: string | null;
+          stripe_subscription_status: string | null;
         };
         Insert: {
           service_id: string;
@@ -1239,8 +1246,33 @@ export interface Database {
           updated_by?: string | null;
           updated_at?: string;
           created_at?: string;
+          plan?: "starter" | "standard" | "premium" | null;
+          credit_balance?: number;
+          credit_monthly_allowance?: number;
+          credit_reset_at?: string | null;
+          stripe_customer_id?: string | null;
+          stripe_subscription_id?: string | null;
+          stripe_subscription_status?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["service_access"]["Insert"]>;
+        Relationships: [];
+      };
+      credit_ledger: {
+        Row: {
+          id: string;
+          service_id: string;
+          delta: number;
+          reason: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          service_id: string;
+          delta: number;
+          reason: string;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["credit_ledger"]["Insert"]>;
         Relationships: [];
       };
       complaint_records: {
@@ -2492,6 +2524,18 @@ export interface Database {
       my_service_owner_id: {
         Args: Record<PropertyKey, never>;
         Returns: string;
+      };
+      my_service_id: {
+        Args: Record<PropertyKey, never>;
+        Returns: string;
+      };
+      consume_credit: {
+        Args: { p_service_id: string; p_reason: string };
+        Returns: boolean;
+      };
+      grant_credits: {
+        Args: { p_service_id: string; p_amount: number; p_reason: string; p_reset: boolean };
+        Returns: undefined;
       };
       start_new_service: {
         Args: { _name: string };

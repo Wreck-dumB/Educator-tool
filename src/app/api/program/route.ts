@@ -5,6 +5,7 @@ import { getActivities } from "@/lib/supabase/activities";
 import { getRecentProgramEntryTitles } from "@/lib/supabase/programs";
 import { generateCulturalDays, generateProgram, type RawCulturalDay } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { withBathurst1000 } from "@/lib/bathurst1000";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -24,6 +25,11 @@ export async function POST(request: Request) {
       { error: "You've hit the generation limit for now — try again in a bit." },
       { status: 429 },
     );
+  }
+
+  const credit = await checkAndConsumeCredit("program");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);

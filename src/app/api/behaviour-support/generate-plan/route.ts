@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { runToolCall, aiBackendMode } from "@/lib/ai/backend";
 import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 import { decryptField } from "@/lib/encryption";
@@ -77,6 +78,11 @@ export async function POST(request: Request) {
       { error: "You've hit the plan generation limit — try again in a bit." },
       { status: 429 },
     );
+  }
+
+  const credit = await checkAndConsumeCredit("behaviour-support-plan");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);

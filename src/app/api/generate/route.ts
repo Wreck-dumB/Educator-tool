@@ -4,6 +4,7 @@ import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getObservations } from "@/lib/supabase/observations";
 import { generateActivitySuggestions, type GenerationInput } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 import { decryptField } from "@/lib/encryption";
 import type { ActivitySuggestion } from "@/lib/types/domain";
@@ -27,6 +28,11 @@ export async function POST(request: Request) {
       { error: "You've hit the generation limit for now — try again in a bit." },
       { status: 429 },
     );
+  }
+
+  const credit = await checkAndConsumeCredit("activity-generate");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);

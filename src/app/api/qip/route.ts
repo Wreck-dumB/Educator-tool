@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateQipItems } from "@/lib/anthropic";
 import { getNqsStandards } from "@/lib/supabase/qip";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -19,6 +20,11 @@ export async function POST(request: Request) {
       { error: "You've hit the generation limit for now — try again in a bit." },
       { status: 429 },
     );
+  }
+
+  const credit = await checkAndConsumeCredit("qip");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);

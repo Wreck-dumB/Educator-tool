@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateDailyRoutine, type DailyRoutineInput } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -12,6 +13,11 @@ export async function POST(request: Request) {
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   if (await isRateLimited(`routine:${user.id}`, 10, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Rate limit reached — try again shortly." }, { status: 429 });
+  }
+
+  const credit = await checkAndConsumeCredit("generate-routine");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);

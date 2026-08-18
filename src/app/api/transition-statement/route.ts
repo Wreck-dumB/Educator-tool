@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { generateTransitionStatement } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { getObservations } from "@/lib/supabase/observations";
 import { ageInMonths } from "@/lib/nqf";
 
@@ -21,6 +22,11 @@ export async function POST(request: Request) {
       { error: "Generation limit reached — try again in an hour." },
       { status: 429 },
     );
+  }
+
+  const credit = await checkAndConsumeCredit("transition-statement");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const ownerUserId = await getMyServiceOwnerId();

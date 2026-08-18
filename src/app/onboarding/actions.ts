@@ -18,7 +18,7 @@ export async function startNewService(formData: FormData) {
     redirect(`/onboarding?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/generate");
+  redirect("/billing?welcome=1");
 }
 
 export async function acceptStaffInvite(formData: FormData) {

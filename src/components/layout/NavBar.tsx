@@ -111,6 +111,7 @@ const NAV_GROUPS = [
       { href: "/broadcasts", label: "Broadcasts" },
       { href: "/invoices", label: "Invoices" },
       { href: "/ccs-estimator", label: "CCS Estimator" },
+      { href: "/billing", label: "Billing" },
       { href: "/settings", label: "Service Settings" },
     ],
   },

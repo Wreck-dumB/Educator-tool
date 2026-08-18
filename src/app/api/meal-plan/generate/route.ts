@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
 import { isRateLimited } from "@/lib/rateLimit";
+import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { generateMealPlanAssignments } from "@/lib/anthropic";
 
 export async function POST(request: Request) {
@@ -13,6 +14,11 @@ export async function POST(request: Request) {
 
   if (await isRateLimited(`meal-plan:${user.id}`, 5, 60 * 60 * 1000)) {
     return NextResponse.json({ error: "Rate limited — 5 AI fills per hour" }, { status: 429 });
+  }
+
+  const credit = await checkAndConsumeCredit("meal-plan");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const ownerUserId = await getMyServiceOwnerId();
