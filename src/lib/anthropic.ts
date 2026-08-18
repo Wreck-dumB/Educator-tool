@@ -1808,7 +1808,10 @@ export async function generateMealPlanAssignments(input: {
 
   const data = await runToolCall<{ assignments: MealPlanAssignment[] }>({
     model: MODEL,
-    maxTokens: 2048,
+    // Was 2048 - fine when nearly every slot was a short recipe_id
+    // reference, too tight once custom_title (a real meal name written out
+    // in full) became the common case rather than the fallback.
+    maxTokens: 4096,
     tool: mealPlanTool,
     messages: [
       {
@@ -1818,7 +1821,7 @@ export async function generateMealPlanAssignments(input: {
 ENROLLED CHILDREN — DIETARY RESTRICTIONS / ALLERGENS:
 ${restrictions.length > 0 ? restrictions.join("\n") : "None recorded — always apply standard childcare food safety."}
 
-SAVED RECIPES (prefer these; use recipe_id where appropriate):
+SAVED RECIPES (use recipe_id for a genuinely good fit — see rules below on how often):
 ${
   input.recipes.length > 0
     ? input.recipes
@@ -1832,10 +1835,10 @@ ${input.emptySlots.map((s) => `${s.slot_date} ${s.meal_type}`).join("\n")}
 
 Rules:
 - NEVER use a recipe whose allergens conflict with any child's restrictions
-- Prefer saved recipes (recipe_id). Use custom_title only if no saved recipe is appropriate
-- Vary across the week — avoid repeating the same recipe on consecutive days
+- Real weekly variety matters most: never assign the same recipe_id, and never write the same (or a near-identical) custom_title meal, more than once across this whole batch of slots — not just on consecutive days. A family looking at the whole week should see a genuinely different meal in every slot of the same meal_type.
+- The saved recipe list is a small, reusable pool, not the only source of ideas — don't default to cycling through it just because it's there. Use recipe_id only where a saved recipe is a genuinely strong fit for that slot; write a fresh, specific custom_title for every other slot rather than repeating a saved recipe a second time this week.
 - Match meal weight to type: light snack for morning_tea/afternoon_tea, substantial for lunch
-- Keep it practical and child-friendly`,
+- Keep every meal (saved or custom) practical, child-friendly, and realistic for an ordinary centre kitchen to prepare at scale — no elaborate or hard-to-scale dishes`,
       },
     ],
   });
