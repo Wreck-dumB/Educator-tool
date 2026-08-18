@@ -36,8 +36,8 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    ppeRequired: raw.ppe_required ?? [],
-    steps: raw.steps ?? [],
-    hazards: scoreHazards(raw.hazards ?? []),
+    ppeRequired: Array.isArray(raw.ppe_required) ? raw.ppe_required : [],
+    steps: Array.isArray(raw.steps) ? raw.steps : [],
+    hazards: scoreHazards(raw.hazards),
   });
 }

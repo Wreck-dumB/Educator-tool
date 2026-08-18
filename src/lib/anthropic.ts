@@ -382,17 +382,25 @@ export async function generateRiskAssessment(activity: GeneratedActivity): Promi
   );
 }
 
-/** Attaches a deterministically-computed risk rating to each raw hazard. */
-export function scoreHazards(hazards: RawHazard[]): Hazard[] {
-  return hazards
-    .filter((h) => LIKELIHOOD_ORDER.includes(h.likelihood) && CONSEQUENCE_ORDER.includes(h.consequence))
+/** Attaches a deterministically-computed risk rating to each raw hazard.
+ * Accepts `unknown` (not `RawHazard[]`) because this is a compliance
+ * document (Risk Assessments / Safe Work Procedures) fed straight from the
+ * AI's tool-call response, which isn't a hard type guarantee - a
+ * non-array `hazards` field used to crash both callers' routes unguarded. */
+export function scoreHazards(hazards: unknown): Hazard[] {
+  if (!Array.isArray(hazards)) {
+    console.error("scoreHazards: model response did not resolve to an array", hazards);
+    return [];
+  }
+  return (hazards as RawHazard[])
+    .filter((h) => h && LIKELIHOOD_ORDER.includes(h.likelihood) && CONSEQUENCE_ORDER.includes(h.consequence))
     .map((h) => ({
       hazard: h.hazard,
       who_could_be_harmed: h.who_could_be_harmed,
       likelihood: h.likelihood,
       consequence: h.consequence,
       risk_rating: computeRiskRating(h.likelihood, h.consequence),
-      control_measures: h.control_measures ?? [],
+      control_measures: Array.isArray(h.control_measures) ? h.control_measures : [],
     }));
 }
 
@@ -407,6 +415,25 @@ async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.T
     tool,
     maxTokens,
   });
+}
+
+// A forced tool call's response is usually schema-shaped but never a hard
+// type guarantee - deepParseJsonStrings (lib/ai/backend.ts) recovers most of
+// the model's known malformed-JSON shapes, but its own string-parsing branch
+// silently gives up (returns the string unchanged) when that string still
+// isn't valid JSON. Every generator below expects a specific field to be an
+// array; reading it with a bare `?? []` doesn't catch a wrong-TYPE value
+// (only null/undefined), which is exactly what let `raw.map is not a
+// function` crash three layers downstream in /api/generate before this was
+// found and fixed (2026-08-18 QA pass). Use this everywhere instead so a
+// malformed response fails loudly, inside the try/catch every route already
+// wraps its generator call in, rather than crashing wherever it's next read.
+function asArray<T>(value: unknown, context: string): T[] {
+  if (!Array.isArray(value)) {
+    console.error(`${context}: model response did not resolve to an array`, value);
+    throw new Error(`Model did not return a valid ${context}`);
+  }
+  return value as T[];
 }
 
 // =========================================
@@ -854,8 +881,8 @@ export async function generateRecipes(
   lines.push(`Propose ${count} recipes using the propose_recipes tool.`);
 
   const maxTokens = Math.min(8192, Math.max(2048, count * 700));
-  const result = await callTool<{ recipes: RawRecipe[] }>(RECIPE_SYSTEM_PROMPT, lines.join("\n\n"), PROPOSE_RECIPES_TOOL, maxTokens);
-  return result.recipes ?? [];
+  const result = await callTool<{ recipes?: unknown }>(RECIPE_SYSTEM_PROMPT, lines.join("\n\n"), PROPOSE_RECIPES_TOOL, maxTokens);
+  return asArray<RawRecipe>(result.recipes ?? [], "recipes");
 }
 
 // =========================================
@@ -906,12 +933,12 @@ Be honest about date certainty: mark fixed-calendar-date observances as "high" c
 
 export async function generateCulturalDays(startDate: string, endDate: string): Promise<RawCulturalDay[]> {
   const userPrompt = `Date range: ${startDate} to ${endDate}.\n\nList relevant cultural/national days using the propose_cultural_days tool.`;
-  const result = await callTool<{ days: RawCulturalDay[] }>(
+  const result = await callTool<{ days?: unknown }>(
     CULTURAL_DAYS_SYSTEM_PROMPT,
     userPrompt,
     PROPOSE_CULTURAL_DAYS_TOOL,
   );
-  return result.days ?? [];
+  return asArray<RawCulturalDay>(result.days ?? [], "cultural days");
 }
 
 // =========================================
@@ -1024,12 +1051,12 @@ export async function generateProgram(
   recentlyUsedTitles: string[],
   educatorNotes?: string,
 ): Promise<RawProgramEntry[]> {
-  const result = await callTool<{ entries: RawProgramEntry[] }>(
+  const result = await callTool<{ entries?: unknown }>(
     buildProgramSystemPrompt(outcomes),
     buildProgramUserPrompt(startDate, endDate, outcomeGaps, culturalDays, existingActivities, recentlyUsedTitles, educatorNotes),
     PROPOSE_PROGRAM_TOOL,
   );
-  return result.entries ?? [];
+  return asArray<RawProgramEntry>(result.entries ?? [], "program entries");
 }
 
 // =========================================
@@ -1148,12 +1175,12 @@ export async function generateQipItems(
   userInput: string,
   targetQualityAreas?: number[],
 ): Promise<RawQipItem[]> {
-  const result = await callTool<{ items: RawQipItem[] }>(
+  const result = await callTool<{ items?: unknown }>(
     buildQipSystemPrompt(standards),
     buildQipUserPrompt(userInput, targetQualityAreas),
     PROPOSE_QIP_ITEMS_TOOL,
   );
-  return result.items ?? [];
+  return asArray<RawQipItem>(result.items ?? [], "QIP items");
 }
 
 // =========================================
@@ -1407,8 +1434,8 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
     "Generate a complete, realistic daily routine using the set_daily_routine tool.",
   ].filter(Boolean).join("\n");
 
-  const result = await callTool<{ blocks?: RoutineBlockRaw[] }>(system, userMsg, ROUTINE_TOOL, 2048);
-  return result.blocks ?? [];
+  const result = await callTool<{ blocks?: unknown }>(system, userMsg, ROUTINE_TOOL, 2048);
+  return asArray<RoutineBlockRaw>(result.blocks ?? [], "daily routine blocks");
 }
 
 // =========================================
@@ -1627,8 +1654,8 @@ ${typeInstruction}
 
 Propose ${count} digital Brain Break ideas using the propose_brain_breaks tool.`;
 
-  const result = await callTool<{ brain_breaks?: RawBrainBreak[] }>(systemPrompt, userPrompt, makeBrainBreaksTool(count), 4096);
-  return result.brain_breaks ?? [];
+  const result = await callTool<{ brain_breaks?: unknown }>(systemPrompt, userPrompt, makeBrainBreaksTool(count), 4096);
+  return asArray<RawBrainBreak>(result.brain_breaks ?? [], "brain breaks");
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -1806,7 +1833,7 @@ export async function generateMealPlanAssignments(input: {
     },
   };
 
-  const data = await runToolCall<{ assignments: MealPlanAssignment[] }>({
+  const data = await runToolCall<{ assignments?: unknown }>({
     model: MODEL,
     // Was 2048 - fine when nearly every slot was a short recipe_id
     // reference, too tight once custom_title (a real meal name written out
@@ -1843,5 +1870,5 @@ Rules:
     ],
   });
 
-  return data.assignments ?? [];
+  return asArray<MealPlanAssignment>(data.assignments ?? [], "meal plan assignments");
 }

@@ -36,11 +36,11 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({
-    title: raw.title,
+    title: typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : `${category} Form`,
     purpose: raw.purpose ?? null,
-    fieldsToComplete: raw.fields_to_complete ?? [],
+    fieldsToComplete: Array.isArray(raw.fields_to_complete) ? raw.fields_to_complete : [],
     bodyText: raw.body_text ?? null,
     requiresSignature: raw.requires_signature ?? false,
-    suggestedAdditions: raw.suggested_additions ?? [],
+    suggestedAdditions: Array.isArray(raw.suggested_additions) ? raw.suggested_additions : [],
   });
 }

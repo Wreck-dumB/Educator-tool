@@ -98,11 +98,11 @@ export async function POST(request: Request) {
   return NextResponse.json({
     title: result.title,
     summary: result.summary,
-    steps: result.steps ?? [],
-    materialsUsed: result.materials_used ?? [],
-    reflectionPrompts: result.reflection_prompts ?? [],
-    adaptationNotes: result.adaptation_notes ?? [],
-    eylfCodes: (result.eylf_codes ?? []).filter((c) => validCodes.has(c)),
+    steps: Array.isArray(result.steps) ? result.steps : [],
+    materialsUsed: Array.isArray(result.materials_used) ? result.materials_used : [],
+    reflectionPrompts: Array.isArray(result.reflection_prompts) ? result.reflection_prompts : [],
+    adaptationNotes: Array.isArray(result.adaptation_notes) ? result.adaptation_notes : [],
+    eylfCodes: (Array.isArray(result.eylf_codes) ? result.eylf_codes : []).filter((c) => validCodes.has(c)),
     // Pass-through from original so the save action has everything it needs
     ageRange: activity.age_range ?? null,
     durationMinutes: activity.duration_minutes ?? null,

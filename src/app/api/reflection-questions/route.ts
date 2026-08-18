@@ -76,7 +76,7 @@ Generate 4-6 tailored reflection questions using the generate_reflection_questio
   }
 
   try {
-    const result = await runToolCall({
+    const result = await runToolCall<{ questions?: unknown }>({
       model: MODEL,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
@@ -84,7 +84,7 @@ Generate 4-6 tailored reflection questions using the generate_reflection_questio
       maxTokens: 1024,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ questions: Array.isArray(result.questions) ? result.questions : [] });
   } catch (err) {
     console.error("Reflection question generation failed:", err);
     return NextResponse.json({ error: "Failed to generate questions" }, { status: 502 });

@@ -156,7 +156,7 @@ Propose support strategies using the propose_support_strategies tool.`);
 
   let result;
   try {
-    result = await runToolCall({
+    result = await runToolCall<Record<string, unknown>>({
       model: MODEL,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
@@ -168,5 +168,13 @@ Propose support strategies using the propose_support_strategies tool.`);
     return NextResponse.json({ error: "Failed to generate support strategies" }, { status: 502 });
   }
 
-  return NextResponse.json(result);
+  // The client renders all four fields with an unguarded .map() - a
+  // non-array response used to crash the whole strategies panel. Guarantee
+  // arrays here rather than trusting the tool-call response shape as-is.
+  return NextResponse.json({
+    patterns_observed: Array.isArray(result.patterns_observed) ? result.patterns_observed : [],
+    immediate_strategies: Array.isArray(result.immediate_strategies) ? result.immediate_strategies : [],
+    longer_term_adjustments: Array.isArray(result.longer_term_adjustments) ? result.longer_term_adjustments : [],
+    when_to_escalate: Array.isArray(result.when_to_escalate) ? result.when_to_escalate : [],
+  });
 }

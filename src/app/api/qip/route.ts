@@ -57,7 +57,7 @@ export async function POST(request: Request) {
       description: item.description,
       priority: item.item_type === "improvement" ? item.priority ?? null : null,
       successMeasure: item.item_type === "improvement" ? item.success_measure ?? null : null,
-      steps: item.item_type === "improvement" ? item.steps ?? [] : [],
+      steps: item.item_type === "improvement" && Array.isArray(item.steps) ? item.steps : [],
       timeframe: item.item_type === "improvement" ? item.timeframe ?? null : null,
     }));
 

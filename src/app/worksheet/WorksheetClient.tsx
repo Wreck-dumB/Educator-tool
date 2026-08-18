@@ -440,6 +440,7 @@ interface CardFaceState {
   imageUrl: string | null;
   loading: boolean;
   error: boolean;
+  attempt: number;
 }
 
 const CARDS_PER_PAGE = 8;
@@ -448,12 +449,17 @@ const CARDS_PER_PAGE = 8;
 // empirically while building this). Spacing them out trades a bit of speed
 // for actually loading.
 const CARD_IMAGE_STAGGER_MS = 4000;
+// A rate-limit hit is usually transient (the free tier allows ~1 request per
+// few seconds per IP) — auto-retry with backoff before surfacing the manual
+// "retry" button, so a busy moment doesn't need a click to recover from.
+const MAX_AUTO_RETRIES = 2;
+const AUTO_RETRY_DELAY_MS = 6000;
 
 function CardSetTemplate({ items, title, pairs = true }: { items: string[]; title: string; pairs?: boolean }) {
   // One fetch per unique item — a matching pair reuses the same image so the
   // two cards actually look identical, not just share a text label.
   const [images, setImages] = useState<CardFaceState[]>(() =>
-    items.map(() => ({ imageUrl: null, loading: true, error: false })),
+    items.map(() => ({ imageUrl: null, loading: true, error: false, attempt: 0 })),
   );
 
   function fetchCardImage(i: number, label: string) {
@@ -468,12 +474,26 @@ function CardSetTemplate({ items, title, pairs = true }: { items: string[]; titl
         if (!ok) {
           setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c)));
         } else {
-          setImages((prev) => prev.map((c, idx) => (idx === i ? { imageUrl: data.imageUrl, loading: true, error: false } : c)));
+          setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, imageUrl: data.imageUrl, loading: true, error: false } : c)));
         }
       })
       .catch(() => {
         setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c)));
       });
+  }
+
+  // Fires when the <img> itself fails to load (e.g. Pollinations 429) —
+  // distinct from the fetch above, which only requests the URL and always
+  // succeeds even when the image behind it is about to be rate-limited.
+  function handleImageLoadError(i: number) {
+    setImages((prev) => {
+      const attempt = prev[i].attempt + 1;
+      if (attempt <= MAX_AUTO_RETRIES) {
+        setTimeout(() => fetchCardImage(i, items[i]), AUTO_RETRY_DELAY_MS * attempt);
+        return prev.map((c, idx) => (idx === i ? { ...c, loading: true, error: false, attempt } : c));
+      }
+      return prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c));
+    });
   }
 
   useEffect(() => {
@@ -536,16 +556,15 @@ function CardSetTemplate({ items, title, pairs = true }: { items: string[]; titl
                         onLoad={() =>
                           setImages((prev) => prev.map((c, idx) => (idx === itemIndex ? { ...c, loading: false } : c)))
                         }
-                        onError={() =>
-                          setImages((prev) =>
-                            prev.map((c, idx) => (idx === itemIndex ? { ...c, loading: false, error: true } : c)),
-                          )
-                        }
+                        onError={() => handleImageLoadError(itemIndex)}
                       />
                     ) : image?.error ? (
                       <button
                         type="button"
-                        onClick={() => fetchCardImage(itemIndex, label)}
+                        onClick={() => {
+                          setImages((prev) => prev.map((c, idx) => (idx === itemIndex ? { ...c, attempt: 0 } : c)));
+                          fetchCardImage(itemIndex, label);
+                        }}
                         className="text-xs font-medium text-coral-dark underline print:hidden"
                       >
                         Image failed — retry

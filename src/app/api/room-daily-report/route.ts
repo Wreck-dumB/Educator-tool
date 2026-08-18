@@ -170,7 +170,7 @@ ${incidentSummary}
 Generate the daily room summary using the generate_room_daily_report tool.`;
 
   try {
-    const result = await runToolCall({
+    const result = await runToolCall<Record<string, unknown>>({
       model: MODEL,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: userPrompt }],
@@ -178,7 +178,13 @@ Generate the daily room summary using the generate_room_daily_report tool.`;
       maxTokens: 1024,
     });
 
-    return NextResponse.json({ ...result as object, roomName: room.name, date });
+    return NextResponse.json({
+      ...result,
+      highlights: Array.isArray(result.highlights) ? result.highlights : [],
+      suggestions_for_tomorrow: Array.isArray(result.suggestions_for_tomorrow) ? result.suggestions_for_tomorrow : [],
+      roomName: room.name,
+      date,
+    });
   } catch (err) {
     console.error("Room daily report generation failed:", err);
     return NextResponse.json({ error: "Failed to generate report" }, { status: 502 });

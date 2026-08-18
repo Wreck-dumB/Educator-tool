@@ -93,7 +93,7 @@ export async function POST(request: Request) {
         dayDate: e.day_date,
         title: e.title,
         notes: e.notes ?? null,
-        eylfCodes: (e.eylf_codes ?? []).filter((c) => validCodes.has(c)),
+        eylfCodes: (Array.isArray(e.eylf_codes) ? e.eylf_codes : []).filter((c) => validCodes.has(c)),
         activityId: e.reused_activity_title
           ? activityByTitle.get(e.reused_activity_title.trim().toLowerCase()) ?? null
           : null,

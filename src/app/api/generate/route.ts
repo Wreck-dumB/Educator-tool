@@ -166,12 +166,12 @@ export async function POST(request: Request) {
   const MAX_MATCHING = 6;
   const MAX_GROUPS = 5;
   const suggestions: ActivitySuggestion[] = raw.map((activity) => {
-    const cardItems = (activity.card_items ?? []).map((c) => c.trim()).filter(Boolean).slice(0, MAX_CARD_ITEMS);
+    const cardItems = (Array.isArray(activity.card_items) ? activity.card_items : []).map((c) => c.trim()).filter(Boolean).slice(0, MAX_CARD_ITEMS);
     const letterText = activity.letter_text?.trim().slice(0, 20) || null;
 
-    const matchingLeft = (activity.matching_left ?? []).map((s) => s.trim().slice(0, 20)).filter(Boolean).slice(0, MAX_MATCHING);
-    const matchingRight = (activity.matching_right ?? []).map((s) => s.trim().slice(0, 20)).filter(Boolean).slice(0, MAX_MATCHING);
-    const countingGroups = (activity.counting_groups ?? [])
+    const matchingLeft = (Array.isArray(activity.matching_left) ? activity.matching_left : []).map((s) => s.trim().slice(0, 20)).filter(Boolean).slice(0, MAX_MATCHING);
+    const matchingRight = (Array.isArray(activity.matching_right) ? activity.matching_right : []).map((s) => s.trim().slice(0, 20)).filter(Boolean).slice(0, MAX_MATCHING);
+    const countingGroups = (Array.isArray(activity.counting_groups) ? activity.counting_groups : [])
       .map((g) => ({
         emoji: (g.emoji ?? "").slice(0, 10),
         label: (g.label ?? "").trim().slice(0, 20),
@@ -193,9 +193,9 @@ export async function POST(request: Request) {
     return {
       title: activity.title,
       summary: activity.summary,
-      steps: activity.steps ?? [],
-      materialsUsed: activity.materials_used ?? [],
-      reflectionPrompts: activity.reflection_prompts ?? [],
+      steps: Array.isArray(activity.steps) ? activity.steps : [],
+      materialsUsed: Array.isArray(activity.materials_used) ? activity.materials_used : [],
+      reflectionPrompts: Array.isArray(activity.reflection_prompts) ? activity.reflection_prompts : [],
       ageRange: activity.age_range ?? null,
       durationMinutes: activity.duration_minutes ?? null,
       energyLevel: activity.energy_level ?? null,
@@ -203,7 +203,7 @@ export async function POST(request: Request) {
       // Drop any EYLF code the model returned that doesn't exist in our seeded
       // taxonomy, rather than trusting it blindly — wrong framework links are a
       // real compliance/trust risk if this is ever relied on for documentation.
-      eylfCodes: (activity.eylf_codes ?? []).filter((code) => validCodes.has(code)),
+      eylfCodes: (Array.isArray(activity.eylf_codes) ? activity.eylf_codes : []).filter((code) => validCodes.has(code)),
       suggestedTemplate: suggestedTemplate === "card_set" && cardItems.length === 0 ? null : suggestedTemplate,
       cardItems: suggestedTemplate === "card_set" ? cardItems : [],
       cardPairs: activity.card_pairs !== false,

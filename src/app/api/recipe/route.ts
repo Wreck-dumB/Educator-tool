@@ -48,13 +48,13 @@ export async function POST(request: Request) {
     recipes: raw.map((r) => ({
       title: r.title,
       description: r.description ?? null,
-      ingredients: r.ingredients ?? [],
-      steps: r.steps ?? [],
+      ingredients: Array.isArray(r.ingredients) ? r.ingredients : [],
+      steps: Array.isArray(r.steps) ? r.steps : [],
       prepTimeMinutes: r.prep_time_minutes ?? null,
       servings: r.servings ?? null,
       ageRange: r.age_range ?? null,
-      dietaryTags: r.dietary_tags ?? [],
-      allergensPresent: r.allergens_present ?? [],
+      dietaryTags: Array.isArray(r.dietary_tags) ? r.dietary_tags : [],
+      allergensPresent: Array.isArray(r.allergens_present) ? r.allergens_present : [],
       chokingHazardNotes: r.choking_hazard_notes ?? null,
     })),
   });

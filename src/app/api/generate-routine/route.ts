@@ -28,6 +28,12 @@ export async function POST(request: Request) {
       : [],
   };
 
-  const blocks = await generateDailyRoutine(input);
+  let blocks;
+  try {
+    blocks = await generateDailyRoutine(input);
+  } catch (err) {
+    console.error("Daily routine generation failed", err);
+    return NextResponse.json({ error: "Failed to generate daily routine" }, { status: 502 });
+  }
   return NextResponse.json({ blocks });
 }

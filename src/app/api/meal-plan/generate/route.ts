@@ -37,12 +37,18 @@ export async function POST(request: Request) {
       .eq("owner_user_id", ownerUserId),
   ]);
 
-  const assignments = await generateMealPlanAssignments({
-    weekStartDate,
-    emptySlots,
-    children: (children ?? []) as Parameters<typeof generateMealPlanAssignments>[0]["children"],
-    recipes: (recipes ?? []) as Parameters<typeof generateMealPlanAssignments>[0]["recipes"],
-  });
+  let assignments;
+  try {
+    assignments = await generateMealPlanAssignments({
+      weekStartDate,
+      emptySlots,
+      children: (children ?? []) as Parameters<typeof generateMealPlanAssignments>[0]["children"],
+      recipes: (recipes ?? []) as Parameters<typeof generateMealPlanAssignments>[0]["recipes"],
+    });
+  } catch (err) {
+    console.error("Meal plan AI-fill failed", err);
+    return NextResponse.json({ error: "Failed to fill meal plan" }, { status: 502 });
+  }
 
   return NextResponse.json({ assignments });
 }
