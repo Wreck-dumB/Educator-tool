@@ -37,9 +37,12 @@ export async function POST(request: Request) {
 
   // Build the Pollinations URL — no API key or account needed.
   // nofeed=true prevents the image appearing in Pollinations' public gallery.
+  // model=flux now requires Pollinations auth and times out/429s for anonymous
+  // callers like us; every other model name (including omitting it) currently
+  // resolves to their free "sana" model, so request that explicitly.
   const imageUrl =
     `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-    `?width=1024&height=1024&nologo=true&nofeed=true&model=flux&seed=${seed}`;
+    `?width=1024&height=1024&nologo=true&nofeed=true&model=sana&seed=${seed}`;
 
   return NextResponse.json({ imageUrl });
 }
