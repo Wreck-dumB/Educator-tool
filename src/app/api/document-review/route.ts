@@ -168,5 +168,20 @@ Please review this document using the review_document tool.`;
     return NextResponse.json({ error: "AI review failed — please try again" }, { status: 502 });
   }
 
-  return NextResponse.json(Object.assign({}, result as object, { filename: file.name, truncated }));
+  // The tool schema deliberately allows the model to omit nqs_alignment for
+  // non-policy documents ("Omit if not a policy/procedure") - the client's
+  // ReviewResult type doesn't mark it optional though, so an omitted field
+  // crashed the whole review page (Cannot read properties of undefined
+  // (reading 'length')) the moment a real review actually completed. Same
+  // defensive-array-fallback pattern as generatePolicy's sanitizeRawPolicy.
+  const r = result as Record<string, unknown>;
+  return NextResponse.json({
+    ...r,
+    strengths: Array.isArray(r.strengths) ? r.strengths : [],
+    gaps: Array.isArray(r.gaps) ? r.gaps : [],
+    nqs_alignment: Array.isArray(r.nqs_alignment) ? r.nqs_alignment : [],
+    suggestions: Array.isArray(r.suggestions) ? r.suggestions : [],
+    filename: file.name,
+    truncated,
+  });
 }

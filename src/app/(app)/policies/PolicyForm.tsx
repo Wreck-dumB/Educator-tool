@@ -116,7 +116,7 @@ export default function PolicyForm() {
               <PolicySteps steps={draft.procedureSteps} />
             </>
           )}
-          {draft.relatedLegislation.length > 0 && (
+          {Array.isArray(draft.relatedLegislation) && draft.relatedLegislation.length > 0 && (
             <p className="mt-3 text-xs text-ink/50">
               <span className="font-medium">Related legislation/areas:</span> {draft.relatedLegislation.join("; ")}
             </p>

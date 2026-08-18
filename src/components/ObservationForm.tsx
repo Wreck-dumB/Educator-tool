@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect, useTransition } from "react";
+import { useId, useRef, useState, useEffect, useTransition } from "react";
 import { inputClass, primaryButtonClass } from "@/lib/ui";
 
 interface Child {
@@ -150,6 +150,12 @@ export default function ObservationForm({
   enabledTypes,
   childInterests,
 }: Props) {
+  // Multiple ObservationForm instances can render on one page (e.g. one per
+  // activity card on /programs/[id]/today) - a fixed "obs_note_text" id
+  // produced duplicate DOM ids whenever 2+ were present (invalid HTML,
+  // breaks label association/getElementById/accessibility tooling for all
+  // but the first instance). useId() gives each mounted instance its own.
+  const noteTextId = `obs_note_text-${useId()}`;
   const [preview, setPreview] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -394,7 +400,7 @@ export default function ObservationForm({
       {/* ── Observation note ───────────────────────────────────────────── */}
       <div>
         <div className="flex items-center justify-between gap-2">
-          <label htmlFor="obs_note_text" className="block text-sm font-medium text-ink/70">
+          <label htmlFor={noteTextId} className="block text-sm font-medium text-ink/70">
             {obsType === "photo_caption" ? "Caption / reflection" : "Observation note"}
           </label>
           {noteText.trim().length >= 10 && (
@@ -416,7 +422,7 @@ export default function ObservationForm({
           )}
         </div>
         <textarea
-          id="obs_note_text"
+          id={noteTextId}
           name="note_text"
           required
           rows={obsType === "running_record" ? 6 : obsType === "learning_story" ? 5 : 4}

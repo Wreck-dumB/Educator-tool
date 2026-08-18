@@ -4,6 +4,7 @@ import { getShiftAccess } from "@/lib/supabase/shiftAccess";
 import ShiftLockedNotice from "@/components/ShiftLockedNotice";
 import { createChild } from "@/app/(app)/children/actions";
 import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
+import SubmitButton from "@/components/SubmitButton";
 
 export default async function ChildrenPage({
   searchParams,
@@ -128,9 +129,9 @@ export default async function ChildrenPage({
               needs/constraints worth the generator knowing about, to adapt activities respectfully.
             </p>
           </div>
-          <button type="submit" className={`w-full ${primaryButtonClass}`}>
+          <SubmitButton pendingText="Adding…" className={`w-full ${primaryButtonClass}`}>
             Add child
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

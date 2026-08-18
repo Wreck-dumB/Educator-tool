@@ -46,12 +46,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate policy" }, { status: 502 });
   }
 
+  // generatePolicy() already sanitizes title/array fields against a
+  // malformed AI response (see sanitizeRawPolicy in lib/anthropic.ts).
   return NextResponse.json({
     title: raw.title,
     purpose: raw.purpose ?? null,
     scope: raw.scope ?? null,
-    procedureSteps: raw.procedure_steps ?? [],
-    relatedLegislation: raw.related_legislation ?? [],
-    suggestedAdditions: raw.suggested_additions ?? [],
+    procedureSteps: raw.procedure_steps,
+    relatedLegislation: raw.related_legislation,
+    suggestedAdditions: raw.suggested_additions,
   });
 }

@@ -18,7 +18,7 @@ interface Child {
 }
 
 export function NewBSPForm({ children }: { children: Child[] }) {
-  const [, startTransition] = useTransition();
+  const [isSaving, startTransition] = useTransition();
 
   const [childId, setChildId] = useState(children[0]?.id ?? "");
   const [strengths, setStrengths] = useState("");
@@ -323,17 +323,18 @@ export function NewBSPForm({ children }: { children: Child[] }) {
             <button
               type="button"
               onClick={() => handleSubmit("draft")}
-              className="rounded-xl border border-coral-light px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-coral-light/20"
+              disabled={isSaving}
+              className="rounded-xl border border-coral-light px-4 py-2 text-sm font-semibold text-ink/60 hover:bg-coral-light/20 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Save as draft
+              {isSaving ? "Saving…" : "Save as draft"}
             </button>
             <button
               type="button"
               onClick={() => handleSubmit("active")}
-              disabled={!behaviourDesc.trim() || !educatorStrategies.trim()}
+              disabled={isSaving || !behaviourDesc.trim() || !educatorStrategies.trim()}
               className="rounded-xl bg-coral px-4 py-2 text-sm font-semibold text-white hover:bg-coral-dark disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Activate plan →
+              {isSaving ? "Saving…" : "Activate plan →"}
             </button>
           </div>
         </div>

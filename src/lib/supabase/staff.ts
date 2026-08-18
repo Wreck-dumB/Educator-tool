@@ -43,7 +43,11 @@ export async function getStaffMembers(serviceId: string): Promise<StaffMemberWit
 
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
 
-  return memberships.map((m) => ({ ...m, displayName: nameById.get(m.user_id) ?? "Unknown" }));
+  // A missing profiles row shouldn't be possible via the normal signup flow
+  // (display_name is NOT NULL there) - seen live only on a QA fixture account
+  // created directly via SQL rather than real signup. Labelled distinctly
+  // from a genuine "Unknown" so it reads as a data gap, not a person.
+  return memberships.map((m) => ({ ...m, displayName: nameById.get(m.user_id) ?? "(no profile set up)" }));
 }
 
 export async function getStaffInvites(serviceId: string): Promise<StaffInvite[]> {

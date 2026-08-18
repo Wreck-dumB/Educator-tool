@@ -314,8 +314,14 @@ const PosterCanvas = forwardRef<PosterCanvasHandle, Props>(function PosterCanvas
         body: { text: "Add your text here", fontSize: 20, fontWeight: "normal", fill: "#333333", fontFamily: "Arial, sans-serif" },
       };
       const cfg = configs[size];
+      // Every new text box used to land at the exact same fixed position,
+      // so a second/third addition rendered directly on top of the first
+      // until manually dragged apart. Stagger by how many text boxes already
+      // exist, cycling so it never runs off the bottom of the page.
+      const existingTextCount = canvas.getObjects().filter((o: FabricCanvas) => o.type === "textbox").length;
+      const top = 100 + (existingTextCount % 6) * 40;
       const t = new fabric.Textbox(cfg.text, {
-        left: 50, top: 100,
+        left: 50, top,
         width: 460,
         fontSize: cfg.fontSize,
         fontFamily: cfg.fontFamily,

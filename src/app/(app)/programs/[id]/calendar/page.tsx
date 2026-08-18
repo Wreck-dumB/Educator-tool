@@ -31,6 +31,21 @@ export default async function ProgramCalendarPage({ params }: { params: Promise<
       .sort((a, b) => a.order_index - b.order_index);
   }
 
+  // Entries with no block assigned (or an unrecognized one — e.g. a block was
+  // renamed/removed after they were sorted into it) never matched any of the
+  // fixed block rows above and were silently dropped from the printed
+  // calendar entirely — a published week with real content could print as
+  // completely blank if an educator hadn't done the (non-blocking) manual
+  // block-sorting step yet. Mirrors the "Other activities today" fallback
+  // already used on the /today room-guide view for the same underlying data.
+  const knownBlockKeys = new Set(blocks.map((b) => b.key));
+  function unsortedEntriesFor(dayDate: string) {
+    return program!.entries
+      .filter((e) => e.day_date === dayDate && (!e.block_key || !knownBlockKeys.has(e.block_key)))
+      .sort((a, b) => a.order_index - b.order_index);
+  }
+  const hasAnyUnsorted = weekdayDates.some((date) => unsortedEntriesFor(date).length > 0);
+
   return (
     <div className="mx-auto max-w-[1400px] px-4 py-6 print:px-0 print:py-0">
       <style>{"@page { size: A3 landscape; margin: 10mm; }"}</style>
@@ -113,6 +128,32 @@ export default async function ProgramCalendarPage({ params }: { params: Promise<
                   })}
                 </tr>
               ))}
+              {hasAnyUnsorted && (
+                <tr className="bg-amber-light/60 break-inside-avoid print:bg-white">
+                  <td className="border-2 border-sage/30 px-3 py-2 align-top text-xs font-semibold text-ink/80 print:border-black print:text-black">
+                    Other activities
+                  </td>
+                  {weekdayDates.map((date) => {
+                    const dayEntries = unsortedEntriesFor(date);
+                    return (
+                      <td key={date} className="border-2 border-sage/30 px-3 py-2 align-top print:border-black">
+                        {dayEntries.length === 0 ? (
+                          <span className="text-xs text-ink/20 print:text-black/20">—</span>
+                        ) : (
+                          <ul className="space-y-1.5">
+                            {dayEntries.map((e) => (
+                              <li key={e.id}>
+                                <p className="text-sm font-medium text-ink print:text-black">{e.title}</p>
+                                {e.notes && <p className="text-xs text-ink/60 print:text-black/80">{e.notes}</p>}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -152,14 +152,16 @@ export async function POST(request: Request) {
       }
     : null;
 
+  // regeneratePolicyFromReview() already sanitizes title/array fields against
+  // a malformed AI response (see sanitizeRawPolicy in lib/anthropic.ts).
   return NextResponse.json({
     policy: {
       title: revised.title,
       purpose: revised.purpose ?? null,
       scope: revised.scope ?? null,
-      procedureSteps: revised.procedure_steps ?? [],
-      relatedLegislation: revised.related_legislation ?? [],
-      suggestedAdditions: revised.suggested_additions ?? [],
+      procedureSteps: revised.procedure_steps,
+      relatedLegislation: revised.related_legislation,
+      suggestedAdditions: revised.suggested_additions,
     },
     qipSuggestion,
   });

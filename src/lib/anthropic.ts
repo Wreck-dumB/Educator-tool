@@ -242,13 +242,25 @@ export async function generateActivitySuggestions(
   outcomes: EylfOutcome[],
   count = 5,
 ): Promise<RawActivitySuggestion[]> {
-  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(
+  const result = await callTool<{ activities?: unknown }>(
     buildSystemPrompt(outcomes),
     buildUserPrompt(input, count),
     makeActivitiesTool(count),
     Math.min(8192, Math.max(2048, count * 700)),
   );
-  return result.activities ?? [];
+  // deepParseJsonStrings (lib/ai/backend.ts) already recovers most of the
+  // model's known malformed-JSON shapes, but its own string-parsing branch
+  // silently gives up (returns the string unchanged) if that string still
+  // isn't valid JSON - seen live as a raw.map is not a function crash three
+  // layers downstream in /api/generate. Fail loudly here instead, inside the
+  // try/catch every caller already wraps this in, so it surfaces as the
+  // existing clean "Failed to generate activities" 502 rather than an
+  // uncaught TypeError.
+  if (!Array.isArray(result?.activities)) {
+    console.error("generateActivitySuggestions: model response did not resolve to an activities array", result);
+    throw new Error("Model did not return a valid activities array");
+  }
+  return result.activities as RawActivitySuggestion[];
 }
 
 // =========================================
@@ -480,6 +492,30 @@ export interface RawPolicy {
   suggested_additions: string[];
 }
 
+// The tool-call schema declares related_legislation/suggested_additions as
+// string arrays, but a forced tool call isn't a hard type guarantee - a
+// missing/wrong-shaped field here used to crash the whole page client-side
+// (relatedLegislation.join is not a function) or a raw DB not-null violation
+// on save (null title). Centralized here so every caller of
+// generatePolicy/regeneratePolicyFromReview gets the same safety net.
+function sanitizeRawPolicy(raw: RawPolicy, fallbackTitle: string): RawPolicy {
+  const asStringArray = (v: unknown): string[] =>
+    Array.isArray(v)
+      ? v.filter((s): s is string => typeof s === "string" && s.trim().length > 0)
+      : typeof v === "string" && v.trim()
+        ? [v.trim()]
+        : [];
+
+  return {
+    title: typeof raw.title === "string" && raw.title.trim() ? raw.title.trim() : fallbackTitle,
+    purpose: raw.purpose,
+    scope: raw.scope,
+    procedure_steps: Array.isArray(raw.procedure_steps) ? raw.procedure_steps : [],
+    related_legislation: asStringArray(raw.related_legislation),
+    suggested_additions: asStringArray(raw.suggested_additions),
+  };
+}
+
 // Shared schema for one structural unit of a policy's procedure section -
 // lets the AI (and the eventual Word export / on-screen view) tell a section
 // heading apart from an ordinary paragraph or a bullet list item, instead of
@@ -545,7 +581,8 @@ PRIVACY: policies and procedures must stay generic. Never include a real child's
 
 export async function generatePolicy(category: string, userInput: string): Promise<RawPolicy> {
   const userPrompt = `Policy category: ${category}\n\nThe educator's description of their service's situation/approach:\n${userInput}\n\nDraft the policy using the propose_policy tool.`;
-  return callTool<RawPolicy>(POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL);
+  const raw = await callTool<RawPolicy>(POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_TOOL);
+  return sanitizeRawPolicy(raw, `${category} Policy`);
 }
 
 // Reworks an existing uploaded document (already run through the document
@@ -664,16 +701,21 @@ Produce the revised policy using the propose_policy_patch tool. Remember: refere
   // regenerate route.
   const patch = await callTool<RawPolicyPatch>(REVISE_POLICY_SYSTEM_PROMPT, userPrompt, PROPOSE_POLICY_PATCH_TOOL, 20000);
 
-  return {
-    title: patch.title,
-    purpose: patch.purpose,
-    scope: patch.scope,
-    procedure_steps: patch.procedure_steps
-      .map((item) => (typeof item === "number" ? blocks[item - 1] : item))
-      .filter((step): step is PolicyStep => Boolean(step && step.text.length > 0)),
-    related_legislation: patch.related_legislation,
-    suggested_additions: patch.suggested_additions,
-  };
+  return sanitizeRawPolicy(
+    {
+      title: patch.title,
+      purpose: patch.purpose,
+      scope: patch.scope,
+      procedure_steps: Array.isArray(patch.procedure_steps)
+        ? patch.procedure_steps
+            .map((item) => (typeof item === "number" ? blocks[item - 1] : item))
+            .filter((step): step is PolicyStep => Boolean(step && step.text.length > 0))
+        : [],
+      related_legislation: patch.related_legislation,
+      suggested_additions: patch.suggested_additions,
+    },
+    `${category} Policy`,
+  );
 }
 
 // =========================================

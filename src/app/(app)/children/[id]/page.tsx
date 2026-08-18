@@ -133,27 +133,6 @@ export default async function ChildDetailPage({
               className={inputClass}
             />
           </div>
-          {rooms.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-ink/70">Room</label>
-              <form action={assignChildToRoom} className="mt-1 flex gap-2">
-                <input type="hidden" name="child_id" value={child.id} />
-                <select
-                  name="room_id"
-                  defaultValue={child.room_id ?? ""}
-                  className={`${inputClass} mt-0 flex-1`}
-                >
-                  <option value="">— Unassigned —</option>
-                  {rooms.map((r) => (
-                    <option key={r.id} value={r.id}>{r.name}</option>
-                  ))}
-                </select>
-                <button type="submit" className="mt-1 shrink-0 rounded-full bg-sage px-3 py-2 text-xs font-semibold text-white hover:bg-sage-dark">
-                  Save
-                </button>
-              </form>
-            </div>
-          )}
           <div>
             <label htmlFor="current_interests" className="block text-sm font-medium text-ink/70">
               Current interests
@@ -187,6 +166,34 @@ export default async function ChildDetailPage({
             Save changes
           </button>
         </form>
+
+        {/* Deliberately its own <form> rendered as a SIBLING, not nested inside
+            updateChild's form above - nested <form> elements are invalid HTML
+            and caused a real, reproducible hydration-mismatch error, which in
+            turn intermittently dropped Milestone-form input on this same page
+            if interacted with immediately after load (React discarding and
+            re-rendering this subtree). */}
+        {rooms.length > 0 && (
+          <div className="mt-4 border-t border-coral-light pt-4">
+            <label className="block text-sm font-medium text-ink/70">Room</label>
+            <form action={assignChildToRoom} className="mt-1 flex gap-2">
+              <input type="hidden" name="child_id" value={child.id} />
+              <select
+                name="room_id"
+                defaultValue={child.room_id ?? ""}
+                className={`${inputClass} mt-0 flex-1`}
+              >
+                <option value="">— Unassigned —</option>
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
+              <button type="submit" className="mt-1 shrink-0 rounded-full bg-sage px-3 py-2 text-xs font-semibold text-white hover:bg-sage-dark">
+                Save
+              </button>
+            </form>
+          </div>
+        )}
 
         {/* Data retention notice */}
         {(() => {

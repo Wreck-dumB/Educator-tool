@@ -24,12 +24,14 @@ export async function savePolicy(
     return { error: "No active service membership" };
   }
 
+  const title = suggestion.title?.trim() || `${category} Policy`;
+
   const { data, error } = await supabase
     .from("policies")
     .insert({
       owner_user_id: ownerUserId,
       category,
-      title: suggestion.title,
+      title,
       your_input: userInput,
       purpose: suggestion.purpose,
       scope: suggestion.scope,
