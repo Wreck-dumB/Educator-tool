@@ -27,15 +27,8 @@ import PrintButton from "@/components/PrintButton";
 import { logAuditEvent } from "@/lib/supabase/auditLog";
 import { getDevelopmentalMilestones } from "@/lib/supabase/milestones";
 import MilestoneObservations from "./MilestoneObservations";
-
-const AUTHORISATION_LABELS: Record<string, string> = {
-  is_parent_guardian: "Parent/guardian",
-  is_emergency_contact: "Emergency contact",
-  is_authorised_nominee: "Authorised pickup",
-  can_consent_medical_treatment: "Medical treatment consent",
-  can_authorise_medication: "Medication consent",
-  can_authorise_excursions: "Excursion consent",
-};
+import { AUTHORISATION_LABELS } from "@/lib/childContactLabels";
+import { getEnrolmentDocuments } from "@/lib/supabase/enrolmentSubmissions";
 
 const INVITE_STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
@@ -62,7 +55,19 @@ export default async function ChildDetailPage({
   if (!child) notFound();
 
   const supabase = await createClient();
-  const [observations, invites, contacts, rooms, myRole, { data: attendanceDays }, milestones, { data: milestoneObs }] = await Promise.all([
+  const [
+    observations,
+    invites,
+    contacts,
+    rooms,
+    myRole,
+    { data: attendanceDays },
+    milestones,
+    { data: milestoneObs },
+    { count: pendingSubmissionCount },
+    { count: pendingDocumentCount },
+    { count: pendingContactCount },
+  ] = await Promise.all([
     getObservations(id),
     getChildInvites(id),
     getChildContacts(id),
@@ -71,7 +76,17 @@ export default async function ChildDetailPage({
     supabase.from("child_attendance_days").select("day_of_week, session_type").eq("child_id", id),
     getDevelopmentalMilestones(),
     supabase.from("child_milestone_observations").select("*").eq("child_id", id).order("observed_at", { ascending: false }),
+    supabase.from("child_enrolment_submissions").select("id", { count: "exact", head: true }).eq("child_id", id).eq("status", "pending"),
+    supabase.from("child_enrolment_documents").select("id", { count: "exact", head: true }).eq("child_id", id).eq("status", "pending"),
+    supabase.from("child_contact_submissions").select("id", { count: "exact", head: true }).eq("child_id", id).eq("status", "pending"),
   ]);
+  const pendingEnrolmentReviewCount =
+    (pendingSubmissionCount ?? 0) + (pendingDocumentCount ?? 0) + (pendingContactCount ?? 0);
+
+  const enrolmentDocuments = await getEnrolmentDocuments(id);
+  const uncertifiedImmunisationDocument = enrolmentDocuments.find(
+    (d) => d.document_type === "immunisation_statement" && d.status === "approved",
+  );
   const canManage = myRole === "director" || myRole === "2ic";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
@@ -98,6 +113,17 @@ export default async function ChildDetailPage({
             className="rounded-full border border-sage-light px-3 py-1.5 text-xs font-semibold text-sage-dark hover:bg-sage-light transition-colors"
           >
             Portfolio →
+          </Link>
+          <Link
+            href={`/children/${child.id}/enrolment-review`}
+            className="relative rounded-full border border-coral-light px-3 py-1.5 text-xs font-semibold text-coral-dark hover:bg-coral-light transition-colors"
+          >
+            Enrolment updates →
+            {pendingEnrolmentReviewCount > 0 && (
+              <span className="ml-1.5 rounded-full bg-coral px-1.5 py-0.5 text-[10px] font-bold text-white">
+                {pendingEnrolmentReviewCount}
+              </span>
+            )}
           </Link>
           <PrintButton />
         </div>
@@ -362,6 +388,15 @@ export default async function ChildDetailPage({
           Under No Jab No Play, services must sight a current AIR Immunisation History Statement from myGov
           before attendance. Medical exemptions and approved catch-up schedules are accepted alternatives.
         </p>
+        {uncertifiedImmunisationDocument && (
+          <p className="mb-4 rounded-xl bg-amber-light px-3 py-2 text-xs text-amber-dark">
+            {child.first_name}&apos;s family uploaded an immunisation statement that&apos;s been filed —{" "}
+            <Link href={`/children/${child.id}/enrolment-review`} className="font-semibold underline">
+              view it and update the status below
+            </Link>{" "}
+            once you&apos;ve sighted it.
+          </p>
+        )}
         <form action={async (fd: FormData) => { "use server"; await updateImmunisationStatus(fd); }} className="space-y-3">
           <input type="hidden" name="child_id" value={child.id} />
           <div>

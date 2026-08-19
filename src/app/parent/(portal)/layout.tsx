@@ -46,6 +46,7 @@ export default async function ParentPortalLayout({
   const NAV_LINKS = [
     { href: "/parent", label: "Home" },
     { href: "/parent/file", label: "My File" },
+    { href: "/parent/enrolment", label: "Update Enrolment" },
     { href: "/parent/observations", label: "Observations" },
     { href: "/parent/diary", label: "Diary" },
     { href: "/parent/messages", label: "Messages" },

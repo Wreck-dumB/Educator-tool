@@ -311,6 +311,146 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["child_contacts"]["Insert"]>;
         Relationships: [];
       };
+      child_enrolment_submissions: {
+        Row: {
+          id: string;
+          child_id: string;
+          educator_user_id: string;
+          submitted_by: string;
+          first_name: string | null;
+          date_of_birth: string | null;
+          current_interests: string | null;
+          additional_needs: string | null;
+          address: string | null;
+          medical_practice_name: string | null;
+          medical_practice_phone: string | null;
+          medicare_number: string | null;
+          medical_conditions: string | null;
+          is_anaphylaxis_risk: boolean | null;
+          medical_management_plan: string | null;
+          dietary_restrictions: string | null;
+          status: "pending" | "approved" | "rejected";
+          moderated_by: string | null;
+          moderated_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          educator_user_id: string;
+          submitted_by: string;
+          first_name?: string | null;
+          date_of_birth?: string | null;
+          current_interests?: string | null;
+          additional_needs?: string | null;
+          address?: string | null;
+          medical_practice_name?: string | null;
+          medical_practice_phone?: string | null;
+          medicare_number?: string | null;
+          medical_conditions?: string | null;
+          is_anaphylaxis_risk?: boolean | null;
+          medical_management_plan?: string | null;
+          dietary_restrictions?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          moderated_by?: string | null;
+          moderated_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_enrolment_submissions"]["Insert"]>;
+        Relationships: [];
+      };
+      child_enrolment_documents: {
+        Row: {
+          id: string;
+          child_id: string;
+          educator_user_id: string;
+          uploaded_by: string;
+          document_type: "immunisation_statement" | "medical_management_plan" | "court_order" | "enrolment_form" | "other";
+          storage_path: string;
+          original_filename: string;
+          file_size: number | null;
+          mime_type: string | null;
+          notes: string | null;
+          status: "pending" | "approved" | "rejected";
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          educator_user_id: string;
+          uploaded_by: string;
+          document_type: "immunisation_statement" | "medical_management_plan" | "court_order" | "enrolment_form" | "other";
+          storage_path: string;
+          original_filename: string;
+          file_size?: number | null;
+          mime_type?: string | null;
+          notes?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          reviewed_by?: string | null;
+          reviewed_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_enrolment_documents"]["Insert"]>;
+        Relationships: [];
+      };
+      child_contact_submissions: {
+        Row: {
+          id: string;
+          child_id: string;
+          educator_user_id: string;
+          submitted_by: string;
+          action: "add" | "update" | "remove";
+          existing_contact_id: string | null;
+          full_name: string | null;
+          relationship: string | null;
+          phone: string | null;
+          email: string | null;
+          is_parent_guardian: boolean;
+          is_emergency_contact: boolean;
+          is_authorised_nominee: boolean;
+          can_consent_medical_treatment: boolean;
+          can_authorise_medication: boolean;
+          can_authorise_excursions: boolean;
+          notes: string | null;
+          status: "pending" | "approved" | "rejected";
+          moderated_by: string | null;
+          moderated_at: string | null;
+          rejection_reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          child_id: string;
+          educator_user_id: string;
+          submitted_by: string;
+          action: "add" | "update" | "remove";
+          existing_contact_id?: string | null;
+          full_name?: string | null;
+          relationship?: string | null;
+          phone?: string | null;
+          email?: string | null;
+          is_parent_guardian?: boolean;
+          is_emergency_contact?: boolean;
+          is_authorised_nominee?: boolean;
+          can_consent_medical_treatment?: boolean;
+          can_authorise_medication?: boolean;
+          can_authorise_excursions?: boolean;
+          notes?: string | null;
+          status?: "pending" | "approved" | "rejected";
+          moderated_by?: string | null;
+          moderated_at?: string | null;
+          rejection_reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["child_contact_submissions"]["Insert"]>;
+        Relationships: [];
+      };
       materials: {
         Row: {
           id: string;
@@ -1994,7 +2134,7 @@ export interface Database {
         Row: {
           id: string;
           recipient_user_id: string;
-          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update" | "daily_summary";
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update" | "daily_summary" | "enrolment_update_reviewed";
           title: string;
           body: string | null;
           href: string | null;
@@ -2004,7 +2144,7 @@ export interface Database {
         Insert: {
           id?: string;
           recipient_user_id: string;
-          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update" | "daily_summary";
+          type: "observation_shared" | "new_message" | "permission_slip" | "wall_post_approved" | "absence_acknowledged" | "broadcast_message" | "incident_update" | "daily_summary" | "enrolment_update_reviewed";
           title: string;
           body?: string | null;
           href?: string | null;
