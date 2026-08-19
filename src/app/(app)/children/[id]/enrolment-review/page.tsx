@@ -275,7 +275,7 @@ export default async function EnrolmentReviewPage({
                 {c.action !== "remove" && (
                   <div className="mt-1 text-xs text-ink/60">
                     <p>{c.relationship}</p>
-                    <p>{[c.phone, c.email].filter(Boolean).join(" · ")}</p>
+                    <p>{[c.phone, c.email, c.address].filter(Boolean).join(" · ")}</p>
                     <div className="mt-1 flex flex-wrap gap-1">
                       {Object.entries(AUTHORISATION_LABELS)
                         .filter(([key]) => c[key as keyof typeof c])

@@ -134,6 +134,8 @@ export interface Database {
           immunisation_notes: string | null;
           room_id: string | null;
           enrolment_ended_at: string | null;
+          enrolment_proof_exemption_category: "out_of_home_care" | "guardianship_order" | "atsi" | "emergency_care" | "state_of_emergency" | null;
+          enrolment_proof_exemption_deadline: string | null;
           created_at: string;
         };
         Insert: {
@@ -156,6 +158,8 @@ export interface Database {
           immunisation_notes?: string | null;
           room_id?: string | null;
           enrolment_ended_at?: string | null;
+          enrolment_proof_exemption_category?: "out_of_home_care" | "guardianship_order" | "atsi" | "emergency_care" | "state_of_emergency" | null;
+          enrolment_proof_exemption_deadline?: string | null;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["children"]["Insert"]>;
@@ -282,12 +286,15 @@ export interface Database {
           relationship: string | null;
           phone: string | null;
           email: string | null;
+          address: string | null;
           is_parent_guardian: boolean;
           is_emergency_contact: boolean;
           is_authorised_nominee: boolean;
           can_consent_medical_treatment: boolean;
           can_authorise_medication: boolean;
           can_authorise_excursions: boolean;
+          is_not_authorised_to_collect: boolean;
+          restriction_notes: string | null;
           notes: string | null;
           created_at: string;
         };
@@ -299,12 +306,15 @@ export interface Database {
           relationship?: string | null;
           phone?: string | null;
           email?: string | null;
+          address?: string | null;
           is_parent_guardian?: boolean;
           is_emergency_contact?: boolean;
           is_authorised_nominee?: boolean;
           can_consent_medical_treatment?: boolean;
           can_authorise_medication?: boolean;
           can_authorise_excursions?: boolean;
+          is_not_authorised_to_collect?: boolean;
+          restriction_notes?: string | null;
           notes?: string | null;
           created_at?: string;
         };
@@ -411,6 +421,7 @@ export interface Database {
           relationship: string | null;
           phone: string | null;
           email: string | null;
+          address: string | null;
           is_parent_guardian: boolean;
           is_emergency_contact: boolean;
           is_authorised_nominee: boolean;
@@ -435,6 +446,7 @@ export interface Database {
           relationship?: string | null;
           phone?: string | null;
           email?: string | null;
+          address?: string | null;
           is_parent_guardian?: boolean;
           is_emergency_contact?: boolean;
           is_authorised_nominee?: boolean;

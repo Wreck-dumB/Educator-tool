@@ -15,6 +15,8 @@ import {
   deleteChildContact,
   setAttendanceDays,
   updateImmunisationStatus,
+  setContactRestriction,
+  setEnrolmentProofExemption,
 } from "@/app/(app)/children/actions";
 import { createClient } from "@/lib/supabase/server";
 import { getObservations } from "@/lib/supabase/observations";
@@ -86,6 +88,11 @@ export default async function ChildDetailPage({
   const enrolmentDocuments = await getEnrolmentDocuments(id);
   const uncertifiedImmunisationDocument = enrolmentDocuments.find(
     (d) => d.document_type === "immunisation_statement" && d.status === "approved",
+  );
+  const hasActiveEnrolmentProofExemption = Boolean(
+    child.enrolment_proof_exemption_category &&
+      child.enrolment_proof_exemption_deadline &&
+      new Date(child.enrolment_proof_exemption_deadline) >= new Date(new Date().toDateString()),
   );
   const canManage = myRole === "director" || myRole === "2ic";
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -364,9 +371,9 @@ export default async function ChildDetailPage({
         </div>
       </div>
 
-      {/* Immunisation tracking (No Jab No Play compliance) */}
+      {/* Immunisation tracking — NSW Public Health Act 2010 enrolment proof requirement */}
       <div className={`mt-6 p-5 ${cardClass} ${
-        child.immunisation_status === "not_sighted" || child.immunisation_status === "overdue"
+        (child.immunisation_status === "not_sighted" || child.immunisation_status === "overdue") && !hasActiveEnrolmentProofExemption
           ? "border-coral/40 bg-coral/5"
           : child.immunisation_status === "up_to_date"
           ? "border-sage-dark/30 bg-sage-light/30"
@@ -374,19 +381,32 @@ export default async function ChildDetailPage({
       }`}>
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display text-sm font-semibold text-ink">Immunisation status</h2>
-          {child.immunisation_status === "not_sighted" && (
-            <span className="rounded-full bg-coral/15 px-2 py-0.5 text-xs font-semibold text-coral-dark">Action required</span>
-          )}
-          {child.immunisation_status === "overdue" && (
-            <span className="rounded-full bg-coral px-2 py-0.5 text-xs font-semibold text-white">Overdue</span>
-          )}
-          {child.immunisation_status === "up_to_date" && (
-            <span className="rounded-full bg-sage-dark/20 px-2 py-0.5 text-xs font-semibold text-sage-dark">Up to date</span>
+          {hasActiveEnrolmentProofExemption ? (
+            <span className="rounded-full bg-sage-dark/20 px-2 py-0.5 text-xs font-semibold text-sage-dark">
+              Exempt until {new Date(child.enrolment_proof_exemption_deadline!).toLocaleDateString("en-AU")}
+            </span>
+          ) : (
+            <>
+              {child.immunisation_status === "not_sighted" && (
+                <span className="rounded-full bg-coral/15 px-2 py-0.5 text-xs font-semibold text-coral-dark">Action required</span>
+              )}
+              {child.immunisation_status === "overdue" && (
+                <span className="rounded-full bg-coral px-2 py-0.5 text-xs font-semibold text-white">Overdue</span>
+              )}
+              {child.immunisation_status === "up_to_date" && (
+                <span className="rounded-full bg-sage-dark/20 px-2 py-0.5 text-xs font-semibold text-sage-dark">Up to date</span>
+              )}
+            </>
           )}
         </div>
         <p className="text-xs text-ink/50 mb-4">
-          Under No Jab No Play, services must sight a current AIR Immunisation History Statement from myGov
-          before attendance. Medical exemptions and approved catch-up schedules are accepted alternatives.
+          Under the NSW Public Health Act 2010, a director must not enrol a child without one of: a vaccination
+          certificate (AIR Immunisation History Statement showing fully vaccinated for age), a medical exemption
+          certificate, or an approved catch-up schedule certificate — enrolling without one risks a $5,500
+          penalty per incident. Out-of-home care, guardianship-order, Aboriginal/Torres Strait Islander,
+          emergency-care, and declared-state-of-emergency children are exempt from providing proof before
+          enrolling, but must still provide it within 12 weeks — record that below rather than leaving the
+          status as "not sighted".
         </p>
         {uncertifiedImmunisationDocument && (
           <p className="mb-4 rounded-xl bg-amber-light px-3 py-2 text-xs text-amber-dark">
@@ -430,21 +450,73 @@ export default async function ChildDetailPage({
           </div>
           <button type="submit" className={secondaryButtonClass}>Update immunisation record</button>
         </form>
+
+        <details className="mt-4 border-t border-coral-light pt-3">
+          <summary className="cursor-pointer text-xs font-semibold text-coral-dark">
+            Enrolment-proof exemption (out-of-home care / guardianship / ATSI / emergency)
+          </summary>
+          <form
+            action={async (fd: FormData) => { "use server"; await setEnrolmentProofExemption(fd); }}
+            className="mt-3 space-y-3"
+          >
+            <input type="hidden" name="child_id" value={child.id} />
+            <div>
+              <label className="block text-xs font-medium text-ink/70 mb-1">Exemption category</label>
+              <select
+                name="enrolment_proof_exemption_category"
+                defaultValue={child.enrolment_proof_exemption_category ?? ""}
+                className={inputClass}
+              >
+                <option value="">— None —</option>
+                <option value="out_of_home_care">Out-of-home care</option>
+                <option value="guardianship_order">Guardianship order</option>
+                <option value="atsi">Aboriginal or Torres Strait Islander</option>
+                <option value="emergency_care">Emergency care</option>
+                <option value="state_of_emergency">Declared state of emergency</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-ink/70 mb-1">
+                Proof must still be provided by (defaults to 12 weeks)
+              </label>
+              <input
+                type="date"
+                name="enrolment_proof_exemption_deadline"
+                defaultValue={
+                  child.enrolment_proof_exemption_deadline ??
+                  new Date(Date.now() + 84 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10)
+                }
+                className={inputClass}
+              />
+            </div>
+            <button type="submit" className="rounded-full border border-coral-light px-3 py-1.5 text-xs font-semibold text-coral-dark hover:bg-coral-light">
+              Save exemption
+            </button>
+          </form>
+        </details>
       </div>
 
       <div className={`mt-6 p-5 print:border print:border-black print:bg-white ${cardClass}`}>
         <h2 className="font-display text-sm font-semibold text-ink print:text-black">Contacts &amp; authorisations</h2>
         <ul className="mt-3 divide-y divide-coral-light">
           {contacts.map((contact) => (
-            <li key={contact.id} className="py-3">
+            <li key={contact.id} className={`py-3 ${contact.is_not_authorised_to_collect ? "bg-coral/5 -mx-3 px-3 rounded-lg" : ""}`}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-medium text-ink print:text-black">
                     {contact.full_name} {contact.relationship && <span className="text-ink/50">({contact.relationship})</span>}
+                    {contact.is_not_authorised_to_collect && (
+                      <span className="ml-2 rounded-full bg-coral px-2 py-0.5 text-xs font-bold text-white">
+                        NOT authorised to collect
+                      </span>
+                    )}
                   </p>
                   <p className="text-xs text-ink/60 print:text-black">
-                    {[contact.phone, contact.email].filter(Boolean).join(" · ")}
+                    {[contact.phone, contact.email, contact.address].filter(Boolean).join(" · ")}
                   </p>
+                  {contact.restriction_notes && (
+                    <p className="mt-1 text-xs font-medium text-coral-dark">⚠ {contact.restriction_notes}</p>
+                  )}
                   <div className="mt-1 flex flex-wrap gap-1">
                     {Object.entries(AUTHORISATION_LABELS)
                       .filter(([key]) => contact[key as keyof typeof contact])
@@ -457,6 +529,36 @@ export default async function ChildDetailPage({
                         </span>
                       ))}
                   </div>
+                  {canManage && (
+                    <details className="mt-2 print:hidden">
+                      <summary className="cursor-pointer text-xs text-ink/40 hover:text-coral-dark">
+                        Court order / pickup restriction
+                      </summary>
+                      <form action={setContactRestriction} className="mt-2 space-y-2">
+                        <input type="hidden" name="contact_id" value={contact.id} />
+                        <input type="hidden" name="child_id" value={child.id} />
+                        <label className="flex items-center gap-2 text-xs text-ink/70">
+                          <input
+                            type="checkbox"
+                            name="is_not_authorised_to_collect"
+                            defaultChecked={contact.is_not_authorised_to_collect}
+                            className="h-3.5 w-3.5 rounded border-coral-light"
+                          />
+                          Not authorised to collect this child (per a sighted court/parenting order)
+                        </label>
+                        <input
+                          name="restriction_notes"
+                          type="text"
+                          placeholder="e.g. Family Court order dated ... — sighted by [staff name]"
+                          defaultValue={contact.restriction_notes ?? ""}
+                          className={`${inputClass} mt-0`}
+                        />
+                        <button type="submit" className="rounded-full border border-coral-light px-3 py-1 text-xs font-semibold text-coral-dark hover:bg-coral-light">
+                          Save
+                        </button>
+                      </form>
+                    </details>
+                  )}
                 </div>
                 {canManage && (
                   <form action={deleteChildContact} className="print:hidden">
@@ -484,6 +586,7 @@ export default async function ChildDetailPage({
               <input name="phone" type="text" placeholder="Phone" className={inputClass} />
               <input name="email" type="email" placeholder="Email" className={inputClass} />
             </div>
+            <input name="address" type="text" placeholder="Address" className={inputClass} />
             <div className="grid grid-cols-2 gap-2 text-sm text-ink/70">
               {Object.entries(AUTHORISATION_LABELS).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2">

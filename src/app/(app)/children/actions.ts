@@ -229,6 +229,7 @@ export async function createChildContact(formData: FormData) {
     relationship: (formData.get("relationship") as string)?.trim() || null,
     phone: (formData.get("phone") as string)?.trim() || null,
     email: (formData.get("email") as string)?.trim() || null,
+    address: (formData.get("address") as string)?.trim() || null,
     is_parent_guardian: formData.get("is_parent_guardian") === "on",
     is_emergency_contact: formData.get("is_emergency_contact") === "on",
     is_authorised_nominee: formData.get("is_authorised_nominee") === "on",
@@ -314,6 +315,59 @@ export async function updateImmunisationStatus(formData: FormData): Promise<{ er
   const { error } = await supabase
     .from("children")
     .update({ immunisation_status: status as never, immunisation_checked_date: checkedDate, immunisation_notes: notes })
+    .eq("id", childId);
+  if (error) return { error: error.message };
+
+  revalidatePath(`/children/${childId}`);
+  return {};
+}
+
+// Reg 160 requires the service to record any court order/parenting order it's
+// aware of restricting who may collect the child. Deliberately staff-only —
+// a court order must be sighted by staff, never self-declared by a parent
+// about another contact.
+export async function setContactRestriction(formData: FormData) {
+  const supabase = await createClient();
+  const contactId = formData.get("contact_id") as string;
+  const childId = formData.get("child_id") as string;
+
+  const { error } = await supabase
+    .from("child_contacts")
+    .update({
+      is_not_authorised_to_collect: formData.get("is_not_authorised_to_collect") === "on",
+      restriction_notes: (formData.get("restriction_notes") as string)?.trim() || null,
+    })
+    .eq("id", contactId);
+
+  if (error) {
+    redirect(`/children/${childId}?error=${encodeURIComponent(error.message)}`);
+  }
+
+  revalidatePath(`/children/${childId}`);
+  redirect(`/children/${childId}`);
+}
+
+// NSW Health's enrolment guidance exempts five categories of child from
+// having to show immunisation proof BEFORE enrolling, given 12 weeks to
+// provide it instead: out-of-home care, a guardianship order, Aboriginal/
+// Torres Strait Islander, emergency care, or a declared state of emergency.
+// Staff-only: applying an exemption is a legal judgement call, not
+// something inferred from a parent's own submission.
+export async function setEnrolmentProofExemption(formData: FormData): Promise<{ error?: string }> {
+  const supabase = await createClient();
+  const childId = formData.get("child_id") as string;
+  const category = (formData.get("enrolment_proof_exemption_category") as string) || null;
+  const deadline = (formData.get("enrolment_proof_exemption_deadline") as string) || null;
+
+  const validCategories = ["out_of_home_care", "guardianship_order", "atsi", "emergency_care", "state_of_emergency"];
+  if (category && !validCategories.includes(category)) return { error: "Invalid exemption category" };
+
+  const { error } = await supabase
+    .from("children")
+    .update({
+      enrolment_proof_exemption_category: category as never,
+      enrolment_proof_exemption_deadline: category ? deadline : null,
+    })
     .eq("id", childId);
   if (error) return { error: error.message };
 

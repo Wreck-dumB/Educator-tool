@@ -175,6 +175,7 @@ export async function submitChildContactChange(formData: FormData) {
     relationship: field(formData, "relationship"),
     phone: field(formData, "phone"),
     email: field(formData, "email"),
+    address: field(formData, "address"),
     is_parent_guardian: formData.get("is_parent_guardian") === "on",
     is_emergency_contact: formData.get("is_emergency_contact") === "on",
     is_authorised_nominee: formData.get("is_authorised_nominee") === "on",

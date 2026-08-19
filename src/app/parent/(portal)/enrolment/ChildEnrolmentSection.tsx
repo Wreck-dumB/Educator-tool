@@ -1,4 +1,3 @@
-import { getChildContacts } from "@/lib/supabase/children";
 import { getEnrolmentSubmissions, getEnrolmentDocuments, getContactSubmissions } from "@/lib/supabase/enrolmentSubmissions";
 import { cardClass, inputClass, secondaryButtonClass } from "@/lib/ui";
 import { AUTHORISATION_LABELS } from "@/lib/childContactLabels";
@@ -11,7 +10,7 @@ import {
   submitChildContactChange,
   deleteOwnPendingContactSubmission,
 } from "./actions";
-import type { ChildContact, ChildProfile } from "@/lib/types/domain";
+import type { ChildProfile } from "@/lib/types/domain";
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   immunisation_statement: "Immunisation history statement",
@@ -34,8 +33,7 @@ const STATUS_TEXT: Record<string, string> = {
 };
 
 export default async function ChildEnrolmentSection({ child }: { child: ChildProfile }) {
-  const [contacts, submissions, documents, contactSubmissions] = await Promise.all([
-    getChildContacts(child.id),
+  const [submissions, documents, contactSubmissions] = await Promise.all([
     getEnrolmentSubmissions(child.id),
     getEnrolmentDocuments(child.id),
     getContactSubmissions(child.id),
@@ -187,60 +185,10 @@ export default async function ChildEnrolmentSection({ child }: { child: ChildPro
       {/* Emergency / authorised-pickup contacts */}
       <div className={`p-5 ${cardClass}`}>
         <h3 className="font-display text-sm font-semibold text-ink">Emergency &amp; authorised-pickup contacts</h3>
-        <p className="mt-1 text-xs text-ink/50">Currently on file:</p>
-        <ul className="mt-2 divide-y divide-coral-light">
-          {contacts.map((contact: ChildContact) => (
-            <li key={contact.id} className="py-3">
-              <p className="text-sm font-medium text-ink">
-                {contact.full_name} {contact.relationship && <span className="text-ink/50">({contact.relationship})</span>}
-              </p>
-              <p className="text-xs text-ink/60">{[contact.phone, contact.email].filter(Boolean).join(" · ")}</p>
-              <div className="mt-1 flex flex-wrap gap-1">
-                {Object.entries(AUTHORISATION_LABELS)
-                  .filter(([key]) => contact[key as keyof typeof contact])
-                  .map(([key, label]) => (
-                    <span key={key} className="rounded-full bg-sage-light px-2 py-0.5 text-xs font-medium text-sage-dark">
-                      {label}
-                    </span>
-                  ))}
-              </div>
-              <details className="mt-2">
-                <summary className="cursor-pointer text-xs font-medium text-coral-dark">Propose an edit or removal</summary>
-                <form action={submitChildContactChange} className="mt-2 space-y-2">
-                  <input type="hidden" name="child_id" value={child.id} />
-                  <input type="hidden" name="existing_contact_id" value={contact.id} />
-                  <div className="flex gap-2">
-                    <label className="flex items-center gap-1 text-xs text-ink/70">
-                      <input type="radio" name="action" value="update" defaultChecked /> Edit details
-                    </label>
-                    <label className="flex items-center gap-1 text-xs text-ink/70">
-                      <input type="radio" name="action" value="remove" /> Request removal
-                    </label>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input name="full_name" type="text" placeholder="Full name" defaultValue={contact.full_name} className={inputClass} />
-                    <input name="relationship" type="text" placeholder="Relationship" defaultValue={contact.relationship ?? ""} className={inputClass} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input name="phone" type="text" placeholder="Phone" defaultValue={contact.phone ?? ""} className={inputClass} />
-                    <input name="email" type="email" placeholder="Email" defaultValue={contact.email ?? ""} className={inputClass} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-1 text-xs text-ink/70">
-                    {Object.entries(AUTHORISATION_LABELS).map(([key, label]) => (
-                      <label key={key} className="flex items-center gap-1">
-                        <input type="checkbox" name={key} defaultChecked={Boolean(contact[key as keyof typeof contact])} className="h-3.5 w-3.5 rounded border-coral-light" />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                  <button type="submit" className="rounded-full border border-coral-light px-3 py-1 text-xs font-semibold text-coral-dark hover:bg-coral-light">
-                    Submit for review
-                  </button>
-                </form>
-              </details>
-            </li>
-          ))}
-        </ul>
+        <p className="mt-1 text-xs text-ink/50">
+          To change or remove an existing contact, ask the service directly — the current list isn&apos;t
+          shown here. You can propose a new contact below.
+        </p>
 
         <details className="mt-4">
           <summary className="cursor-pointer text-sm font-medium text-coral-dark">Propose a new contact</summary>
@@ -255,6 +203,7 @@ export default async function ChildEnrolmentSection({ child }: { child: ChildPro
               <input name="phone" type="text" placeholder="Phone" className={inputClass} />
               <input name="email" type="email" placeholder="Email" className={inputClass} />
             </div>
+            <input name="address" type="text" placeholder="Address" className={inputClass} />
             <div className="grid grid-cols-2 gap-2 text-sm text-ink/70">
               {Object.entries(AUTHORISATION_LABELS).map(([key, label]) => (
                 <label key={key} className="flex items-center gap-2">
