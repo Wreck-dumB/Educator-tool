@@ -40,10 +40,10 @@ export default async function AccessPausedPage() {
         </p>
         <p>
           <a
-            href="mailto:support@sparkplay.app?subject=Reactivate%20my%20DR.%20SparkPlay%20access"
+            href="mailto:support@drsparkplay.com.au?subject=Reactivate%20my%20DR.%20SparkPlay%20access"
             className="font-medium text-coral-dark hover:underline"
           >
-            support@sparkplay.app
+            support@drsparkplay.com.au
           </a>
         </p>
         <form action={logout} className="pt-2">

@@ -3,7 +3,7 @@
 // in-app notifications still work, email is a bonus layer.
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_ADDRESS = process.env.EMAIL_FROM ?? "DR. SparkPlay <noreply@sparkplayapp.com.au>";
+const FROM_ADDRESS = process.env.EMAIL_FROM ?? "DR. SparkPlay <noreply@drsparkplay.com.au>";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 interface EmailPayload {

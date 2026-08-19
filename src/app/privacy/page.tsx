@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = { title: "Privacy Policy · DR. SparkPlay" };
 
 const EFFECTIVE_DATE = "12 July 2026";
-const CONTACT_EMAIL = "privacy@sparkplay.app";
+const CONTACT_EMAIL = "privacy@drsparkplay.com.au";
 
 export default function PrivacyPolicyPage() {
   return (

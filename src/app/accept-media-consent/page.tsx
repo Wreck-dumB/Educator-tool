@@ -94,8 +94,8 @@ export default async function AcceptMediaConsentPage() {
 
       <p className="mt-4 text-center text-xs text-ink/40">
         Questions?{" "}
-        <a href="mailto:support@sparkplay.app" className="underline hover:text-coral-dark">
-          support@sparkplay.app
+        <a href="mailto:support@drsparkplay.com.au" className="underline hover:text-coral-dark">
+          support@drsparkplay.com.au
         </a>
       </p>
     </>

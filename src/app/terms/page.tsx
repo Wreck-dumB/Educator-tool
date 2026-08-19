@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = { title: "Terms of Service · DR. SparkPlay" };
 
 const EFFECTIVE_DATE = "12 July 2026";
-const CONTACT_EMAIL = "support@sparkplay.app";
+const CONTACT_EMAIL = "support@drsparkplay.com.au";
 
 export default function TermsPage() {
   return (

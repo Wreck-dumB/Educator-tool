@@ -59,7 +59,7 @@ export default async function AppLayout({
               <div className="flex gap-4">
                 <a href="/privacy" className="hover:text-ink/60 hover:underline">Privacy Policy</a>
                 <a href="/terms" className="hover:text-ink/60 hover:underline">Terms of Service</a>
-                <a href="mailto:support@sparkplay.app" className="hover:text-ink/60 hover:underline">Contact</a>
+                <a href="mailto:support@drsparkplay.com.au" className="hover:text-ink/60 hover:underline">Contact</a>
               </div>
             </div>
           </footer>

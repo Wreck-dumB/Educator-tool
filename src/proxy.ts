@@ -103,6 +103,13 @@ export const config = {
     // entirely, or error reports sent before a user is authenticated (e.g.
     // a crash on the login page itself) would get redirected to /login
     // instead of actually reaching Sentry.
-    "/((?!_next/static|_next/image|favicon.ico|monitoring|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    //
+    // /api/billing/webhook is Stripe's server-to-server callback -- it has
+    // no Supabase session cookie by definition and authenticates purely via
+    // its own signature check (lib/stripe.ts webhooks.constructEvent). Found
+    // 2026-08-19 during first real end-to-end checkout test: every webhook
+    // POST was silently 307-redirected to /login before reaching the route
+    // handler at all, so no subscription ever actually granted credits.
+    "/((?!_next/static|_next/image|favicon.ico|monitoring|api/billing/webhook|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
