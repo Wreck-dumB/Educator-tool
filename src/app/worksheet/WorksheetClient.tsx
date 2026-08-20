@@ -75,11 +75,11 @@ function ImageDisplay({
   if (failed) {
     return (
       <div
-        className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-coral-light bg-coral-light/10 px-4 text-center print:hidden"
+        className="flex flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-coral-light bg-coral-light/10 px-4 text-center"
         style={{ height: `${height}px`, width: "100%" }}
       >
         <p className="text-sm font-medium text-coral-dark">Image couldn&apos;t be generated</p>
-        <p className="text-xs text-ink/40">The free image service may be busy or unavailable right now — try again shortly.</p>
+        <p className="text-xs text-ink/40 print:hidden">The free image service may be busy or unavailable right now — try again shortly.</p>
       </div>
     );
   }
@@ -559,16 +559,19 @@ function CardSetTemplate({ items, title, pairs = true }: { items: string[]; titl
                         onError={() => handleImageLoadError(itemIndex)}
                       />
                     ) : image?.error ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setImages((prev) => prev.map((c, idx) => (idx === itemIndex ? { ...c, attempt: 0 } : c)));
-                          fetchCardImage(itemIndex, label);
-                        }}
-                        className="text-xs font-medium text-coral-dark underline print:hidden"
-                      >
-                        Image failed — retry
-                      </button>
+                      <div className="flex flex-col items-center gap-1 px-2 text-center">
+                        <span className="hidden text-xs font-medium text-coral-dark print:inline">Image unavailable</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setImages((prev) => prev.map((c, idx) => (idx === itemIndex ? { ...c, attempt: 0 } : c)));
+                            fetchCardImage(itemIndex, label);
+                          }}
+                          className="text-xs font-medium text-coral-dark underline print:hidden"
+                        >
+                          Image failed — retry
+                        </button>
+                      </div>
                     ) : (
                       <span className="text-xs text-ink/30">Generating…</span>
                     )}
