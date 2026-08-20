@@ -6,6 +6,7 @@ import {
   SINGLE_LINE_FONT_CAP_TOP,
   SINGLE_LINE_FONT_BASELINE,
   SINGLE_LINE_FONT_SPACE_WIDTH,
+  type SingleLineGlyph,
 } from "@/lib/utils/singleLineFont";
 
 type TemplateType = "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups";
@@ -116,13 +117,70 @@ function ImageDisplay({
 // line data instead, which SINGLE_LINE_FONT provides.
 const SINGLE_LINE_GLYPH_HEIGHT = SINGLE_LINE_FONT_BASELINE - SINGLE_LINE_FONT_CAP_TOP;
 const SINGLE_LINE_DEFAULT_ADVANCE = 8;
+// Gap between glyphs, in font-native units, on top of each glyph's own ink extent.
+const SINGLE_LINE_LETTER_GAP = 4;
+
+// The font table's `width` field is unreliable (roughly half a glyph's real ink
+// extent for many letters, e.g. "W" is 12 but its strokes reach x=22) — trusting
+// it as the advance width makes consecutive letters overlap. Measure the actual
+// rightmost x used by the glyph's path instead, so advance always clears the ink.
+function glyphAdvance(glyph: SingleLineGlyph): number {
+  const coords = glyph.d.match(/-?\d+(\.\d+)?/g);
+  let maxX = glyph.width;
+  if (coords) {
+    for (let i = 0; i < coords.length; i += 2) {
+      const x = Number(coords[i]);
+      if (x > maxX) maxX = x;
+    }
+  }
+  return maxX;
+}
+
+// A glyph's `d` often packs several disconnected strokes into one path (e.g. "H"
+// is two verticals + a crossbar). A single fixed-unit dasharray spread over the
+// whole thing lands dots wherever the cumulative length happens to fall, so each
+// stroke's *own* endpoint — like the foot of a downstroke sitting on the baseline
+// — only gets a dot by chance, otherwise it ends mid-gap and the letter looks like
+// it's floating above the line it's mathematically sitting on. Splitting into one
+// <path> per stroke lets each one get its own dash pattern instead.
+function splitStrokes(d: string): string[] {
+  return d.split(/(?=M)/).map((s) => s.trim()).filter(Boolean);
+}
+
+// Every glyph in this font is straight M/L segments (no curves), so a stroke's
+// real length is just the sum of its point-to-point distances.
+function strokeLength(d: string): number {
+  const coords = d.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? [];
+  let len = 0;
+  for (let i = 2; i + 1 < coords.length; i += 2) {
+    len += Math.hypot(coords[i] - coords[i - 2], coords[i + 1] - coords[i - 1]);
+  }
+  return len;
+}
+
+// Target dot size/spacing, in font-native units (matches the visual density of
+// the font's previous flat "1 3.4" dasharray). A fixed dasharray on strokes of
+// very different lengths (an "i" stem vs. an "N" diagonal) either vanishes on
+// short strokes or looks nearly solid on long ones, so instead each stroke gets
+// its own dasharray scaled so a whole number of repeats fits exactly — keeping
+// dot size roughly constant while still landing a dot at both of its ends.
+const DOT_UNIT = 1;
+const GAP_UNIT = 3.4;
+function strokeDasharray(d: string): string {
+  const len = strokeLength(d);
+  const repeat = DOT_UNIT + GAP_UNIT;
+  const reps = Math.max(1, Math.round(len / repeat));
+  const scaledRepeat = len / reps;
+  const dot = scaledRepeat * (DOT_UNIT / repeat);
+  return `${dot} ${scaledRepeat - dot}`;
+}
 
 function SingleLineName({ name, x, baseline, capHeight, stroke }: {
   name: string; x: number; baseline: number; capHeight: number; stroke: string;
 }) {
   const scale = capHeight / SINGLE_LINE_GLYPH_HEIGHT;
   let cursor = 0;
-  const glyphs: { d: string; x: number }[] = [];
+  const glyphs: { strokes: string[]; x: number }[] = [];
   for (const char of name) {
     if (char === " ") {
       cursor += SINGLE_LINE_FONT_SPACE_WIDTH;
@@ -133,16 +191,20 @@ function SingleLineName({ name, x, baseline, capHeight, stroke }: {
       cursor += SINGLE_LINE_DEFAULT_ADVANCE;
       continue;
     }
-    glyphs.push({ d: glyph.d, x: cursor });
-    cursor += glyph.width + 1;
+    glyphs.push({ strokes: splitStrokes(glyph.d), x: cursor });
+    cursor += glyphAdvance(glyph) + SINGLE_LINE_LETTER_GAP;
   }
 
   return (
     <g transform={`translate(${x}, ${baseline - SINGLE_LINE_FONT_BASELINE * scale}) scale(${scale})`}>
       {glyphs.map((g, i) => (
-        <path key={i} d={g.d} transform={`translate(${g.x}, 0)`}
-          fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
-          strokeDasharray="1 3.4" vectorEffect="non-scaling-stroke" />
+        <g key={i} transform={`translate(${g.x}, 0)`}>
+          {g.strokes.map((strokeD, j) => (
+            <path key={j} d={strokeD}
+              fill="none" stroke={stroke} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"
+              strokeDasharray={strokeDasharray(strokeD)} vectorEffect="non-scaling-stroke" />
+          ))}
+        </g>
       ))}
     </g>
   );
