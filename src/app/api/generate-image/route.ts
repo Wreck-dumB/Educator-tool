@@ -16,9 +16,9 @@ export const maxDuration = 60;
 
 const PROMPTS = {
   outline:
-    "One single {subject} centered on a completely white background. Only one isolated object, nothing else. Bold thick black outline with white interior. No shading, no color fills, no gradients, no background details, no other objects. Simple clean shape a child can cut out with scissors. Children's coloring book single-object line art.",
+    "A black-and-white hand-drawn ink illustration of one single {subject}, centered on a completely white background. Only one isolated subject, nothing else. Children's picture-book cartoon illustration style — NOT a photograph, NOT a 3D render, NOT realistic. Bold clean outlines with some interior detail lines for facial features, patterns, and clothing, so the subject is clearly recognisable, not a flat blank silhouette. No shading, no grey fills, no color, no gradients, no background details, no other objects. Simple and bold enough for a young child to colour in or cut out with scissors.",
   colour:
-    "One single {subject} centered on a pure white background. Only this one subject, nothing else in the image at all. Bright cheerful flat cartoon illustration with bold simple colors. No background scenery, no other objects, no decorations. Suitable for early childhood education ages 3 to 6.",
+    "A bright cheerful flat cartoon illustration of one single {subject}, centered on a pure white background. Only this one subject, nothing else in the image at all. Children's picture-book cartoon illustration style — NOT a photograph, NOT a 3D render, NOT realistic. Bold simple colors, no background scenery, no other objects, no decorations. Suitable for early childhood education ages 3 to 6.",
 };
 
 export async function POST(request: Request) {
