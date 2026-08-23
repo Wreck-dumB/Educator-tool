@@ -506,14 +506,13 @@ interface CardFaceState {
 }
 
 const CARDS_PER_PAGE = 8;
-// Pollinations is free/keyless with no documented rate limit — firing many
-// requests at once trips its abuse protection (ERR_BLOCKED_BY_ORB, seen
-// empirically while building this). Spacing them out trades a bit of speed
-// for actually loading.
+// Even authenticated, Pollinations' Seed tier only allows ~1 request per 5s
+// per app — firing many requests at once for a full card set still trips its
+// abuse protection. Spacing them out trades a bit of speed for actually loading.
 const CARD_IMAGE_STAGGER_MS = 4000;
-// A rate-limit hit is usually transient (the free tier allows ~1 request per
-// few seconds per IP) — auto-retry with backoff before surfacing the manual
-// "retry" button, so a busy moment doesn't need a click to recover from.
+// A rate-limit hit is usually transient — auto-retry with backoff before
+// surfacing the manual "retry" button, so a busy moment doesn't need a click
+// to recover from.
 const MAX_AUTO_RETRIES = 2;
 const AUTO_RETRY_DELAY_MS = 6000;
 
@@ -523,6 +522,24 @@ function CardSetTemplate({ items, title, pairs = true }: { items: string[]; titl
   const [images, setImages] = useState<CardFaceState[]>(() =>
     items.map(() => ({ imageUrl: null, loading: true, error: false, attempt: 0 })),
   );
+
+  // A rate-limit/service error is usually transient — auto-retry with backoff
+  // before surfacing the manual "retry" button, so a busy moment doesn't need
+  // a click to recover from. Shared by both failure paths below: the request
+  // to our own API (which now does the real Pollinations fetch server-side,
+  // so a Pollinations-side failure surfaces here) and the <img> tag itself
+  // (kept as a defensive fallback, though a data URL practically never fails
+  // to render once it's been handed to the browser).
+  function retryOrGiveUp(i: number) {
+    setImages((prev) => {
+      const attempt = prev[i].attempt + 1;
+      if (attempt <= MAX_AUTO_RETRIES) {
+        setTimeout(() => fetchCardImage(i, items[i]), AUTO_RETRY_DELAY_MS * attempt);
+        return prev.map((c, idx) => (idx === i ? { ...c, loading: true, error: false, attempt } : c));
+      }
+      return prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c));
+    });
+  }
 
   function fetchCardImage(i: number, label: string) {
     setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: true, error: false } : c)));
@@ -534,28 +551,16 @@ function CardSetTemplate({ items, title, pairs = true }: { items: string[]; titl
       .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
       .then(({ ok, data }) => {
         if (!ok) {
-          setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c)));
+          retryOrGiveUp(i);
         } else {
           setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, imageUrl: data.imageUrl, loading: true, error: false } : c)));
         }
       })
-      .catch(() => {
-        setImages((prev) => prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c)));
-      });
+      .catch(() => retryOrGiveUp(i));
   }
 
-  // Fires when the <img> itself fails to load (e.g. Pollinations 429) —
-  // distinct from the fetch above, which only requests the URL and always
-  // succeeds even when the image behind it is about to be rate-limited.
   function handleImageLoadError(i: number) {
-    setImages((prev) => {
-      const attempt = prev[i].attempt + 1;
-      if (attempt <= MAX_AUTO_RETRIES) {
-        setTimeout(() => fetchCardImage(i, items[i]), AUTO_RETRY_DELAY_MS * attempt);
-        return prev.map((c, idx) => (idx === i ? { ...c, loading: true, error: false, attempt } : c));
-      }
-      return prev.map((c, idx) => (idx === i ? { ...c, loading: false, error: true } : c));
-    });
+    retryOrGiveUp(i);
   }
 
   useEffect(() => {

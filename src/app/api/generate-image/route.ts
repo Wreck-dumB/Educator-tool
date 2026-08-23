@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 
-// Pollinations.ai is free, requires no API key, and generates images on-demand.
-// The API accepts a prompt in the URL and returns an image directly.
+// Pollinations.ai is free and generates images on-demand from a prompt in the
+// URL. Anonymous/unauthenticated callers are capped at 1 request per 15s per
+// IP and get an immediate 429 ("Queue full for IP") on any overlap — which a
+// browser <img> fetching directly from Pollinations hits constantly (retries,
+// a card set's multiple images, two people printing at once all share the
+// server's/proxy's apparent IP in some setups). Fetching server-side with our
+// registered app's Bearer token instead avoids depending on the browser
+// correctly relaying a matching referrer header at all.
+// Generation can take 15-20s — matches the maxDuration used by the other
+// long-running AI routes in this app (document-review/route.ts).
+export const maxDuration = 60;
 
 const PROMPTS = {
   outline:
@@ -35,14 +44,38 @@ export async function POST(request: Request) {
   const prompt = PROMPTS[style].replace("{subject}", subject);
   const seed = Math.floor(Math.random() * 999999);
 
-  // Build the Pollinations URL — no API key or account needed.
   // nofeed=true prevents the image appearing in Pollinations' public gallery.
-  // model=flux now requires Pollinations auth and times out/429s for anonymous
-  // callers like us; every other model name (including omitting it) currently
+  // model=flux requires Pollinations auth and times out/429s for anonymous
+  // callers; every other model name (including omitting it) currently
   // resolves to their free "sana" model, so request that explicitly.
-  const imageUrl =
+  const pollinationsUrl =
     `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
     `?width=1024&height=1024&nologo=true&nofeed=true&model=sana&seed=${seed}`;
+
+  const token = process.env.POLLINATIONS_API_TOKEN;
+  let imgRes: Response;
+  try {
+    imgRes = await fetch(pollinationsUrl, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    });
+  } catch {
+    return NextResponse.json({ error: "Could not reach the image service" }, { status: 502 });
+  }
+
+  if (!imgRes.ok) {
+    const status = imgRes.status === 429 ? 429 : 502;
+    return NextResponse.json(
+      { error: imgRes.status === 429 ? "Image service is busy — try again shortly." : "Image generation failed" },
+      { status },
+    );
+  }
+
+  // Proxied as a data URL rather than a raw Pollinations URL so the browser's
+  // <img> tag never talks to Pollinations directly — every request goes
+  // through this authenticated server-side fetch, every time.
+  const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
+  const buf = Buffer.from(await imgRes.arrayBuffer());
+  const imageUrl = `data:${contentType};base64,${buf.toString("base64")}`;
 
   return NextResponse.json({ imageUrl });
 }
