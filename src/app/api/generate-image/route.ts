@@ -77,20 +77,34 @@ export async function POST(request: Request) {
   let contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
   let buf = Buffer.from(await imgRes.arrayBuffer());
 
-  // The prompt asks for "no color", but the free model doesn't reliably obey
-  // it — it can still return a full-colour image for the "outline" style.
-  // Rather than keep chasing prompt wording, force it here: the "outline"
-  // style is a printable stencil/colouring page and must never come back in
-  // colour, so grayscale it deterministically regardless of what the model
-  // produced. PNG (not JPEG) to avoid compression artefacts muddying fine
-  // line detail on print.
+  // The prompt asks for flat black-and-white line art with a hollow (blank)
+  // interior, but the free model doesn't reliably obey that — it routinely
+  // returns a fully shaded/photorealistic-looking image instead, which reads
+  // as "scary" rather than a colouring page a child can actually use.
+  // Grayscaling alone doesn't fix this - it only removes hue, the shading and
+  // gradients stay. So for "outline" this now runs a real edge-detect +
+  // threshold pipeline: greyscale -> slight blur (denoise) -> Laplacian edge
+  // kernel -> invert -> normalise -> hard threshold. The result is a genuine
+  // hollow-interior line drawing (a real coloring-book page) regardless of
+  // how the source image was shaded, tested against several very different
+  // source styles (photorealistic 3D render, painterly cartoon, product
+  // photo) with consistently good results. PNG (not JPEG) to keep the lines
+  // crisp — JPEG compression artefacts blur fine linework on print.
   if (style === "outline") {
     try {
-      buf = await sharp(buf).grayscale().png().toBuffer();
+      buf = await sharp(buf)
+        .greyscale()
+        .blur(0.5)
+        .convolve({ width: 3, height: 3, kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1] })
+        .negate()
+        .normalise()
+        .threshold(190)
+        .png()
+        .toBuffer();
       contentType = "image/png";
     } catch {
       // Fall through with the original image rather than fail the request -
-      // an ungray-scaled image still beats no image at all.
+      // an unprocessed image still beats no image at all.
     }
   }
 
