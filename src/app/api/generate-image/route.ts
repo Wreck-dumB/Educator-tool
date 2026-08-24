@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
 
@@ -73,8 +74,26 @@ export async function POST(request: Request) {
   // Proxied as a data URL rather than a raw Pollinations URL so the browser's
   // <img> tag never talks to Pollinations directly — every request goes
   // through this authenticated server-side fetch, every time.
-  const contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
-  const buf = Buffer.from(await imgRes.arrayBuffer());
+  let contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
+  let buf = Buffer.from(await imgRes.arrayBuffer());
+
+  // The prompt asks for "no color", but the free model doesn't reliably obey
+  // it — it can still return a full-colour image for the "outline" style.
+  // Rather than keep chasing prompt wording, force it here: the "outline"
+  // style is a printable stencil/colouring page and must never come back in
+  // colour, so grayscale it deterministically regardless of what the model
+  // produced. PNG (not JPEG) to avoid compression artefacts muddying fine
+  // line detail on print.
+  if (style === "outline") {
+    try {
+      buf = await sharp(buf).grayscale().png().toBuffer();
+      contentType = "image/png";
+    } catch {
+      // Fall through with the original image rather than fail the request -
+      // an ungray-scaled image still beats no image at all.
+    }
+  }
+
   const imageUrl = `data:${contentType};base64,${buf.toString("base64")}`;
 
   return NextResponse.json({ imageUrl });
