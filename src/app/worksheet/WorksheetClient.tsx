@@ -1089,6 +1089,16 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
     setNames((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  // For these three, the child's name IS the page's content — printing with
+  // none entered silently produces the literal placeholder word "Name",
+  // styled identically to a real one, which reads as meaningless generic
+  // lines rather than an obviously-incomplete page. Block Print rather than
+  // let that happen quietly. Every other type treats a name as optional
+  // decoration on an otherwise-complete page, so they're unaffected.
+  const requiresName = type === "name_trace" || type === "name_colouring" || type === "name_label";
+  const hasAnyName = names.some((n) => n.trim());
+  const printBlocked = requiresName && !hasAnyName;
+
   return (
     <div className="min-h-screen bg-white">
       {/* Sticky bar — hidden on print */}
@@ -1097,7 +1107,9 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
         <button
           type="button"
           onClick={() => window.print()}
-          className="rounded-full bg-coral px-4 py-1.5 text-sm font-semibold text-white hover:bg-coral-dark"
+          disabled={printBlocked}
+          title={printBlocked ? "Add at least one child's name below before printing — this worksheet needs it." : undefined}
+          className="rounded-full bg-coral px-4 py-1.5 text-sm font-semibold text-white hover:bg-coral-dark disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-coral"
         >
           🖨 Print
         </button>
@@ -1154,6 +1166,12 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
                 Add as many names as you need, then click Print — each child gets their own page.
                 Tip: type or paste several names separated by commas into one box and they&apos;ll split into rows automatically.
               </p>
+
+              {printBlocked && (
+                <p className="mt-3 rounded-lg bg-coral-dark/10 px-3 py-2 text-sm font-medium text-coral-dark">
+                  ⚠️ Add at least one child&apos;s name above — this worksheet is the child&apos;s name, so Print is disabled until one is entered.
+                </p>
+              )}
             </div>
           </div>
 
