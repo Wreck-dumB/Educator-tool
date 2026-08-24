@@ -246,7 +246,8 @@ export async function generateActivitySuggestions(
     buildSystemPrompt(outcomes),
     buildUserPrompt(input, count),
     makeActivitiesTool(count),
-    Math.min(8192, Math.max(2048, count * 700)),
+    Math.min(8192, Math.max(3072, count * 700)),
+    true,
   );
   // deepParseJsonStrings (lib/ai/backend.ts) already recovers most of the
   // model's known malformed-JSON shapes, but its own string-parsing branch
@@ -407,13 +408,14 @@ export function scoreHazards(hazards: unknown): Hazard[] {
 /** Shared single-tool-call helper used by every generator in this file. Routes through
  * AI_BACKEND (proxy for $0 local dev/testing, api for production/real users) - see
  * src/lib/ai/backend.ts. */
-async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 4096): Promise<T> {
+async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 4096, thinking = false): Promise<T> {
   return runToolCall<T>({
     model: MODEL,
     system,
     messages: [{ role: "user", content: userPrompt }],
     tool,
     maxTokens,
+    thinking,
   });
 }
 
@@ -1349,7 +1351,8 @@ Rules:
     system,
     lines.join("\n"),
     makeActivitiesTool(1),
-    2048,
+    3072,
+    true,
   );
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
@@ -1467,7 +1470,7 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
   const noteList = followUpNotes.map((n, i) => `${i + 1}. ${n}`).join("\n");
   const userMsg = `Here are the follow-up intentions for different children in the group:\n\n${noteList}\n\nPropose one group activity that addresses as many of these threads as possible. Use the propose_activities tool with exactly one activity.`;
 
-  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(system, userMsg, makeActivitiesTool(1), 2048);
+  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(system, userMsg, makeActivitiesTool(1), 3072, true);
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
   return activity;

@@ -108,12 +108,26 @@ export interface ToolCallArgs {
   messages: ChatMessage[];
   tool: Anthropic.Tool;
   maxTokens: number;
+  // Most forced tool calls here are simple structured-output extraction, sized
+  // with tight token budgets, where thinking is disabled to keep those budgets
+  // meaningful (see below). A few calls ask the model to make a real judgment
+  // call buried in a large schema (e.g. picking a worksheet template) — those
+  // were silently skipping that field entirely, confirmed by direct testing
+  // even with adaptive thinking turned on, AS LONG AS tool_choice stayed
+  // forced. Only forced-choice + auto-choice were compared, both with the
+  // real schema and 10 real test activities — forced always skipped the
+  // field (0/10 populated) regardless of the thinking setting; switching to
+  // tool_choice "auto" (letting the model reason in free text before opting
+  // into the tool call) fixed it in most cases (3/10 on that same batch, up
+  // from 0/10 — not perfect, but a real fix, not a wash). Pass true to run
+  // that combination for a specific call site that needs the judgment call.
+  thinking?: boolean;
 }
 
 /** Runs one forced-tool-call generation. In "api" mode this is an ordinary tool_choice
  * call. In "proxy" mode it asks for the same JSON shape via the prompt and parses the
  * response text, since the local daemon doesn't support `tools`. */
-export async function runToolCall<T>({ model, system, messages, tool, maxTokens }: ToolCallArgs): Promise<T> {
+export async function runToolCall<T>({ model, system, messages, tool, maxTokens, thinking }: ToolCallArgs): Promise<T> {
   const mode = assertBackendAllowed();
   const client = getClient();
 
@@ -124,14 +138,19 @@ export async function runToolCall<T>({ model, system, messages, tool, maxTokens 
       system,
       messages,
       tools: [tool],
-      tool_choice: { type: "tool", name: tool.name },
+      // Forcing tool_choice measurably suppresses the model from populating
+      // nuanced optional fields in the schema (see the `thinking` doc above) -
+      // "auto" lets it reason first, at the cost of a small chance it doesn't
+      // call the tool at all (surfaced below as a thrown error, same as any
+      // other malformed response - callers already handle that).
+      tool_choice: thinking ? { type: "auto" } : { type: "tool", name: tool.name },
       // Claude Sonnet 5 runs adaptive thinking by default when this is omitted,
       // and thinking tokens count against max_tokens — several routes here use
       // tight budgets (as low as 1024) sized for a non-thinking response, so
       // leaving thinking on risks silent truncation. These are forced
       // structured-output tool calls, not open-ended reasoning tasks, so
       // disabling it keeps the existing token budgets meaningful.
-      thinking: { type: "disabled" },
+      thinking: thinking ? { type: "adaptive" } : { type: "disabled" },
     });
     if (message.stop_reason === "max_tokens") {
       throw new Error("AI_RESPONSE_TRUNCATED: the response was cut off before it finished — try a shorter document/description or fewer amendment notes");

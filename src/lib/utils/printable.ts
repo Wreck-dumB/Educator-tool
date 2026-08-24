@@ -59,7 +59,7 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
 // name tags, table settings. Distinct from both colouring (hollow) and
 // tracing (dotted). Checked before NAME_COLOURING_KW/NAME_TRACE_KW.
 const NAME_LABEL_KW =
-  /\b(name\s+(?:label|tag|plate|placemarker|card)|place\s*(?:\s|-)?marker|place\s*card|cubby\s+label|desk\s+label|table\s+setting)\b/i;
+  /\b(name\s+(?:labels?|tags?|plates?|placemarkers?|cards?)|place\s*(?:\s|-)?markers?|place\s*cards?|cubby\s+labels?|desk\s+labels?|table\s+settings?)\b/i;
 
 // Colouring/decorating the child's own name — distinct from tracing it for
 // handwriting practice. Checked before NAME_TRACE_KW.
@@ -67,13 +67,22 @@ const NAME_COLOURING_KW =
   /\b(colour\s*(?:ing)?\s+(?:in\s+)?(?:my|your|their|his|her)?\s*name|name\s+colour|decorat\w*\s+(?:my|your|their)?\s*name)\b/i;
 
 const NAME_TRACE_KW =
-  /\b(trace\s+name|name\s+trac|write\s+(your|my|their)\s+name|name\s+practic|name\s+writ|practis\w*\s+name)\b/i;
+  /\b(trace\s+name|name\s+trac|writ\w*\s+(your|my|their|his|her)\s+(own\s+)?name|name\s+practic|name\s+writ|practis\w*\s+(writ\w*\s+)?(your|my|their|his|her)?\s*(own\s+)?name)\b/i;
 
 const CRAFT_KW =
   /\b(paste|glue|gluing|collage|craft|stamp|mould|moulding|sculpt|sculpting|fold|weave|bake|baking|cook|cooking|clay|dough|construct|assemble|stick|sticking|tear|tearing|pour|mixing|knit|sew|lace)\b/i;
 
 const DRAW_KW =
   /\b(draw|drawing|sketch|sketching|illustrat|doodle|trace\s+(the|a|an|this|picture|image|outline))\b/i;
+
+// Colouring in a picture of some subject (a character, animal, object) — not
+// the child's own name (NAME_COLOURING_KW, checked first) and not a specific
+// letter/number (letter_colouring needs letter_text, which nothing here can
+// supply — see the fallback note below). This is the "give me a picture to
+// colour in" case; it needs the outline/line-art template, same as free
+// drawing, even when craft materials like crayons are also listed — checked
+// before the materials-based activity_sheet branch for that reason.
+const COLOUR_PICTURE_KW = /\b(colour\s*(?:ing)?\s*[- ]?\s*in|colouring[- ]book|colour[- ]in)\b/i;
 
 const WRITE_KW =
   /\b(write|writing|journal|journalling|sentence|story|stories|handwriting|copy\s+the|letter\s+formation|alphabet)\b/i;
@@ -95,6 +104,11 @@ export function detectPrintTemplate(activity: ActivityShape): PrintTemplateType 
   if (NAME_LABEL_KW.test(text)) return "name_label";
   if (NAME_COLOURING_KW.test(text)) return "name_colouring";
   if (NAME_TRACE_KW.test(text)) return "name_trace";
+
+  // A picture to colour in needs the outline/line-art template even if
+  // crayons or colouring pencils are also listed as materials — check this
+  // before the materials-based activity_sheet branches below.
+  if (COLOUR_PICTURE_KW.test(text)) return "drawing_frame";
 
   // Materials-based generation is by definition hands-on
   if (activity.generation_mode === "materials") return "activity_sheet";
