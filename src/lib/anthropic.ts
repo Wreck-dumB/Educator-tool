@@ -151,6 +151,165 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
 };
 }
 
+// Deciding suggested_template (and its dependent fields: card_items,
+// card_pairs, letter_text, image_subject, matching_left/right,
+// counting_groups) is a real judgment call, and burying it as one field
+// among ~15 in the main propose_activities schema made the model skip it
+// almost every time — confirmed by direct testing (0/10 populated across a
+// varied batch, with thinking on or off, tool_choice forced or not, and
+// several prompt-reinforcement variants). Pulling the SAME decision out into
+// its own small, single-purpose forced tool call scored 10/10 on the same
+// test batch. This is that dedicated call — it runs as a second pass over
+// activities generateActivitySuggestions/generateFollowUpActivity/
+// generateGroupActivity have already produced, batched into one request
+// regardless of how many activities there are.
+export interface TemplateClassification {
+  index: number;
+  suggested_template: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | "none";
+  image_subject?: string;
+  letter_text?: string;
+  card_items?: string[];
+  card_pairs?: boolean;
+  matching_left?: string[];
+  matching_right?: string[];
+  counting_groups?: { emoji: string; label: string; count: number }[];
+}
+
+function makeClassifyTemplatesTool(): Anthropic.Tool {
+  return {
+    name: "classify_worksheet_templates",
+    description: "For each already-written activity, decide which printable worksheet template (if any) fits it, and supply the data that template needs to render.",
+    input_schema: {
+      type: "object",
+      required: ["classifications"],
+      properties: {
+        classifications: {
+          type: "array",
+          description: "Exactly one entry per input activity, in any order — matched back by 'index'.",
+          items: {
+            type: "object",
+            required: ["index", "reasoning", "suggested_template"],
+            properties: {
+              index: { type: "integer", description: "The 0-based index of the activity this classification is for, matching the input list." },
+              reasoning: {
+                type: "string",
+                description: "One short sentence: does this activity have a paper/printable component a child would use, and if so which category fits best and why. Answer this before picking suggested_template below.",
+              },
+              suggested_template: {
+                type: "string",
+                enum: ["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups", "none"],
+                description: "'name_trace' — HANDWRITING PRACTICE tracing their own name (dotted trace-guide lines per child); 'name_colouring' — NAME RECOGNITION, the child's own name in big hollow letters to colour/glue/decorate; 'name_label' — a plain SOLID (filled, not hollow or dotted) printing of the child's own name, ready to cut out — place markers, cubby/desk labels, name tags, table settings; 'letter_colouring' — a specific alphabet letter, number, or short word (NOT the child's own name) in a big hollow shape to colour — always use this instead of image_subject for letters/numbers since AI-drawn text is unreliable; 'drawing_frame' — free drawing/illustrating/painting, OR colouring in a picture of a subject that isn't the child's own name or a letter (e.g. 'colour in a dinosaur', 'colour in a book character'); 'writing_lines' — handwriting practice beyond their own name, ruled lines per child; 'card_set' — the product IS a deck of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, sorting cards) — each card has one picture + label; 'matching_pairs' — the activity EXPLICITLY has children DRAW LINES connecting two columns of paired items; 'counting_groups' — the activity EXPLICITLY has children COUNT groups of objects and WRITE the number; 'none' — purely oral, physical, or construction activity with no paper component at all.",
+              },
+              card_items: {
+                type: "array",
+                items: { type: "string" },
+                description: "REQUIRED when — and only when — suggested_template is 'card_set'. One short label per distinct card (e.g. ['Kangaroo', 'Koala', 'Wombat']). Omit entirely otherwise.",
+              },
+              card_pairs: {
+                type: "boolean",
+                description: "Only relevant when suggested_template is 'card_set'. True (default) for matching/memory/snap games where each label prints as a PAIR. False for sorting or one-card-per-item sets.",
+              },
+              letter_text: {
+                type: "string",
+                description: "REQUIRED when — and only when — suggested_template is 'letter_colouring'. The exact text to render in big hollow letters, e.g. 'S', 'Ss', '5', 'CAT'. Omit entirely otherwise.",
+              },
+              image_subject: {
+                type: "string",
+                description: "Set only when 'drawing_frame' (or a themed 'name_colouring'/'name_label') has one genuine, concrete, drawable subject — a short noun phrase an image generator can literally draw (e.g. 'a friendly dinosaur'). Leave out entirely for open-ended/free-choice activities with no specific depicted subject, and always for letter_colouring. Never invent a subject.",
+              },
+              matching_left: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 3,
+                maxItems: 6,
+                description: "REQUIRED when — and only when — suggested_template is 'matching_pairs'. 3–6 short labels for the LEFT column, in the order matching matching_right. Omit entirely otherwise.",
+              },
+              matching_right: {
+                type: "array",
+                items: { type: "string" },
+                minItems: 3,
+                maxItems: 6,
+                description: "REQUIRED when — and only when — suggested_template is 'matching_pairs'. 3–6 short labels for the RIGHT column, in the SAME matching order as matching_left. Omit entirely otherwise.",
+              },
+              counting_groups: {
+                type: "array",
+                minItems: 2,
+                maxItems: 5,
+                description: "REQUIRED when — and only when — suggested_template is 'counting_groups'. 2–5 groups. Omit entirely otherwise.",
+                items: {
+                  type: "object",
+                  required: ["emoji", "label", "count"],
+                  properties: {
+                    emoji: { type: "string", description: "A single emoji representing the objects being counted." },
+                    label: { type: "string", description: "Short noun label below the count box, under 15 characters." },
+                    count: { type: "integer", minimum: 1, maximum: 10 },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+async function classifyWorksheetTemplates(
+  activities: { title: string; steps: string[]; materials_used: string[] }[],
+): Promise<TemplateClassification[]> {
+  const userPrompt =
+    `Here are ${activities.length} early-childhood activities. For each one, classify it using the classify_worksheet_templates tool.\n\n` +
+    activities
+      .map(
+        (a, i) =>
+          `${i}. "${a.title}"\nSteps: ${a.steps.join(" ")}\nMaterials: ${a.materials_used.join(", ") || "(none listed)"}`,
+      )
+      .join("\n\n");
+
+  const result = await callTool<{ classifications?: unknown }>(
+    "You classify early childhood activities into printable worksheet template categories for an Australian childcare app.",
+    userPrompt,
+    makeClassifyTemplatesTool(),
+    Math.min(4096, Math.max(1024, activities.length * 300)),
+  );
+  return Array.isArray(result?.classifications) ? (result.classifications as TemplateClassification[]) : [];
+}
+
+// Runs the dedicated classification pass over already-generated activities
+// and merges the result back in by index. Never lets a classification
+// failure break the caller's generation — on any error, or for any activity
+// the classifier didn't return, the activity is left with suggested_template
+// undefined so the print-time keyword fallback (detectPrintTemplate) still
+// applies rather than the whole request failing.
+async function applyTemplateClassifications(activities: RawActivitySuggestion[]): Promise<RawActivitySuggestion[]> {
+  let classifications: TemplateClassification[];
+  try {
+    classifications = await classifyWorksheetTemplates(
+      activities.map((a) => ({ title: a.title, steps: a.steps, materials_used: a.materials_used })),
+    );
+  } catch (err) {
+    console.error("classifyWorksheetTemplates failed - falling back to keyword detection at print time", err);
+    return activities;
+  }
+
+  const byIndex = new Map(classifications.map((c) => [c.index, c]));
+  return activities.map((activity, i) => {
+    const c = byIndex.get(i);
+    if (!c || c.suggested_template === "none") return activity;
+    return {
+      ...activity,
+      suggested_template: c.suggested_template,
+      image_subject: c.image_subject ?? activity.image_subject,
+      letter_text: c.letter_text ?? activity.letter_text,
+      card_items: c.card_items ?? activity.card_items,
+      card_pairs: c.card_pairs ?? activity.card_pairs,
+      matching_left: c.matching_left ?? activity.matching_left,
+      matching_right: c.matching_right ?? activity.matching_right,
+      counting_groups: c.counting_groups ?? activity.counting_groups,
+    };
+  });
+}
+
 function buildSystemPrompt(outcomes: EylfOutcome[]): string {
   const taxonomy = outcomes
     .map((o) => `${o.code} (Outcome ${o.outcome_number}: ${o.outcome_title}) — ${o.sub_outcome_text}`)
@@ -246,8 +405,7 @@ export async function generateActivitySuggestions(
     buildSystemPrompt(outcomes),
     buildUserPrompt(input, count),
     makeActivitiesTool(count),
-    Math.min(8192, Math.max(3072, count * 700)),
-    true,
+    Math.min(8192, Math.max(2048, count * 700)),
   );
   // deepParseJsonStrings (lib/ai/backend.ts) already recovers most of the
   // model's known malformed-JSON shapes, but its own string-parsing branch
@@ -261,7 +419,7 @@ export async function generateActivitySuggestions(
     console.error("generateActivitySuggestions: model response did not resolve to an activities array", result);
     throw new Error("Model did not return a valid activities array");
   }
-  return result.activities as RawActivitySuggestion[];
+  return applyTemplateClassifications(result.activities as RawActivitySuggestion[]);
 }
 
 // =========================================
@@ -408,14 +566,13 @@ export function scoreHazards(hazards: unknown): Hazard[] {
 /** Shared single-tool-call helper used by every generator in this file. Routes through
  * AI_BACKEND (proxy for $0 local dev/testing, api for production/real users) - see
  * src/lib/ai/backend.ts. */
-async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 4096, thinking = false): Promise<T> {
+async function callTool<T>(system: string, userPrompt: string, tool: Anthropic.Tool, maxTokens = 4096): Promise<T> {
   return runToolCall<T>({
     model: MODEL,
     system,
     messages: [{ role: "user", content: userPrompt }],
     tool,
     maxTokens,
-    thinking,
   });
 }
 
@@ -1351,12 +1508,12 @@ Rules:
     system,
     lines.join("\n"),
     makeActivitiesTool(1),
-    3072,
-    true,
+    2048,
   );
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
-  return activity;
+  const [classified] = await applyTemplateClassifications([activity]);
+  return classified;
 }
 
 // =========================================
@@ -1470,10 +1627,11 @@ PRIVACY: Never include or repeat any child's name, date of birth, or any persona
   const noteList = followUpNotes.map((n, i) => `${i + 1}. ${n}`).join("\n");
   const userMsg = `Here are the follow-up intentions for different children in the group:\n\n${noteList}\n\nPropose one group activity that addresses as many of these threads as possible. Use the propose_activities tool with exactly one activity.`;
 
-  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(system, userMsg, makeActivitiesTool(1), 3072, true);
+  const result = await callTool<{ activities?: RawActivitySuggestion[] }>(system, userMsg, makeActivitiesTool(1), 2048);
   const activity = result.activities?.[0];
   if (!activity) throw new Error("No activity returned");
-  return activity;
+  const [classified] = await applyTemplateClassifications([activity]);
+  return classified;
 }
 
 // =========================================
