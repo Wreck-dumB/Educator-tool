@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { CLIPART_CATEGORIES, CLIPART_ITEMS } from "./clipart-registry";
+import { CLIPART_CATEGORIES, CLIPART_ITEMS } from "@/lib/clipart";
 
 interface Props {
   onSelect: (src: string) => void;

@@ -150,6 +150,7 @@ export function buildWorksheetUrl(
     card_items?: string[];
     card_pairs?: boolean;
     image_subject?: string | null;
+    clipart_id?: string | null;
     letter_text?: string | null;
     matching_left?: string[];
     matching_right?: string[];
@@ -166,6 +167,7 @@ export function buildWorksheetUrl(
     activity.image_subject
   ) {
     params.set("image_subject", activity.image_subject);
+    if (activity.clipart_id) params.set("clipart_id", activity.clipart_id);
   }
 
   // Accepts a comma-separated list — one worksheet name per entry

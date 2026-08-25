@@ -218,6 +218,7 @@ export async function POST(request: Request) {
       // from it produces irrelevant/nonsensical output. No subject means the
       // printed page is deliberately left blank.
       imageSubject: activity.image_subject?.trim() || null,
+      clipartId: activity.clipart_id?.trim() || null,
       letterText: suggestedTemplate === "letter_colouring" ? letterText : null,
       matchingLeft: suggestedTemplate === "matching_pairs" ? matchingLeft : [],
       matchingRight: suggestedTemplate === "matching_pairs" ? matchingRight : [],

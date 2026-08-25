@@ -17,6 +17,7 @@ interface Props {
   cardItems?: string[];
   cardPairs?: boolean;
   imageSubject?: string;
+  clipartId?: string;
   letterText?: string;
   title: string;
   summary?: string;
@@ -996,7 +997,7 @@ function CountingGroupsTemplate({ title, countingGroups }: {
 }
 
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group, matchingLeft = [], matchingRight = [], countingGroups = [] }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", clipartId = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group, matchingLeft = [], matchingRight = [], countingGroups = [] }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -1017,7 +1018,13 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
   // on the sheet, which has its own independent load/error handling.
   const [previewFailed, setPreviewFailed] = useState(false);
 
-  async function generateImage(promptOverride?: string, styleOverride?: "outline" | "colour") {
+  // clipartIdForPrompt is only ever passed on the initial auto-generate call
+  // below, alongside the AI's own original imageSubject text - a manual
+  // "Generate" click (whether re-running the same text or an edited one)
+  // deliberately omits it, since a curated icon id only really corresponds to
+  // that original text; treating it as a request the user wants an AI
+  // picture for that specific wording, matching or not.
+  async function generateImage(promptOverride?: string, styleOverride?: "outline" | "colour", clipartIdForPrompt?: string) {
     const prompt = promptOverride ?? imagePrompt;
     const style = styleOverride ?? imageStyle;
     setImageLoading(true);
@@ -1028,7 +1035,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
       const res = await fetch("/api/generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, style }),
+        body: JSON.stringify({ prompt, style, clipartId: clipartIdForPrompt }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -1063,7 +1070,7 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
     const autoTypes: TemplateType[] = ["activity_sheet", "drawing_frame", "name_colouring"];
     if (!autoTypes.includes(type) || !imageSubject.trim()) return;
     const style = type === "activity_sheet" ? "colour" : "outline";
-    const id = setTimeout(() => generateImage(imageSubject, style), 0);
+    const id = setTimeout(() => generateImage(imageSubject, style, clipartId), 0);
     return () => clearTimeout(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

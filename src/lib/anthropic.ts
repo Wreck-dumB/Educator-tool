@@ -3,6 +3,7 @@ import type { EylfOutcome, GeneratedActivity, NqsStandard, PolicyStep } from "@/
 import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/types/database.types";
 import { splitIntoBlocks } from "@/lib/documentExtraction";
 import { runToolCall, runTextCall } from "@/lib/ai/backend";
+import { CLIPART_ITEMS } from "@/lib/clipart";
 
 export interface MealPlanAssignment {
   slot_date: string;
@@ -52,6 +53,9 @@ export interface RawActivitySuggestion {
   card_items?: string[];
   card_pairs?: boolean;
   image_subject?: string;
+  /** Id of a pre-made icon (src/lib/clipart.ts) to use instead of generating an
+   * image, when the AI found a good match — undefined/"none" means no match. */
+  clipart_id?: string;
   letter_text?: string;
   matching_left?: string[];
   matching_right?: string[];
@@ -167,6 +171,7 @@ export interface TemplateClassification {
   index: number;
   suggested_template: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | "none";
   image_subject?: string;
+  clipart_id?: string;
   letter_text?: string;
   card_items?: string[];
   card_pairs?: boolean;
@@ -216,6 +221,11 @@ function makeClassifyTemplatesTool(): Anthropic.Tool {
               image_subject: {
                 type: "string",
                 description: "Decide this independently of suggested_template, including when suggested_template is 'none' — set it whenever the activity has one genuine, concrete, drawable subject worth illustrating, a short noun phrase an image generator can literally draw. This matters just as much for an ordinary craft/materials activity (which prints as a materials checklist + picture) as for 'drawing_frame'/'name_colouring'/'name_label' — a craft activity with a real subject (e.g. cutting out shapes, making a paper plate animal) should get one too, not just 'none'-classified activities. The image generator draws animals, objects, and creatures well but consistently renders human children/people as unsettling realistic portraits instead of a cartoon, no matter how the prompt is worded — so NEVER describe a person, child, or generic 'character' (e.g. NOT 'a beloved storybook character', NOT 'a smiling child'). When the activity is about a book/story/character theme, pick a concrete emblematic OBJECT or ANIMAL from that world instead (e.g. for a book-themed colouring activity: 'a friendly cartoon fox in a scarf' or 'a stack of colourful storybooks', not the human/animal protagonist itself if it's human-shaped). For a shape-cutting activity, use the actual shapes (e.g. 'a circle, a square, a triangle, and a star, simple bold outlines'). Good examples: 'a friendly dinosaur', 'a smiling sun', 'a cartoon fox wearing a scarf', 'a stack of storybooks'. Leave out entirely for open-ended/free-choice activities with no specific depicted subject (e.g. free drawing, physical/outdoor activities), and always for letter_colouring. Never invent a subject just to fill this field.",
+              },
+              clipart_id: {
+                type: "string",
+                enum: [...CLIPART_ITEMS.map((i) => i.id), "none"],
+                description: `Whenever image_subject is set, also check this list of pre-made icons: ${CLIPART_ITEMS.map((i) => `'${i.id}' (${i.keywords.join("/")})`).join(", ")}. If one is a close visual match for image_subject, set clipart_id to its exact id — this uses a reliable pre-made picture instead of an AI-generated one, so prefer a reasonably close match over 'none'. Set 'none' only when nothing in the list is a decent match for the actual subject. Never pick an id that doesn't genuinely match.`,
               },
               matching_left: {
                 type: "array",
@@ -304,13 +314,17 @@ async function applyTemplateClassifications(activities: RawActivitySuggestion[])
     // materials/craft activity that ends up as activity_sheet via that
     // fallback - discarding it here left activity_sheet printing with no
     // picture even when the classifier had a perfectly good one.
+    const clipartId = c.clipart_id && c.clipart_id !== "none" ? c.clipart_id : undefined;
     if (c.suggested_template === "none") {
-      return c.image_subject ? { ...activity, image_subject: c.image_subject } : activity;
+      return c.image_subject
+        ? { ...activity, image_subject: c.image_subject, clipart_id: clipartId ?? activity.clipart_id }
+        : activity;
     }
     return {
       ...activity,
       suggested_template: c.suggested_template,
       image_subject: c.image_subject ?? activity.image_subject,
+      clipart_id: clipartId ?? activity.clipart_id,
       letter_text: c.letter_text ?? activity.letter_text,
       card_items: c.card_items ?? activity.card_items,
       card_pairs: c.card_pairs ?? activity.card_pairs,

@@ -104,6 +104,8 @@ export interface ActivitySuggestion {
   cardPairs: boolean;
   /** Concrete drawable subject for auto-generated illustrations — null means "leave the page blank", not "use the title". */
   imageSubject: string | null;
+  /** Id of a pre-made icon (src/lib/clipart.ts) matching imageSubject, when the AI found one — a reliable pre-made picture used instead of generating one. */
+  clipartId: string | null;
   /** Letter/number/word text when suggestedTemplate is "letter_colouring" — rendered as real text, never an AI-drawn picture. */
   letterText: string | null;
   /** Left-column labels when suggestedTemplate is "matching_pairs" — in matching order with matchingRight. */

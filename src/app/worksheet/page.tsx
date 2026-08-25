@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import WorksheetClient from "./WorksheetClient";
+import { CLIPART_ITEMS } from "@/lib/clipart";
 
 export const metadata: Metadata = {
   title: "Worksheet · DR. SparkPlay",
@@ -17,6 +18,7 @@ interface Props {
     card?: string | string[];
     card_pairs?: string;
     image_subject?: string;
+    clipart_id?: string;
     letter_text?: string;
     duration?: string;
     age?: string;
@@ -35,7 +37,7 @@ function toArray(v: string | string[] | undefined): string[] {
 }
 
 export default async function WorksheetPage({ searchParams }: Props) {
-  const { type, name, title, summary, material, step, eylf, card, card_pairs, image_subject, letter_text, duration, age, group, ml, mr, cg } = await searchParams;
+  const { type, name, title, summary, material, step, eylf, card, card_pairs, image_subject, clipart_id, letter_text, duration, age, group, ml, mr, cg } = await searchParams;
 
   const resolvedType =
     type && VALID_TYPES.has(type)
@@ -52,6 +54,8 @@ export default async function WorksheetPage({ searchParams }: Props) {
     .slice(0, 16);
   const resolvedCardPairs = card_pairs !== "false";
   const resolvedImageSubject = typeof image_subject === "string" ? image_subject.trim().slice(0, 150) : "";
+  const resolvedClipartId =
+    typeof clipart_id === "string" && CLIPART_ITEMS.some((i) => i.id === clipart_id) ? clipart_id : "";
   const resolvedLetterText = typeof letter_text === "string" ? letter_text.trim().slice(0, 20) : "";
   const resolvedTitle =
     typeof title === "string" && title.trim()
@@ -83,6 +87,7 @@ export default async function WorksheetPage({ searchParams }: Props) {
       cardItems={resolvedCards}
       cardPairs={resolvedCardPairs}
       imageSubject={resolvedImageSubject}
+      clipartId={resolvedClipartId}
       letterText={resolvedLetterText}
       title={resolvedTitle}
       summary={resolvedSummary}

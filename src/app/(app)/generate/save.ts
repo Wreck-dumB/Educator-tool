@@ -41,6 +41,7 @@ export async function saveActivity(
       card_items: suggestion.cardItems,
       card_pairs: suggestion.cardPairs,
       image_subject: suggestion.imageSubject,
+      clipart_id: suggestion.clipartId,
       letter_text: suggestion.letterText,
       matching_left: suggestion.matchingLeft,
       matching_right: suggestion.matchingRight,

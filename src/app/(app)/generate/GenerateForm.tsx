@@ -810,6 +810,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
                       card_items: s.cardItems,
                       card_pairs: s.cardPairs,
                       image_subject: s.imageSubject,
+                      clipart_id: s.clipartId,
                       letter_text: s.letterText,
                       matching_left: s.matchingLeft,
                       matching_right: s.matchingRight,

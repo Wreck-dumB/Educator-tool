@@ -517,6 +517,7 @@ export interface Database {
           card_items: string[];
           card_pairs: boolean;
           image_subject: string | null;
+          clipart_id: string | null;
           letter_text: string | null;
           matching_left: string[];
           matching_right: string[];
@@ -551,6 +552,7 @@ export interface Database {
           card_items?: string[];
           card_pairs?: boolean;
           image_subject?: string | null;
+          clipart_id?: string | null;
           letter_text?: string | null;
           matching_left?: string[];
           matching_right?: string[];

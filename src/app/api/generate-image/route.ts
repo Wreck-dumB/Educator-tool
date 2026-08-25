@@ -1,7 +1,33 @@
 import { NextResponse } from "next/server";
 import sharp from "sharp";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { createClient } from "@/lib/supabase/server";
 import { isRateLimited } from "@/lib/rateLimit";
+import { CLIPART_ITEMS } from "@/lib/clipart";
+
+// Edge-detect + threshold pipeline: greyscale -> slight blur (denoise) ->
+// Laplacian edge kernel -> invert -> normalise -> hard threshold. Produces a
+// genuine hollow-interior black-and-white line drawing regardless of the
+// source's own shading. Used for both a clean pre-made clipart SVG (where it
+// reliably produces a crisp result — this is why the clipart path exists at
+// all) and as a fallback on an AI-generated photo (where results vary with
+// how the model happened to shade that particular image — tested against
+// several very different source styles with mixed results, hence preferring
+// the clipart path whenever a match exists).
+async function toLineArt(imageBuf: Buffer): Promise<Buffer> {
+  return sharp(imageBuf, { density: 300 })
+    .resize(1024, 1024, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } })
+    .flatten({ background: { r: 255, g: 255, b: 255 } })
+    .greyscale()
+    .blur(0.5)
+    .convolve({ width: 3, height: 3, kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1] })
+    .negate()
+    .normalise()
+    .threshold(190)
+    .png()
+    .toBuffer();
+}
 
 // Pollinations.ai is free and generates images on-demand from a prompt in the
 // URL. Anonymous/unauthenticated callers are capped at 1 request per 15s per
@@ -39,8 +65,31 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const subject = typeof body?.prompt === "string" ? body.prompt.trim().slice(0, 300) : "";
   const style: "outline" | "colour" = body?.style === "colour" ? "colour" : "outline";
+  const clipartId = typeof body?.clipartId === "string" ? body.clipartId : "";
 
   if (!subject) return NextResponse.json({ error: "prompt is required" }, { status: 400 });
+
+  // A curated pre-made icon beats gambling on live AI generation every time —
+  // see src/lib/clipart.ts. Only applies to "outline": these SVGs are already
+  // exactly the flat cartoon style "colour" asks for, so colour keeps using
+  // Pollinations directly for that style. Clean vector art run through the
+  // same edge-detect pipeline below gave consistently good, recognisable
+  // hollow-interior line art in testing — unlike AI photos, which ranged from
+  // fine to illegible/scary depending on the subject.
+  if (style === "outline" && clipartId) {
+    const item = CLIPART_ITEMS.find((i) => i.id === clipartId);
+    if (item) {
+      try {
+        const svgPath = path.join(process.cwd(), "public", item.src);
+        const svgBuf = await readFile(svgPath);
+        const lineArt = await toLineArt(svgBuf);
+        return NextResponse.json({ imageUrl: `data:image/png;base64,${lineArt.toString("base64")}` });
+      } catch (err) {
+        // Fall through to AI generation below rather than fail the request.
+        console.error(`clipart svgToLineArt failed for "${clipartId}"`, err);
+      }
+    }
+  }
 
   const prompt = PROMPTS[style].replace("{subject}", subject);
   const seed = Math.floor(Math.random() * 999999);
@@ -75,32 +124,15 @@ export async function POST(request: Request) {
   // <img> tag never talks to Pollinations directly — every request goes
   // through this authenticated server-side fetch, every time.
   let contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
-  let buf = Buffer.from(await imgRes.arrayBuffer());
+  let buf: Buffer = Buffer.from(await imgRes.arrayBuffer());
 
-  // The prompt asks for flat black-and-white line art with a hollow (blank)
-  // interior, but the free model doesn't reliably obey that — it routinely
-  // returns a fully shaded/photorealistic-looking image instead, which reads
-  // as "scary" rather than a colouring page a child can actually use.
-  // Grayscaling alone doesn't fix this - it only removes hue, the shading and
-  // gradients stay. So for "outline" this now runs a real edge-detect +
-  // threshold pipeline: greyscale -> slight blur (denoise) -> Laplacian edge
-  // kernel -> invert -> normalise -> hard threshold. The result is a genuine
-  // hollow-interior line drawing (a real coloring-book page) regardless of
-  // how the source image was shaded, tested against several very different
-  // source styles (photorealistic 3D render, painterly cartoon, product
-  // photo) with consistently good results. PNG (not JPEG) to keep the lines
-  // crisp — JPEG compression artefacts blur fine linework on print.
+  // No clipart match — fall back to the same line-art pipeline on the AI
+  // photo. Quality varies with how the model happened to shade this
+  // particular image (see toLineArt's comment), but still beats a raw
+  // full-colour/shaded photo for what's supposed to be a colouring page.
   if (style === "outline") {
     try {
-      buf = await sharp(buf)
-        .greyscale()
-        .blur(0.5)
-        .convolve({ width: 3, height: 3, kernel: [-1, -1, -1, -1, 8, -1, -1, -1, -1] })
-        .negate()
-        .normalise()
-        .threshold(190)
-        .png()
-        .toBuffer();
+      buf = await toLineArt(buf);
       contentType = "image/png";
     } catch {
       // Fall through with the original image rather than fail the request -

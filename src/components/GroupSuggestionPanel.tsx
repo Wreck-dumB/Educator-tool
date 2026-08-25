@@ -85,6 +85,7 @@ export default function GroupSuggestionPanel({ followUps }: Props) {
           cardItems: suggestion.card_items ?? [],
           cardPairs: suggestion.card_pairs !== false,
           imageSubject: suggestion.image_subject?.trim() || null,
+          clipartId: suggestion.clipart_id?.trim() || null,
           letterText: suggestion.letter_text?.trim() || null,
           matchingLeft: [],
           matchingRight: [],
