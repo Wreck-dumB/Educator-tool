@@ -41,6 +41,35 @@ async function toLineArt(imageBuf: Buffer): Promise<Buffer> {
 // long-running AI routes in this app (document-review/route.ts).
 export const maxDuration = 60;
 
+// Gemini's free tier (2.5 Flash Image, aka "Nano Banana") is being A/B tested
+// against Pollinations — better prompt adherence in early testing, may solve
+// the outline-style reliability issues documented alongside toLineArt above.
+// Toggle with IMAGE_BACKEND=gemini; anything else keeps using Pollinations.
+async function generateWithGemini(prompt: string): Promise<{ buf: Buffer; contentType: string } | null> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return null;
+
+  const res = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] }),
+    },
+  );
+  if (!res.ok) return null;
+
+  const data = await res.json();
+  const parts = data?.candidates?.[0]?.content?.parts ?? [];
+  const imagePart = parts.find((p: { inlineData?: { mimeType: string; data: string } }) => p.inlineData);
+  if (!imagePart?.inlineData) return null;
+
+  return {
+    buf: Buffer.from(imagePart.inlineData.data, "base64"),
+    contentType: imagePart.inlineData.mimeType || "image/png",
+  };
+}
+
 const PROMPTS = {
   outline:
     "A black-and-white hand-drawn ink illustration of one single {subject}, centered on a completely white background. Only one isolated subject, nothing else. Full-body children's-book mascot design, like a cartoon character on a cereal box or storybook cover — NOT a portrait, NOT a headshot, NOT a close-up face, NOT photorealistic, NOT a photograph, NOT a 3D render. Simple rounded proportions (big head, small body) typical of a young-kids illustration. Bold clean outlines with some interior detail lines for facial features, patterns, and clothing, so the subject is clearly recognisable, not a flat blank silhouette. No shading, no grey fills, no color, no gradients, no background details, no other objects. Simple and bold enough for a young child to colour in or cut out with scissors.",
@@ -94,37 +123,53 @@ export async function POST(request: Request) {
   const prompt = PROMPTS[style].replace("{subject}", subject);
   const seed = Math.floor(Math.random() * 999999);
 
-  // nofeed=true prevents the image appearing in Pollinations' public gallery.
-  // model=flux requires Pollinations auth and times out/429s for anonymous
-  // callers; every other model name (including omitting it) currently
-  // resolves to their free "sana" model, so request that explicitly.
-  const pollinationsUrl =
-    `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
-    `?width=1024&height=1024&nologo=true&nofeed=true&model=sana&seed=${seed}`;
+  let contentType: string;
+  let buf: Buffer;
 
-  const token = process.env.POLLINATIONS_API_TOKEN;
-  let imgRes: Response;
-  try {
-    imgRes = await fetch(pollinationsUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-  } catch {
-    return NextResponse.json({ error: "Could not reach the image service" }, { status: 502 });
+  if (process.env.IMAGE_BACKEND === "gemini") {
+    let gemini: Awaited<ReturnType<typeof generateWithGemini>>;
+    try {
+      gemini = await generateWithGemini(prompt);
+    } catch {
+      return NextResponse.json({ error: "Could not reach the image service" }, { status: 502 });
+    }
+    if (!gemini) {
+      return NextResponse.json({ error: "Image generation failed" }, { status: 502 });
+    }
+    ({ buf, contentType } = gemini);
+  } else {
+    // nofeed=true prevents the image appearing in Pollinations' public gallery.
+    // model=flux requires Pollinations auth and times out/429s for anonymous
+    // callers; every other model name (including omitting it) currently
+    // resolves to their free "sana" model, so request that explicitly.
+    const pollinationsUrl =
+      `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}` +
+      `?width=1024&height=1024&nologo=true&nofeed=true&model=sana&seed=${seed}`;
+
+    const token = process.env.POLLINATIONS_API_TOKEN;
+    let imgRes: Response;
+    try {
+      imgRes = await fetch(pollinationsUrl, {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+    } catch {
+      return NextResponse.json({ error: "Could not reach the image service" }, { status: 502 });
+    }
+
+    if (!imgRes.ok) {
+      const status = imgRes.status === 429 ? 429 : 502;
+      return NextResponse.json(
+        { error: imgRes.status === 429 ? "Image service is busy — try again shortly." : "Image generation failed" },
+        { status },
+      );
+    }
+
+    // Proxied as a data URL rather than a raw Pollinations URL so the browser's
+    // <img> tag never talks to Pollinations directly — every request goes
+    // through this authenticated server-side fetch, every time.
+    contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
+    buf = Buffer.from(await imgRes.arrayBuffer());
   }
-
-  if (!imgRes.ok) {
-    const status = imgRes.status === 429 ? 429 : 502;
-    return NextResponse.json(
-      { error: imgRes.status === 429 ? "Image service is busy — try again shortly." : "Image generation failed" },
-      { status },
-    );
-  }
-
-  // Proxied as a data URL rather than a raw Pollinations URL so the browser's
-  // <img> tag never talks to Pollinations directly — every request goes
-  // through this authenticated server-side fetch, every time.
-  let contentType = imgRes.headers.get("content-type") ?? "image/jpeg";
-  let buf: Buffer = Buffer.from(await imgRes.arrayBuffer());
 
   // No clipart match — fall back to the same line-art pipeline on the AI
   // photo. Quality varies with how the model happened to shade this
