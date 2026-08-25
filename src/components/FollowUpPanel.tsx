@@ -80,6 +80,12 @@ export default function FollowUpPanel({
           matchingLeft: [],
           matchingRight: [],
           countingGroups: [],
+          mazeStartEmoji: suggestion.maze_start_emoji?.trim() || null,
+          mazeEndEmoji: suggestion.maze_end_emoji?.trim() || null,
+          dotToDotShape: suggestion.dot_to_dot_shape?.trim() || null,
+          oddOneOutSame: [],
+          oddOneOutDifferent: null,
+          cutAndSortGroups: [],
         },
         "interest",
       );

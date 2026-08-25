@@ -97,7 +97,7 @@ export interface ActivitySuggestion {
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
   /** Set when the activity warrants a printable worksheet. */
-  suggestedTemplate: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | null;
+  suggestedTemplate: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | "letter_trace" | "trace_maze" | "dot_to_dot" | "odd_one_out" | "feelings_checkin" | "cut_and_sort" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */
   cardItems: string[];
   /** Whether card_set duplicates each label into a matching pair (memory/snap games) vs one unique card each (sorting/categorising). Default true. */
@@ -114,6 +114,16 @@ export interface ActivitySuggestion {
   matchingRight: string[];
   /** Counting groups when suggestedTemplate is "counting_groups" — each group shown as repeated emoji with a write-in number blank. */
   countingGroups: { emoji: string; label: string; count: number }[];
+  /** Start/end emoji when suggestedTemplate is "trace_maze". */
+  mazeStartEmoji: string | null;
+  mazeEndEmoji: string | null;
+  /** Curated shape id (src/lib/dotToDot.ts) when suggestedTemplate is "dot_to_dot". */
+  dotToDotShape: string | null;
+  /** Clipart ids when suggestedTemplate is "odd_one_out" — 3-4 matching ids, then the one that's different. */
+  oddOneOutSame: string[];
+  oddOneOutDifferent: string | null;
+  /** Labelled clipart groups when suggestedTemplate is "cut_and_sort". */
+  cutAndSortGroups: { label: string; items: string[] }[];
 }
 
 /** A brain break suggestion returned by the generation engine (transient, digital/interactive, not saved). */

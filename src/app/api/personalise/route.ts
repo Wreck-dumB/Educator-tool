@@ -116,5 +116,11 @@ export async function POST(request: Request) {
     matchingLeft: [],
     matchingRight: [],
     countingGroups: [],
+    mazeStartEmoji: null,
+    mazeEndEmoji: null,
+    dotToDotShape: null,
+    oddOneOutSame: [],
+    oddOneOutDifferent: null,
+    cutAndSortGroups: [],
   });
 }

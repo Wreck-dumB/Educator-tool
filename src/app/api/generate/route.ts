@@ -8,6 +8,8 @@ import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 import { decryptField } from "@/lib/encryption";
 import type { ActivitySuggestion } from "@/lib/types/domain";
+import { CLIPART_ITEMS } from "@/lib/clipart";
+import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
 
 const VALID_MODES = ["materials", "time", "outcome", "interest", "surprise_me"];
 const VALID_GROUP_SIZES = ["solo", "small_group", "whole_group"];
@@ -165,7 +167,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
   }
 
-  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups"]);
+  const VALID_TEMPLATES = new Set(["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups", "letter_trace", "trace_maze", "dot_to_dot", "odd_one_out", "feelings_checkin", "cut_and_sort"]);
+  const VALID_CLIPART_IDS = new Set(CLIPART_ITEMS.map((i) => i.id));
+  const VALID_SHAPE_IDS = new Set(DOT_TO_DOT_SHAPES.map((s) => s.id));
   // Card decks get large fast (pairs double the print count) — cap unique
   // labels so a print run stays a reasonable number of pages/images.
   const MAX_CARD_ITEMS = 16;
@@ -186,15 +190,33 @@ export async function POST(request: Request) {
       .filter((g) => g.emoji && g.label)
       .slice(0, MAX_GROUPS);
 
+    const mazeStartEmoji = activity.maze_start_emoji?.trim().slice(0, 10) || null;
+    const mazeEndEmoji = activity.maze_end_emoji?.trim().slice(0, 10) || null;
+    const dotToDotShape = activity.dot_to_dot_shape && VALID_SHAPE_IDS.has(activity.dot_to_dot_shape) ? activity.dot_to_dot_shape : null;
+    const oddOneOutSame = (Array.isArray(activity.odd_one_out_same) ? activity.odd_one_out_same : []).filter((id) => VALID_CLIPART_IDS.has(id)).slice(0, 4);
+    const oddOneOutDifferent = activity.odd_one_out_different && VALID_CLIPART_IDS.has(activity.odd_one_out_different) ? activity.odd_one_out_different : null;
+    const cutAndSortGroups = (Array.isArray(activity.cut_and_sort_groups) ? activity.cut_and_sort_groups : [])
+      .map((g) => ({
+        label: (g.label ?? "").trim().slice(0, 30),
+        items: (Array.isArray(g.items) ? g.items : []).filter((id) => VALID_CLIPART_IDS.has(id)).slice(0, 4),
+      }))
+      .filter((g) => g.label && g.items.length >= 2)
+      .slice(0, 3);
+
     // Templates without their required data fall through to null so
     // detectPrintTemplate() picks a sane fallback at print time.
     let suggestedTemplate =
       activity.suggested_template && VALID_TEMPLATES.has(activity.suggested_template)
-        ? (activity.suggested_template as "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups")
+        ? (activity.suggested_template as "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | "letter_trace" | "trace_maze" | "dot_to_dot" | "odd_one_out" | "feelings_checkin" | "cut_and_sort")
         : null;
     if (suggestedTemplate === "letter_colouring" && !letterText) suggestedTemplate = null;
+    if (suggestedTemplate === "letter_trace" && !letterText) suggestedTemplate = null;
     if (suggestedTemplate === "matching_pairs" && (matchingLeft.length < 2 || matchingLeft.length !== matchingRight.length)) suggestedTemplate = null;
     if (suggestedTemplate === "counting_groups" && countingGroups.length < 2) suggestedTemplate = null;
+    if (suggestedTemplate === "trace_maze" && (!mazeStartEmoji || !mazeEndEmoji)) suggestedTemplate = null;
+    if (suggestedTemplate === "dot_to_dot" && !dotToDotShape) suggestedTemplate = null;
+    if (suggestedTemplate === "odd_one_out" && (oddOneOutSame.length < 3 || !oddOneOutDifferent)) suggestedTemplate = null;
+    if (suggestedTemplate === "cut_and_sort" && cutAndSortGroups.length < 2) suggestedTemplate = null;
 
     return {
       title: activity.title,
@@ -219,10 +241,16 @@ export async function POST(request: Request) {
       // printed page is deliberately left blank.
       imageSubject: activity.image_subject?.trim() || null,
       clipartId: activity.clipart_id?.trim() || null,
-      letterText: suggestedTemplate === "letter_colouring" ? letterText : null,
+      letterText: suggestedTemplate === "letter_colouring" || suggestedTemplate === "letter_trace" ? letterText : null,
       matchingLeft: suggestedTemplate === "matching_pairs" ? matchingLeft : [],
       matchingRight: suggestedTemplate === "matching_pairs" ? matchingRight : [],
       countingGroups: suggestedTemplate === "counting_groups" ? countingGroups : [],
+      mazeStartEmoji: suggestedTemplate === "trace_maze" ? mazeStartEmoji : null,
+      mazeEndEmoji: suggestedTemplate === "trace_maze" ? mazeEndEmoji : null,
+      dotToDotShape: suggestedTemplate === "dot_to_dot" ? dotToDotShape : null,
+      oddOneOutSame: suggestedTemplate === "odd_one_out" ? oddOneOutSame : [],
+      oddOneOutDifferent: suggestedTemplate === "odd_one_out" ? oddOneOutDifferent : null,
+      cutAndSortGroups: suggestedTemplate === "cut_and_sort" ? cutAndSortGroups : [],
     };
   });
 

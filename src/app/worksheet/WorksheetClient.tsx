@@ -8,8 +8,10 @@ import {
   SINGLE_LINE_FONT_SPACE_WIDTH,
   type SingleLineGlyph,
 } from "@/lib/utils/singleLineFont";
+import { CLIPART_ITEMS } from "@/lib/clipart";
+import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
 
-type TemplateType = "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups";
+type TemplateType = "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "activity_sheet" | "card_set" | "instructions" | "matching_pairs" | "counting_groups" | "letter_trace" | "trace_maze" | "dot_to_dot" | "odd_one_out" | "feelings_checkin" | "cut_and_sort";
 
 interface Props {
   type: TemplateType;
@@ -30,6 +32,12 @@ interface Props {
   matchingLeft?: string[];
   matchingRight?: string[];
   countingGroups?: { emoji: string; label: string; count: number }[];
+  mazeStartEmoji?: string;
+  mazeEndEmoji?: string;
+  dotToDotShape?: string;
+  oddOneOutSame?: string[];
+  oddOneOutDifferent?: string;
+  cutAndSortGroups?: { label: string; items: string[] }[];
 }
 
 // Andika Bold average char width ≈ 0.62× font size (wider than Arial Bold 0.58×)
@@ -996,8 +1004,271 @@ function CountingGroupsTemplate({ title, countingGroups }: {
   );
 }
 
+// ─── Letter Trace Template — reuses the same dotted single-line tracing
+// system as NameTraceTemplate, but for a general letter/number/word rather
+// than the child's own name (no per-child duplication needed). ─────────────
+function LetterTraceTemplate({ text, title }: { text: string; title: string }) {
+  const displayText = text.trim() || "Aa";
+  const svgWidth = 760;
+
+  const fontSize = useMemo(() => pickFontSize(displayText.length, svgWidth - 20) * 1.4, [displayText.length]);
+
+  const capHeight  = fontSize * 0.72;
+  const xHeight    = fontSize * 0.52;
+  const descender  = fontSize * 0.22;
+  const lineHeight = fontSize * 1.45;
+  const rowSpacing = lineHeight + 24;
+
+  const row1Y = 60;
+  const row2Y = row1Y + rowSpacing;
+  const row3Y = row2Y + rowSpacing;
+  const row4Y = row3Y + rowSpacing;
+  const svgHeight = row4Y + lineHeight + 40;
+
+  const shared = { name: displayText, fontSize, capHeight, xHeight, descender, svgWidth };
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-4 border-b border-ink/10 pb-3">
+        <h2 className="font-display text-xl font-bold text-ink">{title}</h2>
+      </div>
+
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%"
+        aria-label={`Letter tracing worksheet for ${displayText}`} style={{ display: "block" }}>
+        <TraceRow {...shared} y={row1Y} fill="#999999" dotted label="Trace" />
+        <TraceRow {...shared} y={row2Y} fill="#999999" singleLine label="Trace again — single line" />
+        <TraceRow {...shared} y={row3Y} fill="#999999" singleLine label="Keep going" />
+        <TraceRow {...shared} y={row4Y} fill="transparent" showText={false} label="Your turn" />
+      </svg>
+
+      <p className="mt-2 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Trace Maze Template — a procedurally generated winding path (single
+// corridor, no branching) from a start emoji to an end emoji. No AI image
+// needed — a smooth wavy SVG path plus an offset pair of boundary curves,
+// same class of fix as the clipart library was for outline images: generate
+// the shape ourselves instead of gambling on a model drawing a clean maze. ──
+function generateMazePath(seed: number, width: number, height: number): { d: string; wall1: string; wall2: string } {
+  // Deterministic pseudo-random wave so the same activity always prints the
+  // same maze (no seed persisted server-side, so re-opening the page is fine
+  // to vary, but a single render is stable for its whole print run).
+  let s = seed;
+  const rand = () => {
+    s = (s * 1103515245 + 12345) & 0x7fffffff;
+    return s / 0x7fffffff;
+  };
+
+  const segments = 7;
+  const stepX = width / segments;
+  const points: [number, number][] = [[0, height / 2]];
+  for (let i = 1; i < segments; i++) {
+    const y = height * 0.2 + rand() * height * 0.6;
+    points.push([i * stepX, y]);
+  }
+  points.push([width, height / 2]);
+
+  const toPath = (pts: [number, number][]) =>
+    pts.reduce((acc, [x, y], i) => (i === 0 ? `M ${x} ${y}` : `${acc} L ${x} ${y}`), "");
+
+  const corridorWidth = height * 0.22;
+  const wall1 = toPath(points.map(([x, y]) => [x, y - corridorWidth / 2] as [number, number]));
+  const wall2 = toPath(points.map(([x, y]) => [x, y + corridorWidth / 2] as [number, number]));
+
+  return { d: toPath(points), wall1, wall2 };
+}
+
+function TraceMazeTemplate({ title, startEmoji, endEmoji }: { title: string; startEmoji: string; endEmoji: string }) {
+  const svgWidth = 760;
+  const svgHeight = 420;
+  const maze = useMemo(() => generateMazePath(42, svgWidth, svgHeight), []);
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <p className="mb-4 text-center text-base font-semibold text-ink/60">
+        ✏️ Trace the path from start to finish.
+      </p>
+
+      <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" aria-label="Trace-the-path maze" style={{ display: "block" }}>
+        <path d={maze.wall1} fill="none" stroke="#b0b0b0" strokeWidth="2.5" />
+        <path d={maze.wall2} fill="none" stroke="#b0b0b0" strokeWidth="2.5" />
+        <path d={maze.d} fill="none" stroke="#d8d8d8" strokeWidth="1.5" strokeDasharray="3 6" />
+        <text x="12" y={svgHeight / 2 + 14} fontSize="40" textAnchor="middle">{startEmoji}</text>
+        <text x={svgWidth - 12} y={svgHeight / 2 + 14} fontSize="40" textAnchor="middle">{endEmoji}</text>
+      </svg>
+
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Dot to Dot Template — renders one of the curated DOT_TO_DOT_SHAPES,
+// numbered in connect-order. ─────────────────────────────────────────────
+function DotToDotTemplate({ title, shapeId }: { title: string; shapeId: string }) {
+  const shape = DOT_TO_DOT_SHAPES.find((s) => s.id === shapeId) ?? DOT_TO_DOT_SHAPES[0];
+  const svgSize = 600;
+  const pad = 60;
+  const scale = (svgSize - pad * 2) / 100;
+  const toXY = ([x, y]: [number, number]): [number, number] => [pad + x * scale, pad + y * scale];
+
+  const closed = shape.closed !== false;
+  const linePoints = closed ? [...shape.points, shape.points[0]] : shape.points;
+  const pathD = linePoints
+    .map(toXY)
+    .reduce((acc, [x, y], i) => (i === 0 ? `M ${x} ${y}` : `${acc} L ${x} ${y}`), "");
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <p className="mb-4 text-center text-base font-semibold text-ink/60">
+        ✏️ Join the dots in order — what will it be?
+      </p>
+
+      <svg viewBox={`0 0 ${svgSize} ${svgSize}`} width="100%" style={{ display: "block" }}
+        aria-label={`Dot to dot — ${shape.label}`}>
+        <path d={pathD} fill="none" stroke="#e5e5e5" strokeWidth="1.5" strokeDasharray="2 5" />
+        {shape.points.map(([x, y], i) => {
+          const [px, py] = toXY([x, y]);
+          return (
+            <g key={i}>
+              <circle cx={px} cy={py} r="4" fill="#555" />
+              <text x={px + 8} y={py - 8} fontSize="15" fontWeight="bold" fill="#555">{i + 1}</text>
+            </g>
+          );
+        })}
+      </svg>
+
+      <p className="mt-2 text-center text-sm text-ink/40">{shape.label}</p>
+      <p className="mt-4 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Odd One Out Template — reuses the clipart library directly (flat
+// colour SVGs, already reliable — see generate-image/route.ts's clipart
+// path) rather than any AI-generated picture. ───────────────────────────
+function OddOneOutTemplate({ title, sameIds, differentId }: { title: string; sameIds: string[]; differentId: string }) {
+  const items = useMemo(() => {
+    const same = sameIds.map((id) => CLIPART_ITEMS.find((i) => i.id === id)).filter((i): i is NonNullable<typeof i> => !!i);
+    const different = CLIPART_ITEMS.find((i) => i.id === differentId);
+    const all = different ? [...same, different] : same;
+    // Deterministic shuffle so the odd one isn't always last
+    const mid = Math.ceil(all.length / 2);
+    return [...all.slice(mid), ...all.slice(0, mid)];
+  }, [sameIds, differentId]);
+
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <p className="mb-8 text-center text-base font-semibold text-ink/60">
+        ✏️ Circle the picture that&apos;s different from the rest.
+      </p>
+
+      <div className="flex flex-wrap justify-center gap-6">
+        {items.map((item, i) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={i} src={item.src} alt={item.label} className="h-28 w-28 rounded-xl border-2 border-ink/15 bg-white p-2" />
+        ))}
+      </div>
+
+      <p className="mt-10 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Feelings Check-in Template — fixed set of emotion faces (emoji-based,
+// same reliability reasoning as CountingGroupsTemplate's emoji use — no
+// generated art needed). Doesn't need any AI-supplied companion data. ─────
+const FEELINGS = [
+  { emoji: "😀", label: "Happy" },
+  { emoji: "😢", label: "Sad" },
+  { emoji: "😠", label: "Angry" },
+  { emoji: "😟", label: "Worried" },
+  { emoji: "🤩", label: "Excited" },
+  { emoji: "😌", label: "Calm" },
+  { emoji: "😴", label: "Tired" },
+  { emoji: "😕", label: "Confused" },
+];
+
+function FeelingsCheckinTemplate({ title }: { title: string }) {
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <div className="mb-6 flex items-center gap-2">
+        <span className="text-sm font-semibold text-ink/50">Name:</span>
+        <div className="h-6 flex-1 border-b-2 border-dashed border-ink/20" />
+      </div>
+
+      <p className="mb-8 text-center text-base font-semibold text-ink/60">
+        ✏️ Circle how you feel right now.
+      </p>
+
+      <div className="grid grid-cols-4 gap-6">
+        {FEELINGS.map((f) => (
+          <div key={f.label} className="flex flex-col items-center gap-2 rounded-2xl border-2 border-ink/15 p-4">
+            <span style={{ fontSize: "48px" }}>{f.emoji}</span>
+            <span className="text-sm font-semibold text-ink/60">{f.label}</span>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-10 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
+// ─── Cut and Sort Template — clipart pictures to cut out, plus labelled
+// glue columns. Reuses the clipart library, same as OddOneOutTemplate. ─────
+function CutAndSortTemplate({ title, groups }: { title: string; groups: { label: string; items: string[] }[] }) {
+  return (
+    <div className="mx-auto max-w-[820px] px-4 py-6 print:px-0 print:py-4">
+      <div className="mb-5 rounded-xl bg-coral-light px-5 py-4">
+        <h1 className="font-display text-2xl font-bold text-ink">{title}</h1>
+      </div>
+
+      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">✂️ Cut out these pictures:</p>
+      <div className="mb-8 flex flex-wrap justify-center gap-4 rounded-xl border-2 border-dashed border-ink/20 p-4">
+        {groups.flatMap((g) => g.items).map((id, i) => {
+          const item = CLIPART_ITEMS.find((c) => c.id === id);
+          if (!item) return null;
+          return (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img key={i} src={item.src} alt={item.label} className="h-16 w-16 rounded-lg border border-ink/15 bg-white p-1" />
+          );
+        })}
+      </div>
+
+      <p className="mb-3 text-xs font-bold uppercase tracking-widest text-ink/40">🖌 Glue them here:</p>
+      <div className={`grid gap-4 ${groups.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+        {groups.map((g, i) => (
+          <div key={i} className="rounded-xl border-2 border-ink/20 p-3" style={{ minHeight: "220px" }}>
+            <p className="mb-2 text-center text-sm font-bold text-ink">{g.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6 text-right text-xs text-ink/25">DR. SparkPlay</p>
+    </div>
+  );
+}
+
 // ─── Root client component ────────────────────────────────────────────────────
-export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", clipartId = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group, matchingLeft = [], matchingRight = [], countingGroups = [] }: Props) {
+export default function WorksheetClient({ type, initialNames, cardItems = [], cardPairs = true, imageSubject = "", clipartId = "", letterText = "", title, summary, materials = [], steps = [], eylfCodes = [], duration, age, group, matchingLeft = [], matchingRight = [], countingGroups = [], mazeStartEmoji = "", mazeEndEmoji = "", dotToDotShape = "", oddOneOutSame = [], oddOneOutDifferent = "", cutAndSortGroups = [] }: Props) {
   const [names, setNames] = useState<string[]>(initialNames.length > 0 ? initialNames : [""]);
 
   // Image generation state — activity sheets default to a colour illustration
@@ -1330,6 +1601,28 @@ export default function WorksheetClient({ type, initialNames, cardItems = [], ca
       {type === "counting_groups" && (
         <CountingGroupsTemplate title={title} countingGroups={countingGroups} />
       )}
+
+      {/* ── Letter trace: dotted practice sheet for one letter/number/word ── */}
+      {type === "letter_trace" && <LetterTraceTemplate text={letterText} title={title} />}
+
+      {/* ── Trace maze: procedurally generated winding path ────────────────── */}
+      {type === "trace_maze" && (
+        <TraceMazeTemplate title={title} startEmoji={mazeStartEmoji || "🐭"} endEmoji={mazeEndEmoji || "🧀"} />
+      )}
+
+      {/* ── Dot to dot: curated shape, numbered connect-the-dots ────────────── */}
+      {type === "dot_to_dot" && <DotToDotTemplate title={title} shapeId={dotToDotShape || DOT_TO_DOT_SHAPES[0].id} />}
+
+      {/* ── Odd one out: circle the different picture ───────────────────────── */}
+      {type === "odd_one_out" && (
+        <OddOneOutTemplate title={title} sameIds={oddOneOutSame} differentId={oddOneOutDifferent} />
+      )}
+
+      {/* ── Feelings check-in: circle how you feel ──────────────────────────── */}
+      {type === "feelings_checkin" && <FeelingsCheckinTemplate title={title} />}
+
+      {/* ── Cut and sort: cut-out pictures + labelled glue columns ──────────── */}
+      {type === "cut_and_sort" && <CutAndSortTemplate title={title} groups={cutAndSortGroups} />}
     </div>
   );
 }

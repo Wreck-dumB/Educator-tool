@@ -23,6 +23,12 @@ const TEMPLATE_OPTIONS: PrintTemplateType[] = [
   "card_set",
   "matching_pairs",
   "counting_groups",
+  "letter_trace",
+  "trace_maze",
+  "dot_to_dot",
+  "odd_one_out",
+  "feelings_checkin",
+  "cut_and_sort",
   "instructions",
 ];
 

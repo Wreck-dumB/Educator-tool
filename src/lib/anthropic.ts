@@ -4,6 +4,14 @@ import type { Hazard, RiskLikelihood, RiskConsequence, RiskRating } from "@/lib/
 import { splitIntoBlocks } from "@/lib/documentExtraction";
 import { runToolCall, runTextCall } from "@/lib/ai/backend";
 import { CLIPART_ITEMS } from "@/lib/clipart";
+import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
+
+const SUGGESTED_TEMPLATE_VALUES = [
+  "name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame",
+  "writing_lines", "card_set", "matching_pairs", "counting_groups",
+  "letter_trace", "trace_maze", "dot_to_dot", "odd_one_out", "feelings_checkin", "cut_and_sort",
+] as const;
+type SuggestedTemplate = (typeof SUGGESTED_TEMPLATE_VALUES)[number];
 
 export interface MealPlanAssignment {
   slot_date: string;
@@ -49,7 +57,7 @@ export interface RawActivitySuggestion {
   energy_level?: "calm" | "moderate" | "high";
   group_size_fit?: "solo" | "small_group" | "whole_group";
   eylf_codes: string[];
-  suggested_template?: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | null;
+  suggested_template?: SuggestedTemplate | null;
   card_items?: string[];
   card_pairs?: boolean;
   image_subject?: string;
@@ -60,6 +68,12 @@ export interface RawActivitySuggestion {
   matching_left?: string[];
   matching_right?: string[];
   counting_groups?: { emoji: string; label: string; count: number }[];
+  maze_start_emoji?: string;
+  maze_end_emoji?: string;
+  dot_to_dot_shape?: string;
+  odd_one_out_same?: string[];
+  odd_one_out_different?: string;
+  cut_and_sort_groups?: { label: string; items: string[] }[];
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -97,8 +111,8 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             },
             suggested_template: {
               type: "string",
-              enum: ["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups"],
-              description: "Set this for activities where a printable template helps children engage: 'name_trace' — HANDWRITING PRACTICE tracing their own name (dotted trace-guide lines per child); 'name_colouring' — NAME RECOGNITION, the child's own name in big hollow letters to colour/glue/decorate (per child); 'name_label' — a plain SOLID (filled, not hollow or dotted) printing of the child's own name, ready to cut out — use this for place markers, cubby/desk labels, name tags, or table settings, or whenever the educator explicitly asks for the name in solid/filled text rather than something to trace or colour; 'letter_colouring' — a specific alphabet letter, number, or short word (NOT the child's own name) in a big hollow shape to colour (e.g. 'colour the letter S', 'decorate the word CAT') — always use this instead of image_subject for letters/numbers since AI-drawn text is unreliable; 'drawing_frame' — free drawing/illustrating/painting, blank bordered space per child; 'writing_lines' — handwriting practice beyond their own name, ruled lines per child; 'card_set' — the product IS a deck of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, sorting cards) — each card has one picture + label, printed as a grid to cut out; 'matching_pairs' — the activity EXPLICITLY has children DRAW LINES connecting two columns of paired items (e.g. 'match animal to its sound', 'connect number to quantity', 'match word to picture') — prints a two-column worksheet with blank space in the middle for children to draw lines; REQUIRED fields: matching_left + matching_right; 'counting_groups' — the activity EXPLICITLY has children COUNT groups of objects and WRITE the number (e.g. 'count the dinosaurs', 'how many of each?') — prints groups of emoji with a write-the-number blank below each; REQUIRED field: counting_groups. Pick 'card_set' for decks of cards, 'matching_pairs' for draw-the-line matching, 'counting_groups' for count-and-write-the-number, 'name_colouring' for colouring/decorating the child's own name, 'name_label' for a solid-text name place marker/label/tag, 'letter_colouring' for a specific letter/number/word. Leave absent only for purely oral, physical, or construction activities with no paper component.",
+              enum: [...SUGGESTED_TEMPLATE_VALUES],
+              description: "Set this for activities where a printable template helps children engage: 'name_trace' — HANDWRITING PRACTICE tracing their own name (dotted trace-guide lines per child); 'name_colouring' — NAME RECOGNITION, the child's own name in big hollow letters to colour/glue/decorate (per child); 'name_label' — a plain SOLID (filled, not hollow or dotted) printing of the child's own name, ready to cut out — use this for place markers, cubby/desk labels, name tags, or table settings, or whenever the educator explicitly asks for the name in solid/filled text rather than something to trace or colour; 'letter_colouring' — a specific alphabet letter, number, or short word (NOT the child's own name) in a big hollow shape to colour (e.g. 'colour the letter S', 'decorate the word CAT') — always use this instead of image_subject for letters/numbers since AI-drawn text is unreliable; 'letter_trace' — STROKE/MOTOR PRACTICE tracing a specific letter, number, or short word (NOT the child's own name, NOT colouring) — dotted single-line tracing practice rows; REQUIRED field: letter_text; 'drawing_frame' — free drawing/illustrating/painting, blank bordered space per child; 'writing_lines' — handwriting practice beyond their own name, ruled lines per child; 'card_set' — the product IS a deck of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, sorting cards) — each card has one picture + label, printed as a grid to cut out; 'matching_pairs' — the activity EXPLICITLY has children DRAW LINES connecting two columns of paired items (e.g. 'match animal to its sound', 'connect number to quantity', 'match word to picture') — prints a two-column worksheet with blank space in the middle for children to draw lines; REQUIRED fields: matching_left + matching_right; 'counting_groups' — the activity EXPLICITLY has children COUNT groups of objects and WRITE the number (e.g. 'count the dinosaurs', 'how many of each?') — prints groups of emoji with a write-the-number blank below each; REQUIRED field: counting_groups; 'trace_maze' — the activity is about tracing/following A PATH from a start to an end (e.g. 'help the mouse find the cheese', 'trace the path'); REQUIRED fields: maze_start_emoji + maze_end_emoji; 'dot_to_dot' — the activity EXPLICITLY has children CONNECT NUMBERED DOTS to reveal a picture; REQUIRED field: dot_to_dot_shape; 'odd_one_out' — the activity has children CIRCLE THE PICTURE THAT'S DIFFERENT from a row of similar pictures; REQUIRED fields: odd_one_out_same + odd_one_out_different; 'feelings_checkin' — a wellbeing/emotional-awareness activity where children circle how they feel (e.g. morning circle time feelings check-in) — needs no extra fields; 'cut_and_sort' — the activity has children CUT OUT PICTURES and GLUE/SORT them into labelled categories/groups (NOT a matching-pairs line-drawing activity, NOT a card deck); REQUIRED field: cut_and_sort_groups. Leave absent only for purely oral, physical, or construction activities with no paper component.",
             },
             card_items: {
               type: "array",
@@ -111,7 +125,7 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
             },
             letter_text: {
               type: "string",
-              description: "REQUIRED when — and only when — suggested_template is 'letter_colouring'. The exact text to render in big hollow letters, e.g. 'S', 'Ss', '5', 'CAT'. Keep it short. Omit entirely for every other suggested_template value.",
+              description: "REQUIRED when — and only when — suggested_template is 'letter_colouring' or 'letter_trace'. The exact text to render, e.g. 'S', 'Ss', '5', 'CAT'. Keep it short. Omit entirely for every other suggested_template value.",
             },
             image_subject: {
               type: "string",
@@ -146,6 +160,51 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
                 },
               },
             },
+            maze_start_emoji: {
+              type: "string",
+              description: "REQUIRED when — and only when — suggested_template is 'trace_maze'. A single emoji for the start of the path (e.g. '🐭'). Omit entirely otherwise.",
+            },
+            maze_end_emoji: {
+              type: "string",
+              description: "REQUIRED when — and only when — suggested_template is 'trace_maze'. A single emoji for the end of the path (e.g. '🧀'), thematically linked to the start emoji. Omit entirely otherwise.",
+            },
+            dot_to_dot_shape: {
+              type: "string",
+              enum: DOT_TO_DOT_SHAPES.map((s) => s.id),
+              description: `REQUIRED when — and only when — suggested_template is 'dot_to_dot'. Pick the closest available shape: ${DOT_TO_DOT_SHAPES.map((s) => s.id).join(", ")}. Omit entirely otherwise.`,
+            },
+            odd_one_out_same: {
+              type: "array",
+              items: { type: "string", enum: CLIPART_ITEMS.map((i) => i.id) },
+              minItems: 3,
+              maxItems: 4,
+              description: `REQUIRED when — and only when — suggested_template is 'odd_one_out'. 3–4 clipart ids from the same category that all belong together, from: ${CLIPART_ITEMS.map((i) => i.id).join(", ")}. Omit entirely otherwise.`,
+            },
+            odd_one_out_different: {
+              type: "string",
+              enum: CLIPART_ITEMS.map((i) => i.id),
+              description: "REQUIRED when — and only when — suggested_template is 'odd_one_out'. One clipart id that clearly doesn't belong with odd_one_out_same. Omit entirely otherwise.",
+            },
+            cut_and_sort_groups: {
+              type: "array",
+              minItems: 2,
+              maxItems: 3,
+              description: "REQUIRED when — and only when — suggested_template is 'cut_and_sort'. 2–3 labelled categories (e.g. 'Big'/'Small', 'Living'/'Not living') each with 2–4 clipart items belonging to it. Omit entirely otherwise.",
+              items: {
+                type: "object",
+                required: ["label", "items"],
+                properties: {
+                  label: { type: "string", description: "Short category label, e.g. 'Big' or 'Living things'." },
+                  items: {
+                    type: "array",
+                    items: { type: "string", enum: CLIPART_ITEMS.map((i) => i.id) },
+                    minItems: 2,
+                    maxItems: 4,
+                    description: `Clipart ids belonging to this category, from: ${CLIPART_ITEMS.map((i) => i.id).join(", ")}.`,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -169,7 +228,7 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
 // regardless of how many activities there are.
 export interface TemplateClassification {
   index: number;
-  suggested_template: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | "none";
+  suggested_template: SuggestedTemplate | "none";
   image_subject?: string;
   clipart_id?: string;
   letter_text?: string;
@@ -178,6 +237,12 @@ export interface TemplateClassification {
   matching_left?: string[];
   matching_right?: string[];
   counting_groups?: { emoji: string; label: string; count: number }[];
+  maze_start_emoji?: string;
+  maze_end_emoji?: string;
+  dot_to_dot_shape?: string;
+  odd_one_out_same?: string[];
+  odd_one_out_different?: string;
+  cut_and_sort_groups?: { label: string; items: string[] }[];
 }
 
 function makeClassifyTemplatesTool(): Anthropic.Tool {
@@ -202,8 +267,8 @@ function makeClassifyTemplatesTool(): Anthropic.Tool {
               },
               suggested_template: {
                 type: "string",
-                enum: ["name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame", "writing_lines", "card_set", "matching_pairs", "counting_groups", "none"],
-                description: "'name_trace' — HANDWRITING PRACTICE tracing their own name (dotted trace-guide lines per child); 'name_colouring' — NAME RECOGNITION, the child's own name in big hollow letters to colour/glue/decorate; 'name_label' — a plain SOLID (filled, not hollow or dotted) printing of the child's own name, ready to cut out — place markers, cubby/desk labels, name tags, table settings; 'letter_colouring' — a specific alphabet letter, number, or short word (NOT the child's own name) in a big hollow shape to colour — always use this instead of image_subject for letters/numbers since AI-drawn text is unreliable; 'drawing_frame' — free drawing/illustrating/painting, OR colouring in a picture of a subject that isn't the child's own name or a letter (e.g. 'colour in a dinosaur', 'colour in a book character'); 'writing_lines' — handwriting practice beyond their own name, ruled lines per child; 'card_set' — the product IS a deck of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, sorting cards) — each card has one picture + label; 'matching_pairs' — the activity EXPLICITLY has children DRAW LINES connecting two columns of paired items; 'counting_groups' — the activity EXPLICITLY has children COUNT groups of objects and WRITE the number; 'none' — purely oral, physical, or construction activity with no paper component at all.",
+                enum: [...SUGGESTED_TEMPLATE_VALUES, "none"],
+                description: "'name_trace' — HANDWRITING PRACTICE tracing their own name (dotted trace-guide lines per child); 'name_colouring' — NAME RECOGNITION, the child's own name in big hollow letters to colour/glue/decorate; 'name_label' — a plain SOLID (filled, not hollow or dotted) printing of the child's own name, ready to cut out — place markers, cubby/desk labels, name tags, table settings; 'letter_colouring' — a specific alphabet letter, number, or short word (NOT the child's own name) in a big hollow shape to colour — always use this instead of image_subject for letters/numbers since AI-drawn text is unreliable; 'letter_trace' — STROKE/MOTOR PRACTICE tracing a specific letter, number, or short word (NOT the child's own name, NOT colouring) — REQUIRED field: letter_text; 'drawing_frame' — free drawing/illustrating/painting, OR colouring in a picture of a subject that isn't the child's own name or a letter (e.g. 'colour in a dinosaur', 'colour in a book character'); 'writing_lines' — handwriting practice beyond their own name, ruled lines per child; 'card_set' — the product IS a deck of physical cut-out cards (flashcards, memory/matching pairs, snap, go fish, sorting cards) — each card has one picture + label; 'matching_pairs' — the activity EXPLICITLY has children DRAW LINES connecting two columns of paired items; 'counting_groups' — the activity EXPLICITLY has children COUNT groups of objects and WRITE the number; 'trace_maze' — tracing/following a path from a start to an end — REQUIRED fields: maze_start_emoji + maze_end_emoji; 'dot_to_dot' — connecting numbered dots to reveal a picture — REQUIRED field: dot_to_dot_shape; 'odd_one_out' — circling the picture that's different from a row of similar pictures — REQUIRED fields: odd_one_out_same + odd_one_out_different; 'feelings_checkin' — a wellbeing/emotional-awareness activity where children circle how they feel (e.g. morning circle time feelings check-in) — no extra fields needed; 'cut_and_sort' — cutting out pictures and gluing/sorting them into labelled categories (NOT matching-pairs line-drawing, NOT a card deck) — REQUIRED field: cut_and_sort_groups; 'none' — purely oral, physical, or construction activity with no paper component at all.",
               },
               card_items: {
                 type: "array",
@@ -216,7 +281,7 @@ function makeClassifyTemplatesTool(): Anthropic.Tool {
               },
               letter_text: {
                 type: "string",
-                description: "REQUIRED when — and only when — suggested_template is 'letter_colouring'. The exact text to render in big hollow letters, e.g. 'S', 'Ss', '5', 'CAT'. Omit entirely otherwise.",
+                description: "REQUIRED when — and only when — suggested_template is 'letter_colouring' or 'letter_trace'. The exact text to render, e.g. 'S', 'Ss', '5', 'CAT'. Omit entirely otherwise.",
               },
               image_subject: {
                 type: "string",
@@ -253,6 +318,51 @@ function makeClassifyTemplatesTool(): Anthropic.Tool {
                     emoji: { type: "string", description: "A single emoji representing the objects being counted." },
                     label: { type: "string", description: "Short noun label below the count box, under 15 characters." },
                     count: { type: "integer", minimum: 1, maximum: 10 },
+                  },
+                },
+              },
+              maze_start_emoji: {
+                type: "string",
+                description: "REQUIRED when — and only when — suggested_template is 'trace_maze'. A single emoji for the start of the path. Omit entirely otherwise.",
+              },
+              maze_end_emoji: {
+                type: "string",
+                description: "REQUIRED when — and only when — suggested_template is 'trace_maze'. A single emoji for the end of the path, thematically linked to the start emoji. Omit entirely otherwise.",
+              },
+              dot_to_dot_shape: {
+                type: "string",
+                enum: DOT_TO_DOT_SHAPES.map((s) => s.id),
+                description: `REQUIRED when — and only when — suggested_template is 'dot_to_dot'. Pick the closest available shape: ${DOT_TO_DOT_SHAPES.map((s) => s.id).join(", ")}. Omit entirely otherwise.`,
+              },
+              odd_one_out_same: {
+                type: "array",
+                items: { type: "string", enum: CLIPART_ITEMS.map((i) => i.id) },
+                minItems: 3,
+                maxItems: 4,
+                description: `REQUIRED when — and only when — suggested_template is 'odd_one_out'. 3–4 clipart ids from the same category that belong together, from: ${CLIPART_ITEMS.map((i) => i.id).join(", ")}. Omit entirely otherwise.`,
+              },
+              odd_one_out_different: {
+                type: "string",
+                enum: CLIPART_ITEMS.map((i) => i.id),
+                description: "REQUIRED when — and only when — suggested_template is 'odd_one_out'. One clipart id that clearly doesn't belong with odd_one_out_same. Omit entirely otherwise.",
+              },
+              cut_and_sort_groups: {
+                type: "array",
+                minItems: 2,
+                maxItems: 3,
+                description: "REQUIRED when — and only when — suggested_template is 'cut_and_sort'. 2–3 labelled categories, each with 2–4 clipart items belonging to it. Omit entirely otherwise.",
+                items: {
+                  type: "object",
+                  required: ["label", "items"],
+                  properties: {
+                    label: { type: "string", description: "Short category label, e.g. 'Big' or 'Living things'." },
+                    items: {
+                      type: "array",
+                      items: { type: "string", enum: CLIPART_ITEMS.map((i) => i.id) },
+                      minItems: 2,
+                      maxItems: 4,
+                      description: `Clipart ids belonging to this category, from: ${CLIPART_ITEMS.map((i) => i.id).join(", ")}.`,
+                    },
                   },
                 },
               },
@@ -331,6 +441,12 @@ async function applyTemplateClassifications(activities: RawActivitySuggestion[])
       matching_left: c.matching_left ?? activity.matching_left,
       matching_right: c.matching_right ?? activity.matching_right,
       counting_groups: c.counting_groups ?? activity.counting_groups,
+      maze_start_emoji: c.maze_start_emoji ?? activity.maze_start_emoji,
+      maze_end_emoji: c.maze_end_emoji ?? activity.maze_end_emoji,
+      dot_to_dot_shape: c.dot_to_dot_shape ?? activity.dot_to_dot_shape,
+      odd_one_out_same: c.odd_one_out_same ?? activity.odd_one_out_same,
+      odd_one_out_different: c.odd_one_out_different ?? activity.odd_one_out_different,
+      cut_and_sort_groups: c.cut_and_sort_groups ?? activity.cut_and_sort_groups,
     };
   });
 }

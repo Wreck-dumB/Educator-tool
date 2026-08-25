@@ -46,6 +46,12 @@ export async function saveActivity(
       matching_left: suggestion.matchingLeft,
       matching_right: suggestion.matchingRight,
       counting_groups: suggestion.countingGroups,
+      maze_start_emoji: suggestion.mazeStartEmoji,
+      maze_end_emoji: suggestion.mazeEndEmoji,
+      dot_to_dot_shape: suggestion.dotToDotShape,
+      odd_one_out_same: suggestion.oddOneOutSame,
+      odd_one_out_different: suggestion.oddOneOutDifferent,
+      cut_and_sort_groups: suggestion.cutAndSortGroups,
     })
     .select("id")
     .single();

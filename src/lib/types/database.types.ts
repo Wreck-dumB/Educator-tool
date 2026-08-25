@@ -513,6 +513,12 @@ export interface Database {
             | "card_set"
             | "matching_pairs"
             | "counting_groups"
+            | "letter_trace"
+            | "trace_maze"
+            | "dot_to_dot"
+            | "odd_one_out"
+            | "feelings_checkin"
+            | "cut_and_sort"
             | null;
           card_items: string[];
           card_pairs: boolean;
@@ -522,6 +528,12 @@ export interface Database {
           matching_left: string[];
           matching_right: string[];
           counting_groups: { emoji: string; label: string; count: number }[];
+          maze_start_emoji: string | null;
+          maze_end_emoji: string | null;
+          dot_to_dot_shape: string | null;
+          odd_one_out_same: string[];
+          odd_one_out_different: string | null;
+          cut_and_sort_groups: { label: string; items: string[] }[];
         };
         Insert: {
           id?: string;
@@ -548,6 +560,12 @@ export interface Database {
             | "card_set"
             | "matching_pairs"
             | "counting_groups"
+            | "letter_trace"
+            | "trace_maze"
+            | "dot_to_dot"
+            | "odd_one_out"
+            | "feelings_checkin"
+            | "cut_and_sort"
             | null;
           card_items?: string[];
           card_pairs?: boolean;
@@ -557,6 +575,12 @@ export interface Database {
           matching_left?: string[];
           matching_right?: string[];
           counting_groups?: { emoji: string; label: string; count: number }[];
+          maze_start_emoji?: string | null;
+          maze_end_emoji?: string | null;
+          dot_to_dot_shape?: string | null;
+          odd_one_out_same?: string[];
+          odd_one_out_different?: string | null;
+          cut_and_sort_groups?: { label: string; items: string[] }[];
         };
         Update: Partial<Database["public"]["Tables"]["generated_activities"]["Insert"]>;
         Relationships: [];

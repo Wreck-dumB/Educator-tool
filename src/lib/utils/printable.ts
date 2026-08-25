@@ -9,7 +9,13 @@ export type PrintTemplateType =
   | "card_set"
   | "instructions"
   | "matching_pairs"
-  | "counting_groups";
+  | "counting_groups"
+  | "letter_trace"
+  | "trace_maze"
+  | "dot_to_dot"
+  | "odd_one_out"
+  | "feelings_checkin"
+  | "cut_and_sort";
 
 export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   activity_sheet: "Activity sheet",
@@ -23,6 +29,12 @@ export const TEMPLATE_LABELS: Record<PrintTemplateType, string> = {
   instructions: "Instruction card",
   matching_pairs: "Matching pairs",
   counting_groups: "Counting worksheet",
+  letter_trace: "Letter tracing",
+  trace_maze: "Trace-the-path maze",
+  dot_to_dot: "Dot-to-dot",
+  odd_one_out: "Odd one out",
+  feelings_checkin: "Feelings check-in",
+  cut_and_sort: "Cut and sort",
 };
 
 export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
@@ -37,6 +49,12 @@ export const TEMPLATE_DESCRIPTIONS: Record<PrintTemplateType, string> = {
   instructions: "Steps + EYLF codes + time/group info (outdoor, physical, discussion, music)",
   matching_pairs: "Two-column draw-the-line worksheet — children draw lines connecting each item to its matching pair",
   counting_groups: "Groups of objects — children count each group and write the number in the blank",
+  letter_trace: "Dotted single-line tracing practice for one letter, number, or short word (motor-skill formation practice, not name work)",
+  trace_maze: "A winding path from a start picture to an end picture for children to trace with a pencil",
+  dot_to_dot: "Numbered dots that reveal a picture when connected in order",
+  odd_one_out: "A row of pictures where children circle the one that's different from the rest",
+  feelings_checkin: "A grid of feeling faces — children circle how they feel right now",
+  cut_and_sort: "Small pictures to cut out and glue into labelled columns (sorting/categorising)",
 };
 
 export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
@@ -51,6 +69,12 @@ export const TEMPLATE_COLOURS: Record<PrintTemplateType, string> = {
   instructions: "bg-cream-dark text-ink/70",
   matching_pairs: "bg-violet-50 text-violet-700",
   counting_groups: "bg-orange-50 text-orange-700",
+  letter_trace: "bg-yellow-50 text-yellow-700",
+  trace_maze: "bg-lime-50 text-lime-700",
+  dot_to_dot: "bg-cyan-50 text-cyan-700",
+  odd_one_out: "bg-pink-50 text-pink-700",
+  feelings_checkin: "bg-fuchsia-50 text-fuchsia-700",
+  cut_and_sort: "bg-emerald-50 text-emerald-700",
 };
 
 // ─── Keyword sets ──────────────────────────────────────────────────────────────
@@ -87,6 +111,12 @@ const COLOUR_PICTURE_KW = /\b(colour\s*(?:ing)?\s*[- ]?\s*in|colouring[- ]book|c
 const WRITE_KW =
   /\b(write|writing|journal|journalling|sentence|story|stories|handwriting|copy\s+the|letter\s+formation|alphabet)\b/i;
 
+// Needs no structured companion data (unlike letter_trace/trace_maze/dot_to_dot/
+// odd_one_out/cut_and_sort, which all need an AI-supplied letter/emoji/shape id/
+// clipart id that free text can't reliably supply — those are classify-only,
+// same reasoning as card_set/letter_colouring/matching_pairs/counting_groups below).
+const FEELINGS_KW = /\b(feelings?\s*check[- ]?in|how\s+(are\s+you|do\s+you)\s+feel|emotion\w*\s+(check|circle)|feelings?\s+circle)\b/i;
+
 const PHYSICAL_KW =
   /\b(outdoor|outside|garden|playground|run|running|jump|jumping|dance|dancing|yoga|stretch|stretching|walk|walking|obstacle|sport|game|ball|physical|movement|exercise|music|singing|sing|listen|listening|discuss|discussion|mindful|breath|breathing|story\s+time|storytime|reading\s+aloud|read\s+aloud|circle\s+time|mat\s+time)\b/i;
 
@@ -104,6 +134,8 @@ export function detectPrintTemplate(activity: ActivityShape): PrintTemplateType 
   if (NAME_LABEL_KW.test(text)) return "name_label";
   if (NAME_COLOURING_KW.test(text)) return "name_colouring";
   if (NAME_TRACE_KW.test(text)) return "name_trace";
+
+  if (FEELINGS_KW.test(text)) return "feelings_checkin";
 
   // A picture to colour in needs the outline/line-art template even if
   // crayons or colouring pencils are also listed as materials — check this
@@ -126,11 +158,13 @@ export function detectPrintTemplate(activity: ActivityShape): PrintTemplateType 
   // Outdoor / physical / discussion / music → instruction card
   if (PHYSICAL_KW.test(text)) return "instructions";
 
-  // Unknown — default to instruction card (not name_trace). Note: "card_set"
-  // and "letter_colouring" are deliberately never fallback guesses here —
-  // they each need structured data (card_items / letter_text) that only the
-  // AI's explicit suggested_template call can provide; there's nothing
-  // reliable to parse out of free text for either.
+  // Unknown — default to instruction card (not name_trace). Note: "card_set",
+  // "letter_colouring", "letter_trace", "trace_maze", "dot_to_dot",
+  // "odd_one_out", and "cut_and_sort" are deliberately never fallback guesses
+  // here — they each need structured data (card_items / letter_text /
+  // maze emoji / dot_to_dot_shape / clipart ids) that only the AI's explicit
+  // suggested_template call can provide; there's nothing reliable to parse
+  // out of free text for any of them.
   return "instructions";
 }
 
@@ -155,6 +189,12 @@ export function buildWorksheetUrl(
     matching_left?: string[];
     matching_right?: string[];
     counting_groups?: { emoji: string; label: string; count: number }[];
+    maze_start_emoji?: string | null;
+    maze_end_emoji?: string | null;
+    dot_to_dot_shape?: string | null;
+    odd_one_out_same?: string[];
+    odd_one_out_different?: string | null;
+    cut_and_sort_groups?: { label: string; items: string[] }[];
   },
   childName?: string,
 ): string {
@@ -202,6 +242,33 @@ export function buildWorksheetUrl(
   // Counting groups: emoji|label|count per group
   if (templateType === "counting_groups") {
     activity.counting_groups?.forEach((g) => params.append("cg", `${g.emoji}|${g.label}|${g.count}`));
+  }
+
+  // Letter trace: same letter_text param as letter_colouring
+  if (templateType === "letter_trace" && activity.letter_text) {
+    params.set("letter_text", activity.letter_text);
+  }
+
+  // Trace maze: start/end emoji (falls back to a default pair if absent)
+  if (templateType === "trace_maze") {
+    params.set("maze_start", activity.maze_start_emoji || "🐭");
+    params.set("maze_end", activity.maze_end_emoji || "🧀");
+  }
+
+  // Dot to dot: which curated shape to render
+  if (templateType === "dot_to_dot" && activity.dot_to_dot_shape) {
+    params.set("shape", activity.dot_to_dot_shape);
+  }
+
+  // Odd one out: 3+ matching clipart ids, then the one that's different
+  if (templateType === "odd_one_out") {
+    activity.odd_one_out_same?.forEach((id) => params.append("same", id));
+    if (activity.odd_one_out_different) params.set("different", activity.odd_one_out_different);
+  }
+
+  // Cut and sort: label|item,item,item per column
+  if (templateType === "cut_and_sort") {
+    activity.cut_and_sort_groups?.forEach((g) => params.append("sort", `${g.label}|${g.items.join(",")}`));
   }
 
   // Drawing frame / writing lines: child name already set above, no extra params needed
