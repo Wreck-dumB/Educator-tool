@@ -1,0 +1,9 @@
+{"step":"sanity_login","url":"http://localhost:3000/programs"}
+{"step":"draft_generated","title":"Possums Week — Under the Sea (QB Test 1)","ms":21844}
+{"step":"create_program_result","title":"Possums Week — Under the Sea (QB Test 1)","saved":false,"href":null}
+{"step":"draft_generated","title":"Wombats Week — Bush Adventures (QB Test 2)","ms":19266}
+{"step":"create_program_result","title":"Wombats Week — Bush Adventures (QB Test 2)","saved":false,"href":null}
+{"step":"draft_generated","title":"All Rooms — Spring Sensory Week (QB Test 3)","ms":13148}
+{"step":"create_program_result","title":"All Rooms — Spring Sensory Week (QB Test 3)","saved":false,"href":null}
+{"step":"all_programs_created","hrefs":{"p1":null,"p2":null,"p3":null}}
+{"step":"program_editor_workflow_error","error":"Error: page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000null\", waiting until \"networkidle\"\u001b[22m\n","stack":"page.goto: Protocol error (Page.navigate): Cannot navigate to invalid URL\nCall log:\n\u001b[2m  - navigating to \"http://localhost:3000null\", waiting until \"networkidle\"\u001b[22m\n\n    at D:\\Projects\\sparkplay\\playwright\\qa-group-b-programs-retry.js:97:16"}

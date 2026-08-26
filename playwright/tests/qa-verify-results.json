@@ -1,0 +1,81 @@
+{
+  "loggedIn": true,
+  "children": {
+    "ava": true,
+    "ben": true,
+    "cleo": false,
+    "dupCheckCount": 2,
+    "fullText": "✨\nDR. SparkPlay\n\nFRONT DESK\n\nSign In / Out\nOn Site Board\nRoll Call\nCasual Days\nVisitor Log\n\nTODAY\n\nDashboard\nDaily Digest\nFollow-ups\nDay Plan\nShift Handover\n\nEDUCATOR TOOLS\n\nGenerate Activity\nBrain Breaks\nActivities\nObservations\nProgramming Workspace\nPrograms\nMilestones\nTransition Statements\nMaterials\nRecipes\nMeal Planner\nPrintable Sheets\nAuslan Dictionary\nPosters & Fliers\nWhite Noise\n\nENROLMENTS\n\nChildren\nRooms\nOccupancy\nWaiting List\n\nDAILY FORMS\n\nIncidents\nMedication Log\nSafety Checks\nComplaints\nPermission Slips\nExcursions\nHealth Plans\nDocument Templates\nSleep Chart\nFood Chart\nNappy Chart\nPhysical Activity & Nutrition\nBehaviour Support Plans\n\nCENTRE INFORMATION\n\nPolicies\nSafe Work\nQIP\nQIP Check-in\nNQS Self-Assessment\nRisk Assessments\nImport & Review\n\nFAMILY\n\nMessages\nCommunity Wall\n\nPROFESSIONAL DEVELOPMENT\n\nReflections\nPD Hours\n\nADMINISTRATION\n\nStaff\nStaff Roster\nLeave Calendar\nCompliance Tracker\nService Closures\nBroadcasts\nInvoices\nCCS Estimator\nService Settings\n\nkrondor2024+qa-director-a@gmail.com\n\nLog out\nChildren\n\nProfiles you manage on behalf of the children in your care — no login for them, just a name, age, and what they're currently into.\n\nCurrently enrolled\n🧒 Priya-QB\n\ndrawing, storytime\n\n🧒 PW-1785934248151\n🧒 QaChild Ava\n\nbubbles, singing (edited)\n\n🧒 QaChild Ben\n\ndinosaurs, painting\n\n🧒 QaChild DupCheck\n🧒 QaChild DupCheck\n🧒 Theo-QB\n\ntrucks, building blocks\n\n🧒 Zara-QB\n\ndinosaurs, puzzles\n\nAdd a child\nFirst name\nDate of birth (optional)\nCurrent interests (opt"
+  },
+  "rooms": {
+    "nursery": true,
+    "toddlers": true
+  },
+  "signinChildrenTab": "QA Test Centre A\nKIOSK\nExit kiosk\nSign In / Out\n\nTuesday 18 August\n\n2 children\n1 staff\n1 visitors\nChildren2 in\nStaff1 in\nVisitors1 in\n\nUNASSIGNED\n\nPriya-QB\nTap to sign in\nSIGN IN\nPW-1785934248151\nTap to sign in\nSIGN IN\nQaChild Ben\nIN 01:33 am\nSIGN OUT\nQaChild DupCheck\nTap to sign in\nSIGN IN\nQaChild DupCheck\nTap to sign in\nSIGN IN\nTheo-QB\nTap to sign in\nSIGN IN\nZara-QB\nTap to sign in\nSIGN IN\n\nPOSSUMS ROOM (2-3YO)\n\nQaChild Ava\nIN 01:33 am\nSIGN OUT",
+  "signinVisitorsTab": true,
+  "onsite": "✨\nDR. SparkPlay\n\nFRONT DESK\n\nSign In / Out\nOn Site Board\nRoll Call\nCasual Days\nVisitor Log\n\nTODAY\n\nDashboard\nDaily Digest\nFollow-ups\nDay Plan\nShift Handover\n\nEDUCATOR TOOLS\n\nGenerate Activity\nBrain Breaks\nActivities\nObservations\nProgramming Workspace\nPrograms\nMilestones\nTransition Statements\nMaterials\nRecipes\nMeal Planner\nPrintable Sheets\nAuslan Dictionary\nPosters & Fliers\nWhite Noise\n\nENROLMENTS\n\nChildren\nRooms\nOccupancy\nWaiting List\n\nDAILY FORMS\n\nIncidents\nMedication Log\nSafety Checks\nComplaints\nPermission Slips\nExcursions\nHealth Plans\nDocument Templates\nSleep Chart\nFood Chart\nNappy Chart\nPhysical Activity & Nutrition\nBehaviour Support Plans\n\nCENTRE INFORMATION\n\nPolicies\nSafe Work\nQIP\nQIP Check-in\nNQS Self-Assessment\nRisk Assessments\nImport & Review\n\nFAMILY\n\nMessages\nCommunity Wall\n\nPROFESSIONAL DEVELOPMENT\n\nReflections\nPD Hours\n\nADMINISTRATION\n\nStaff\nStaff Roster\nLeave Calendar\nCompliance Tracker\nService Closures\nBroadcasts\nInvoices\nCCS Estimator\nService Settings\n\nkrondor2024+qa-director-a@gmail.com\n\nLog out\nOn Site Now\n\nTuesday 18 August\n\nRefreshed 01:40 am\nRefresh\nSign In / Out\n\n2\n\nCHILDREN\n\n1\n\nSTAFF\n\n1\n\nVISITORS\n\n⚠️\nMEDICAL / DIETARY ALERTS — 1 CHILD ON SITE\n\nQaChild Ben\n\nNot",
+  "visitorLog": {
+    "plumber": false,
+    "inspector": false,
+    "student": false
+  },
+  "visitorRetryResults": [
+    {
+      "name": "Visitor Two Inspector Retry",
+      "ok": true
+    },
+    {
+      "name": "Visitor Three Student Retry",
+      "ok": true
+    }
+  ],
+  "medication": {
+    "panadol": false,
+    "ventolin": false,
+    "antihistamine": false
+  },
+  "medicationRetry": false,
+  "safetyChecksToday": "✨\nDR. SparkPlay\n\nFRONT DESK\n\nSign In / Out\nOn Site Board\nRoll Call\nCasual Days\nVisitor Log\n\nTODAY\n\nDashboard\nDaily Digest\nFollow-ups\nDay Plan\nShift Handover\n\nEDUCATOR TOOLS\n\nGenerate Activity\nBrain Breaks\nActivities\nObservations\nProgramming Workspace\nPrograms\nMilestones\nTransition Statements\nMaterials\nRecipes\nMeal Planner\nPrintable Sheets\nAuslan Dictionary\nPosters & Fliers\nWhite Noise\n\nENROLMENTS\n\nChildren\nRooms\nOccupancy\nWaiting List\n\nDAILY FORMS\n\nIncidents\nMedication Log\nSafety Checks\nComplaints\nPermission Slips\nExcursions\nHealth Plans\nDocument Templates\nSleep Chart\nFood Chart\nNappy Chart\nPh",
+  "safetyChecksCounts": {
+    "checked": 19,
+    "total": 19
+  },
+  "wall": {
+    "one": false,
+    "two": false,
+    "three": false
+  },
+  "wallRetryResults": [
+    {
+      "body": "QA wall post two (retry) — reminder about sunhats.",
+      "ok": true
+    },
+    {
+      "body": "QA wall post three (retry) — photo day next Friday.",
+      "ok": true
+    }
+  ],
+  "roster": "✨\nDR. SparkPlay\n\nFRONT DESK\n\nSign In / Out\nOn Site Board\nRoll Call\nCasual Days\nVisitor Log\n\nTODAY\n\nDashboard\nDaily Digest\nFollow-ups\nDay Plan\nShift Handover\n\nEDUCATOR TOOLS\n\nGenerate Activity\nBrain Breaks\nActivities\nObservations\nProgramming Workspace\nPrograms\nMilestones\nTransition Statements\nMaterials\nRecipes\nMeal Planner\nPrintable Sheets\nAuslan Dictionary\nPosters & Fliers\nWhite Noise\n\nENROLMENTS\n\nChildren\nRooms\nOccupancy\nWaiting List\n\nDAILY FORMS\n\nIncidents\nMedication Log\nSafety Checks\nComplaints\nPermission Slips\nExcursions\nHealth Plans\nDocument Templates\nSleep Chart\nFood Chart\nNappy Chart\nPhysical Activity & Nutrition\nBehaviour Support Plans\n\nCENTRE INFORMATION\n\nPolicies\nSafe Work\nQIP\nQIP Check-in\nNQS Self-Assessment\nRisk Assessments\nImport & Review\n\nFAMILY\n\nMessages\nCommunity Wall\n\nPROFESSIONAL DEVELOPMENT\n\nReflections\nPD Hours\n\nADMINISTRATION\n\nStaff\nStaff Roster\nLeave Calendar\nCompliance Tracker\nService Closures\nBroadcasts\nInvoices\nCCS Estimator\nService Settings\n\nkrondor2024+qa-dir",
+  "compliance": {
+    "hasWwcc": false,
+    "hasFirstAid": false,
+    "hasAnaphylaxis": false,
+    "hasExpiryAlertHeading": false,
+    "snippet": "✨\nDR. SparkPlay\n\nFRONT DESK\n\nSign In / Out\nOn Site Board\nRoll Call\nCasual Days\nVisitor Log\n\nTODAY\n\nDashboard\nDaily Digest\nFollow-ups\nDay Plan\nShift Handover\n\nEDUCATOR TOOLS\n\nGenerate Activity\nBrain Breaks\nActivities\nObservations\nProgramming Workspace\nPrograms\nMilestones\nTransition Statements\nMaterials\nRecipes\nMeal Planner\nPrintable Sheets\nAuslan Dictionary\nPosters & Fliers\nWhite Noise\n\nENROLMENTS\n\nChildren\nRooms\nOccupancy\nWaiting List\n\nDAILY FORMS\n\nIncidents\nMedication Log\nSafety Checks\nComplaints\nPermission Slips\nExcursions\nHealth Plans\nDocument Templates\nSleep Chart\nFood Chart\nNappy Chart\nPhysical Activity & Nutrition\nBehaviour Support Plans\n\nCENTRE INFORMATION\n\nPolicies\nSafe Work\nQIP\nQIP Check-in\nNQS Self-Assessment\nRisk Assessments\nImport & Review\n\nFAMILY\n\nMessages\nCommunity Wall\n\nPROFESSIONAL DEVELOPMENT\n\nReflections\nPD Hours\n\nADMINISTRATION\n\nStaff\nStaff Roster\nLeave Calendar\nCompliance Tracker\nService Closures\nBroadcasts\nInvoices\nCCS Estimator\nService Settings\n\nkrondor2024+qa-director-a@gmail.com\n\nLog out\nDR. SparkPlay © 2026\nPrivacy Policy\nTerms of Service\nContact"
+  },
+  "invoices": {
+    "parentOne": false,
+    "parentTwo": false,
+    "parentThree": false
+  },
+  "invoicesRetry": true,
+  "whiteNoise": {
+    "hasPlayText": true,
+    "ariaButtons": [
+      "Toggle menu",
+      "Play",
+      "Open Next.js Dev Tools"
+    ],
+    "playingAfterClick": true
+  }
+}
