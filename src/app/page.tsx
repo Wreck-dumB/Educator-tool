@@ -56,7 +56,7 @@ export default function Home() {
             href="/signup"
             className="rounded-full bg-coral px-8 py-3 text-base font-semibold text-white shadow-lg hover:bg-coral-dark transition-colors"
           >
-            Try for free
+            Start free trial
           </Link>
           <Link
             href="/tour"
@@ -65,6 +65,12 @@ export default function Home() {
             See how it works
           </Link>
         </div>
+        <Link
+          href="/demo"
+          className="mt-4 text-sm font-semibold text-coral-dark hover:text-coral underline underline-offset-4"
+        >
+          See demo
+        </Link>
 
         {/* Emoji divider */}
         <div className="mt-12 flex justify-center gap-4 text-3xl">
