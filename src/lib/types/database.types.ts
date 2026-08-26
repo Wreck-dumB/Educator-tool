@@ -1375,6 +1375,7 @@ export interface Database {
           nominated_supervisor_email: string | null;
           material_alert_lead_days: number;
           jurisdiction: "national" | "nsw" | "vic" | "qld" | "wa" | "sa" | "tas" | "act" | "nt";
+          is_demo: boolean;
           created_at: string;
         };
         Insert: {
@@ -1394,6 +1395,7 @@ export interface Database {
           nominated_supervisor_email?: string | null;
           material_alert_lead_days?: number;
           jurisdiction?: "national" | "nsw" | "vic" | "qld" | "wa" | "sa" | "tas" | "act" | "nt";
+          is_demo?: boolean;
           created_at?: string;
         };
         Update: Partial<Database["public"]["Tables"]["services"]["Insert"]>;

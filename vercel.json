@@ -3,6 +3,10 @@
     {
       "path": "/api/material-alerts",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/demo/cleanup",
+      "schedule": "0 3 * * *"
     }
   ],
   "headers": [

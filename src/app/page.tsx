@@ -246,7 +246,7 @@ export default function Home() {
               Start free trial
             </Link>
             <Link
-              href="/tour"
+              href="/demo"
               className="rounded-full border-2 border-coral px-8 py-3 text-base font-semibold text-coral-dark hover:bg-coral-light transition-colors"
             >
               See demo
@@ -263,6 +263,7 @@ export default function Home() {
               <h4 className="font-semibold text-ink mb-3">Product</h4>
               <ul className="space-y-2 text-sm text-ink/70">
                 <li><Link href="/tour" className="hover:text-coral">Features</Link></li>
+                <li><Link href="/demo" className="hover:text-coral">Demo</Link></li>
                 <li><Link href="/faq" className="hover:text-coral">FAQ</Link></li>
               </ul>
             </div>
