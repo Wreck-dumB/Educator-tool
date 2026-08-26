@@ -84,7 +84,7 @@ export default async function DemoPage({
 
           <div className="mt-8 rounded-lg bg-amber-light p-4 border border-amber-dark/20">
             <p className="text-sm text-amber-dark">
-              <strong>Note:</strong> Demo centres are automatically removed after 48 hours. To keep your
+              <strong>Note:</strong> Demo centres are automatically removed after 30 days. To keep your
               data, sign up for a real account (first 7 days free).
             </p>
           </div>

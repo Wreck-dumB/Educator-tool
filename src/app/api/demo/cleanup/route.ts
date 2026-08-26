@@ -3,9 +3,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteDemoAccount } from "@/lib/demoSeed";
 
 // Called by Vercel Cron (Authorization: Bearer <CRON_SECRET>). Removes public
-// demo centres (see /api/demo/start) older than 48 hours so they don't pile
+// demo centres (see /api/demo/start) older than 30 days so they don't pile
 // up. Real (non-demo) centres are never touched -- filtered on is_demo=true.
-const DEMO_LIFETIME_MS = 48 * 60 * 60 * 1000;
+const DEMO_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization");
