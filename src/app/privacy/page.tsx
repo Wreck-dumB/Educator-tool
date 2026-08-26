@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
       <Link href="/login" className="text-sm text-coral-dark hover:underline">← Back</Link>
 
       <h1 className="mt-4 font-display text-4xl font-semibold text-coral-dark">Privacy Policy</h1>
-      <p className="mt-1 text-sm text-ink/50">Effective date: {EFFECTIVE_DATE} · Version 1.1</p>
+      <p className="mt-1 text-sm text-ink/50">Effective date: {EFFECTIVE_DATE} · Version 1.2</p>
 
       <p className="mt-6 text-sm text-ink/70">
         DR. SparkPlay (&ldquo;we&rdquo;, &ldquo;us&rdquo;, &ldquo;our&rdquo;) is an early childhood education tool operated as
@@ -100,19 +100,11 @@ export default function PrivacyPolicyPage() {
 
       <Section title="4. How we store and protect information">
         <p>
-          Data is stored using Supabase. The database for this service currently runs on infrastructure
-          located in South Korea (AWS ap-northeast-2), not Australia — an earlier version of this policy
-          incorrectly stated an Australian location, which we have corrected here. All connections are
-          encrypted in transit (TLS 1.2+), and data at rest is encrypted by the storage provider.
-        </p>
-        <p className="mt-2">
-          Because this means personal information is held on servers outside Australia, it is an overseas
-          disclosure under Australian Privacy Principle 8. We take reasonable steps to ensure this
-          information remains protected, including encryption in transit and at rest and contractual
-          terms with our infrastructure provider, and we are reviewing whether to relocate this
-          infrastructure to Australia. If you have questions about this, or would like more detail before
-          deciding whether to continue using the service, contact us using the details in section 11 — we
-          will respond honestly and promptly.
+          All data is stored in Australia using Supabase (hosted on AWS ap-southeast-2, Sydney). An
+          earlier version of this policy incorrectly stated this while the database was still hosted
+          overseas; the database was migrated to Australia on 26 August 2026 and this statement is now
+          accurate. All connections are encrypted in transit (TLS 1.2+), and data at rest is encrypted by
+          the storage provider.
         </p>
         <p className="mt-2">
           Access to data within the app is controlled by row-level security policies enforced at the

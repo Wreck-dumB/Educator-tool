@@ -184,7 +184,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-ink mb-2">Is it secure?</h3>
               <p className="text-ink/70 text-sm">
-                Yes. All data encrypted in transit and at rest, with password-protected, role-based access.
+                Yes. All data encrypted in transit and at rest, hosted in Australia on Supabase, with password-protected, role-based access.
               </p>
             </div>
             <div>

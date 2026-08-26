@@ -48,7 +48,7 @@ export default function AboutPage() {
               <li><strong>Regulation compliance.</strong> NQF, EYLF, and state-specific rules are embedded, not bolted on. Educators shouldn&apos;t have to be lawyers.</li>
               <li><strong>AI with guardrails.</strong> We use Claude to handle the writing nobody has time for. But educators stay in control.</li>
               <li><strong>Family transparency.</strong> Parents deserve to know what their children are learning. Observations shared daily, translated into their language, with EYLF links.</li>
-              <li><strong>Australian built.</strong> Regulations understood here, support timezone-aligned here.</li>
+              <li><strong>Australian built.</strong> Data hosted here, regulations understood here, support timezone-aligned here.</li>
             </ul>
 
             <p>

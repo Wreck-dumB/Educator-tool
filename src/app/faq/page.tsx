@@ -33,7 +33,7 @@ export default function FAQPage() {
       questions: [
         {
           q: "Is my data secure?",
-          a: "Yes. All data is encrypted in transit (HTTPS) and at rest (AES-256-GCM encryption). Role-based access control means staff can only see what they need to, and we maintain audit trails of every data access for compliance.",
+          a: "Yes. All data is encrypted in transit (HTTPS) and at rest (AES-256-GCM encryption), and hosted in Australia on Supabase. Role-based access control means staff can only see what they need to, and we maintain audit trails of every data access for compliance.",
         },
         {
           q: "Is it compliant with Australian privacy law?",

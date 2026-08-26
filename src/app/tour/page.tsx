@@ -299,7 +299,7 @@ export default function TourPage() {
               <div>
                 <h3 className="font-semibold text-ink mb-1">Your data is secure</h3>
                 <p className="text-ink/70">
-                  Encryption in transit and at rest, role-based access, audit trails. Built for privacy.
+                  Australian servers, encryption in transit and at rest, role-based access, audit trails. Built for privacy.
                 </p>
               </div>
             </div>
