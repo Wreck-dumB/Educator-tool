@@ -52,7 +52,8 @@ export async function saveRoutine(formData: FormData) {
 
   revalidatePath("/day-plan");
   if (date) revalidatePath(`/day-plan?date=${date}`);
-  redirect(date ? `/day-plan?date=${date}&saved=1` : `/day-plan?saved=1`);
+  const roomQuery = roomId ? `&room=${roomId}` : "";
+  redirect(date ? `/day-plan?date=${date}${roomQuery}&saved=1` : `/day-plan?saved=1${roomQuery}`);
 }
 
 export async function addProgramEntry(formData: FormData) {
@@ -66,6 +67,8 @@ export async function addProgramEntry(formData: FormData) {
   if (!ownerUserId) redirect("/day-plan");
 
   const dayDate = formData.get("day_date") as string;
+  const roomParam = (formData.get("room") as string) || null;
+  const roomQuery = roomParam ? `&room=${roomParam}` : "";
   const activityId = (formData.get("activity_id") as string) || null;
   const title = (formData.get("title") as string)?.trim();
   const eylfCodesJson = (formData.get("eylf_codes") as string) || "[]";
@@ -82,7 +85,7 @@ export async function addProgramEntry(formData: FormData) {
     .limit(1);
 
   if (!programs || programs.length === 0) {
-    redirect(`/day-plan?date=${dayDate}&error=${encodeURIComponent("No program covers this date — create one first under Programs")}`);
+    redirect(`/day-plan?date=${dayDate}${roomQuery}&error=${encodeURIComponent("No program covers this date — create one first under Programs")}`);
   }
 
   await supabase.from("program_entries").insert({
@@ -96,5 +99,5 @@ export async function addProgramEntry(formData: FormData) {
 
   revalidatePath("/day-plan");
   revalidatePath(`/programs/${programs[0].id}`);
-  redirect(`/day-plan?date=${dayDate}&added=1`);
+  redirect(`/day-plan?date=${dayDate}${roomQuery}&added=1`);
 }

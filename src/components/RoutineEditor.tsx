@@ -70,6 +70,7 @@ interface Props {
   childCount: number;
   dayName: string;
   roomName?: string;
+  roomId?: string | null;
   plannedActivities: string[];
   templates?: { id: string; title: string; blocks: RoutineBlock[] }[];
   activities?: { id: string; title: string }[];
@@ -87,6 +88,7 @@ export default function RoutineEditor({
   childCount,
   dayName,
   roomName,
+  roomId,
   plannedActivities,
   templates,
   activities = [],
@@ -268,7 +270,14 @@ export default function RoutineEditor({
       <form ref={formRef} action={saveRoutine} className="mt-5 space-y-3 border-t border-coral-light pt-5">
         <input type="hidden" name="blocks" value={JSON.stringify(blocks)} />
         <input type="hidden" name="date" value={date} />
+        <input type="hidden" name="room_id" value={roomId ?? ""} />
         {existingId && <input type="hidden" name="existing_id" value={existingId} />}
+
+        {roomName && (
+          <p className="text-xs font-medium text-sage-dark">
+            Building the routine for {roomName} — this won&apos;t affect other classes&apos; routines.
+          </p>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { getRooms } from "@/lib/supabase/rooms";
 import { cardClass, errorBannerClass, successBannerClass, inputClass } from "@/lib/ui";
 import PrintButton from "@/components/PrintButton";
 import DateNavInput from "@/components/DateNavInput";
@@ -57,9 +58,9 @@ function formatTime(t: string) {
 export default async function DayPlanPage({
   searchParams,
 }: {
-  searchParams: Promise<{ date?: string; error?: string; saved?: string; added?: string }>;
+  searchParams: Promise<{ date?: string; room?: string; error?: string; saved?: string; added?: string }>;
 }) {
-  const { date: dateParam, error, saved, added } = await searchParams;
+  const { date: dateParam, room: roomParam, error, saved, added } = await searchParams;
   const date = dateParam ?? todayLocal();
   const dayOfWeek = localDayOfWeek(date);
   const dayName = DAY_NAMES[dayOfWeek] ?? "Weekend";
@@ -81,6 +82,12 @@ export default async function DayPlanPage({
       </div>
     );
   }
+
+  const rooms = await getRooms();
+  // Each class/room gets its own routine — only trust a room param that's actually one of ours.
+  const selectedRoom = rooms.find((r) => r.id === roomParam) ?? null;
+  const selectedRoomId = selectedRoom?.id ?? null;
+  const dateNavExtraParams = selectedRoomId ? `room=${selectedRoomId}` : undefined;
 
   // Parallel fetches
   const [
@@ -113,13 +120,11 @@ export default async function DayPlanPage({
       .eq("day_date", date)
       .order("created_at"),
 
-    // Saved routine for this date
-    supabase
-      .from("daily_routines")
-      .select("*")
-      .eq("owner_user_id", ownerUserId)
-      .eq("date", date)
-      .maybeSingle(),
+    // Saved routine for this date + room (each class has its own routine)
+    (selectedRoomId
+      ? supabase.from("daily_routines").select("*").eq("owner_user_id", ownerUserId).eq("date", date).eq("room_id", selectedRoomId)
+      : supabase.from("daily_routines").select("*").eq("owner_user_id", ownerUserId).eq("date", date).is("room_id", null)
+    ).maybeSingle(),
 
     // All children (for cross-reference)
     supabase
@@ -144,12 +149,11 @@ export default async function DayPlanPage({
       .order("created_at", { ascending: false })
       .limit(50),
 
-    // Routine templates
-    supabase
-      .from("daily_routines")
-      .select("id, title, blocks")
-      .eq("owner_user_id", ownerUserId)
-      .eq("is_template", true)
+    // Routine templates for this room (templates saved without a room show under "Whole centre")
+    (selectedRoomId
+      ? supabase.from("daily_routines").select("id, title, blocks").eq("owner_user_id", ownerUserId).eq("is_template", true).eq("room_id", selectedRoomId)
+      : supabase.from("daily_routines").select("id, title, blocks").eq("owner_user_id", ownerUserId).eq("is_template", true).is("room_id", null)
+    )
       .order("created_at", { ascending: false })
       .limit(5),
   ]);
@@ -211,10 +215,39 @@ export default async function DayPlanPage({
           <p className="mt-1 text-sm text-ink/60">{displayDate}</p>
         </div>
         <div className="flex items-center gap-2">
-          <DateNavInput date={date} path="/day-plan" />
+          <DateNavInput date={date} path="/day-plan" extraParams={dateNavExtraParams} />
           <PrintButton />
         </div>
       </div>
+
+      {rooms.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm print:hidden">
+          <span className="text-ink/50">Class:</span>
+          <Link
+            href={`/day-plan?date=${date}`}
+            className={`rounded-full border px-3 py-1 font-medium transition-colors ${
+              !selectedRoomId
+                ? "border-coral bg-coral-light text-coral-dark"
+                : "border-coral-light text-ink/50 hover:bg-coral-light/40"
+            }`}
+          >
+            Whole centre
+          </Link>
+          {rooms.map((r) => (
+            <Link
+              key={r.id}
+              href={`/day-plan?date=${date}&room=${r.id}`}
+              className={`rounded-full border px-3 py-1 font-medium transition-colors ${
+                selectedRoomId === r.id
+                  ? "border-coral bg-coral-light text-coral-dark"
+                  : "border-coral-light text-ink/50 hover:bg-coral-light/40"
+              }`}
+            >
+              {r.name}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {error && <p className={errorBannerClass}>{error}</p>}
       {saved && <p className={successBannerClass}>Day plan saved.</p>}
@@ -387,6 +420,7 @@ export default async function DayPlanPage({
             </summary>
             <form action={addProgramEntry} className="space-y-2 px-4 pb-4">
               <input type="hidden" name="day_date" value={date} />
+              <input type="hidden" name="room" value={selectedRoomId ?? ""} />
               <div>
                 <label className="mb-1 block text-xs text-ink/60">From saved activities</label>
                 <select name="activity_id" className={inputClass}>
@@ -419,7 +453,9 @@ export default async function DayPlanPage({
         {routineBlocks.length > 0 && (
           <div className="px-4 py-3">
             <div className="border-b border-coral-light pb-2 print:border-b-2 print:border-black">
-              <h2 className="font-display font-semibold text-ink print:text-black">Daily Routine</h2>
+              <h2 className="font-display font-semibold text-ink print:text-black">
+                Daily Routine{selectedRoom && ` — ${selectedRoom.name}`}
+              </h2>
               {savedRoutine?.focus_topic && (
                 <p className="text-xs text-ink/50 print:text-black">Focus: {savedRoutine.focus_topic}</p>
               )}
@@ -456,11 +492,13 @@ export default async function DayPlanPage({
               initialBlocks={routineBlocks}
               date={date}
               existingId={savedRoutine?.id}
-              existingTitle={savedRoutine?.title}
+              existingTitle={savedRoutine?.title ?? (selectedRoom ? `${selectedRoom.name} — Day Plan — ${date}` : undefined)}
               focusTopic={savedRoutine?.focus_topic ?? undefined}
               notes={savedRoutine?.notes ?? undefined}
               childCount={presentCount + expectedCount}
               dayName={dayName}
+              roomName={selectedRoom?.name}
+              roomId={selectedRoomId}
               plannedActivities={plannedActivityTitles}
               templates={routineTemplates ?? undefined}
               activities={savedActivities ?? []}
