@@ -226,7 +226,7 @@ export default function TourPage() {
               <h3 className="font-semibold text-coral-dark mb-3">💰 Admin</h3>
               <ul className="text-sm text-ink/70 space-y-1">
                 <li>• Invoicing & payments</li>
-                <li>• CCS integration</li>
+                <li>• CCS estimator</li>
                 <li>• Staff management</li>
                 <li>• Centre settings</li>
                 <li>• Reporting</li>
@@ -299,7 +299,7 @@ export default function TourPage() {
               <div>
                 <h3 className="font-semibold text-ink mb-1">Your data is secure</h3>
                 <p className="text-ink/70">
-                  Australian servers, encryption in transit and at rest, role-based access, audit trails. Built for privacy.
+                  Encryption in transit and at rest, role-based access, audit trails. Built for privacy.
                 </p>
               </div>
             </div>

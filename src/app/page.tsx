@@ -43,7 +43,7 @@ export default function Home() {
             ✓ Built for NQF & EYLF
           </div>
           <div className="inline-block rounded-full bg-sage-light px-4 py-2 text-sm font-semibold text-sage-dark">
-            ✓ All 9 states & territories
+            ✓ All 8 states & territories
           </div>
           <div className="inline-block rounded-full bg-amber-light px-4 py-2 text-sm font-semibold text-amber-dark">
             ✓ AI in control, humans in charge
@@ -184,7 +184,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-ink mb-2">Is it secure?</h3>
               <p className="text-ink/70 text-sm">
-                Yes. All data encrypted in transit and at rest. Hosted in Australia on Supabase. Password protected with role-based access.
+                Yes. All data encrypted in transit and at rest, with password-protected, role-based access.
               </p>
             </div>
             <div>
@@ -196,7 +196,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-ink mb-2">What about my state's rules?</h3>
               <p className="text-ink/70 text-sm">
-                Built for all 9 states and territories. Regulations are embedded (ratios, mandatory reporting, immunisation rules, etc).
+                Built for all 8 states and territories. Regulations are embedded (ratios, mandatory reporting, immunisation rules, etc).
               </p>
             </div>
             <div>

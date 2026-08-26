@@ -2,6 +2,10 @@
 
 Parked ideas and planned work, so nothing gets lost between sessions.
 
+## ⚠️ Privacy policy vs. actual server region mismatch — needs a decision (2026-08-26)
+Found while re-verifying the marketing pages: `/privacy` states *"All data is stored in Australia using Supabase (hosted on AWS ap-southeast-2, Sydney)"* — but the live Supabase project's actual region (confirmed via Management API) is **`ap-northeast-2` (Seoul, South Korea)**, not Sydney. This predates the Copilot session; it's not something that redesign introduced. This matters for real: it's a factual claim in a legally-relevant privacy disclosure about data residency for a product holding children's records under the Australian Privacy Principles.
+- [ ] **Needs a decision, not a silent fix.** Either (a) migrate the Supabase project to `ap-southeast-2` to match what the policy promises (real infra work — Supabase doesn't do in-place region migration, this means a new project + full data migration + cutover), or (b) correct `/privacy` to state the actual region honestly. Left the marketing pages (`/`, `/faq`, `/about`, `/tour`) softened to not assert a specific server location either way in the meantime, so they're at least not making it worse.
+
 ## Parked: cross-tenant sharing ("Educator Exchange") vs. template library (2026-08-26)
 A Copilot session was mid-conversation about a proposed cross-tenant sharing feature when it hit its credit limit — no code was written, purely analysis, worth keeping:
 - [ ] **Don't call it "Wall"** — `/wall` (Community Wall) already exists as a single-service, parent-facing noticeboard. A cross-tenant sharing feature needs its own name (e.g. "Educator Exchange") to avoid confusion with the real live feature.

@@ -81,14 +81,14 @@ export default function AboutPage() {
             <div className="rounded-xl bg-white p-6">
               <h3 className="font-semibold text-coral-dark mb-3">For centres</h3>
               <p className="text-ink/70">
-                Compliance built in, not bolted on. Ratios checked automatically. Incident reports ready for audit. Regulations embedded for all 9 states. No guessing, no missed documentation.
+                Compliance built in, not bolted on. Ratios checked automatically. Incident reports ready for audit. Regulations embedded for all 8 states and territories. No guessing, no missed documentation.
               </p>
             </div>
 
             <div className="rounded-xl bg-white p-6">
               <h3 className="font-semibold text-coral-dark mb-3">For Australia</h3>
               <p className="text-ink/70">
-                A tool built by Australians, for Australian regulations, on Australian servers. Not a generic overseas product adapted with a checkbox for different state rules.
+                A tool built by Australians, for Australian regulations. Not a generic overseas product adapted with a checkbox for different state rules.
               </p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export default function AboutPage() {
                 <li>• Early childhood educators (NSW, VIC, QLD, SA)</li>
                 <li>• NQF Quality Standards</li>
                 <li>• EYLF Framework</li>
-                <li>• Australian Regulations (all 9 states & territories)</li>
+                <li>• Australian Regulations (all 8 states & territories)</li>
                 <li>• Accessibility standards (WCAG 2.1 AA)</li>
                 <li>• Open source software communities</li>
               </ul>

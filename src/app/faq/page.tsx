@@ -33,7 +33,7 @@ export default function FAQPage() {
       questions: [
         {
           q: "Is my data secure?",
-          a: "Yes. All data is encrypted in transit (HTTPS) and at rest (AES-256-GCM encryption). Hosted on Supabase servers in Australia. Role-based access control means staff can only see what they need to. We also maintain audit trails of every data access for compliance.",
+          a: "Yes. All data is encrypted in transit (HTTPS) and at rest (AES-256-GCM encryption). Role-based access control means staff can only see what they need to, and we maintain audit trails of every data access for compliance.",
         },
         {
           q: "Is it compliant with Australian privacy law?",
@@ -57,12 +57,12 @@ export default function FAQPage() {
           a: "Our AI (powered by Claude) helps with writing tasks that educators don't have time for: drafting activities from materials on hand, expanding observation notes into full EYLF-linked write-ups, generating policy templates, and personalising activities based on child interests. You always approve before saving. AI is a tool, not a replacement for educator judgment.",
         },
         {
-          q: "Does it handle all 9 states and territories?",
+          q: "Does it handle all 8 states and territories?",
           a: "Yes. NQF, EYLF, and state-specific regulations are all built in. Ratios, mandatory reporting, immunisation rules, and compliance requirements vary by state, and SparkPlay knows them all. You can set your state when you sign up.",
         },
         {
           q: "What about CCS (Child Care Subsidy)?",
-          a: "SparkPlay integrates with the CCS system. Attendance records are automatically formatted for subsidy claims, and you can see what a family will receive before invoicing.",
+          a: "SparkPlay includes a CCS estimator so you can work out what a family will likely receive based on their fee, hours, and CCS percentage. It doesn't yet connect directly to Services Australia for automated subsidy claims — that's on the roadmap.",
         },
         {
           q: "Can families see their child's photos and observations?",
@@ -87,7 +87,7 @@ export default function FAQPage() {
         },
         {
           q: "Can I cancel anytime?",
-          a: "Yes. No long-term contracts. Cancel anytime with 30 days notice.",
+          a: "Yes. No long-term contracts — manage or cancel your subscription anytime from your account's billing settings.",
         },
         {
           q: "Do you offer discounts for multiple centres?",
