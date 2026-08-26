@@ -463,6 +463,7 @@ export default async function DayPlanPage({
               dayName={dayName}
               plannedActivities={plannedActivityTitles}
               templates={routineTemplates ?? undefined}
+              activities={savedActivities ?? []}
             />
           </div>
         </details>

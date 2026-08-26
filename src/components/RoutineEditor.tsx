@@ -1,6 +1,7 @@
 "use client";
 
 import { useReducer, useRef, useTransition } from "react";
+import Link from "next/link";
 import { saveRoutine } from "@/app/(app)/day-plan/actions";
 import type { RoutineBlock } from "@/lib/types/database.types";
 
@@ -23,7 +24,8 @@ function blankBlock(): RoutineBlock {
 
 type Action =
   | { type: "set"; blocks: RoutineBlock[] }
-  | { type: "update"; id: string; field: keyof RoutineBlock; value: string | number }
+  | { type: "update"; id: string; field: keyof RoutineBlock; value: string | number | null }
+  | { type: "link"; id: string; activityId: string; activityTitle: string }
   | { type: "add" }
   | { type: "remove"; id: string }
   | { type: "move"; id: string; dir: -1 | 1 };
@@ -38,6 +40,12 @@ function reducer(blocks: RoutineBlock[], action: Action): RoutineBlock[] {
       );
     case "add":
       return [...blocks, blankBlock()];
+    case "link":
+      return blocks.map((b) =>
+        b.id === action.id
+          ? { ...b, activity_id: action.activityId, title: b.title.trim() ? b.title : action.activityTitle }
+          : b,
+      );
     case "remove":
       return blocks.filter((b) => b.id !== action.id);
     case "move": {
@@ -64,6 +72,7 @@ interface Props {
   roomName?: string;
   plannedActivities: string[];
   templates?: { id: string; title: string; blocks: RoutineBlock[] }[];
+  activities?: { id: string; title: string }[];
 }
 
 type GenState = "idle" | "generating" | "error";
@@ -80,6 +89,7 @@ export default function RoutineEditor({
   roomName,
   plannedActivities,
   templates,
+  activities = [],
 }: Props) {
   const [blocks, dispatch] = useReducer(reducer, initialBlocks);
   const [genState, setGenState] = useReducer((_: GenState, next: GenState) => next, "idle");
@@ -205,6 +215,43 @@ export default function RoutineEditor({
                 <button type="button" onClick={() => dispatch({ type: "remove", id: b.id })} className="rounded px-1 py-0.5 text-xs text-coral-dark/50 hover:text-coral-dark">✕</button>
               </div>
             </div>
+            {/* Linked activity — every block/section can be slotted with a saved activity, not just the top-of-page picker */}
+            {activities.length > 0 && (
+              <div className="mt-2">
+                {b.activity_id ? (
+                  <div className="flex items-center justify-between gap-2">
+                    <Link
+                      href={`/activities/${b.activity_id}`}
+                      target="_blank"
+                      className="truncate text-xs font-medium text-sage-dark hover:underline"
+                    >
+                      📌 {activities.find((a) => a.id === b.activity_id)?.title ?? "Linked activity"}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => dispatch({ type: "update", id: b.id, field: "activity_id", value: null })}
+                      className="shrink-0 text-xs text-ink/30 hover:text-coral-dark"
+                    >
+                      unlink
+                    </button>
+                  </div>
+                ) : (
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      const activity = activities.find((a) => a.id === e.target.value);
+                      if (activity) dispatch({ type: "link", id: b.id, activityId: activity.id, activityTitle: activity.title });
+                    }}
+                    className="w-full rounded-lg border border-coral-light/60 bg-white px-2 py-1 text-xs text-ink/60 focus:border-coral focus:outline-none"
+                  >
+                    <option value="" disabled>Link to a saved activity…</option>
+                    {activities.map((a) => (
+                      <option key={a.id} value={a.id}>{a.title}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
             {/* Notes */}
             <input
               type="text"
