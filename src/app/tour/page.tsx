@@ -257,7 +257,7 @@ export default function TourPage() {
             <div className="flex gap-4">
               <div className="text-3xl flex-shrink-0">🧠</div>
               <div>
-                <h3 className="font-semibold text-ink mb-1">Compliance isn't optional</h3>
+                <h3 className="font-semibold text-ink mb-1">Compliance isn&apos;t optional</h3>
                 <p className="text-ink/70">
                   NQF/EYLF/state regulations built in. Ratios, mandatory reporting, incident records — all automated and audit-ready.
                 </p>
@@ -267,7 +267,7 @@ export default function TourPage() {
             <div className="flex gap-4">
               <div className="text-3xl flex-shrink-0">👨‍👩‍👧</div>
               <div>
-                <h3 className="font-semibold text-ink mb-1">Families actually know what's happening</h3>
+                <h3 className="font-semibold text-ink mb-1">Families actually know what&apos;s happening</h3>
                 <p className="text-ink/70">
                   Observations shared instantly, translated into 15 languages, with EYLF links so parents understand the learning.
                 </p>
@@ -289,7 +289,7 @@ export default function TourPage() {
               <div>
                 <h3 className="font-semibold text-ink mb-1">Works online and offline</h3>
                 <p className="text-ink/70">
-                  PWA architecture means the app works even without internet. Photos and data sync when you're back online.
+                  PWA architecture means the app works even without internet. Photos and data sync when you&apos;re back online.
                 </p>
               </div>
             </div>

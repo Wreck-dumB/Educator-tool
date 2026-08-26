@@ -197,7 +197,7 @@ export default function FAQPage() {
       <section className="flex flex-col items-center justify-center px-4 py-12 md:px-10 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-bold text-ink">Frequently Asked Questions</h1>
         <p className="mt-4 max-w-2xl text-lg text-ink/70">
-          Can't find what you're looking for? Email us at support@drsparkplay.com.au
+          Can&apos;t find what you&apos;re looking for? Email us at support@drsparkplay.com.au
         </p>
       </section>
 
@@ -253,11 +253,11 @@ export default function FAQPage() {
             Still have questions?
           </h2>
           <p className="text-ink/70 text-lg mb-8">
-            Get in touch with our team. We're happy to help.
+            Get in touch with our team. We&apos;re happy to help.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:hello@sparkplay.com.au"
+              href="mailto:support@drsparkplay.com.au"
               className="rounded-full bg-coral px-8 py-3 text-base font-semibold text-white shadow-lg hover:bg-coral-dark transition-colors"
             >
               Email us

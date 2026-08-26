@@ -93,7 +93,7 @@ export default function Home() {
               </p>
               <div className="mt-4 space-y-2 text-sm text-ink/60">
                 <div>✓ Wellbeing check-ins at arrival</div>
-                <div>✓ Live ratio checks (your state's rules)</div>
+                <div>✓ Live ratio checks (your state&apos;s rules)</div>
                 <div>✓ EpiPen & allergy badges on the room board</div>
                 <div>✓ Observations in 2 minutes, not 20</div>
               </div>
@@ -157,7 +157,7 @@ export default function Home() {
               <div className="text-2xl mb-3">🎯</div>
               <h3 className="font-semibold text-ink mb-2">Personalisation</h3>
               <p className="text-ink/70 text-sm">
-                Activities tailored to each child's interests, developmental stage, and EYLF learning themes. No generic worksheets.
+                Activities tailored to each child&apos;s interests, developmental stage, and EYLF learning themes. No generic worksheets.
               </p>
             </div>
             <div className="bg-white rounded-xl p-6 border border-coral/10">
@@ -169,7 +169,7 @@ export default function Home() {
             </div>
           </div>
           <p className="mt-8 text-center text-ink/70 text-sm">
-            <strong>Our principle:</strong> AI does the writing you don't have time for. You keep the decisions that matter.
+            <strong>Our principle:</strong> AI does the writing you don&apos;t have time for. You keep the decisions that matter.
           </p>
         </div>
       </section>
@@ -190,11 +190,11 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-ink mb-2">Does it work offline?</h3>
               <p className="text-ink/70 text-sm">
-                Core features work as a PWA. Photos and observations sync when you're back online.
+                Core features work as a PWA. Photos and observations sync when you&apos;re back online.
               </p>
             </div>
             <div>
-              <h3 className="font-semibold text-ink mb-2">What about my state's rules?</h3>
+              <h3 className="font-semibold text-ink mb-2">What about my state&apos;s rules?</h3>
               <p className="text-ink/70 text-sm">
                 Built for all 8 states and territories. Regulations are embedded (ratios, mandatory reporting, immunisation rules, etc).
               </p>

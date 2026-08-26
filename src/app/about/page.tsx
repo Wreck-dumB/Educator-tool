@@ -32,7 +32,7 @@ export default function AboutPage() {
             </p>
 
             <p>
-              "There has to be software for this," he thought. He looked. There were systems designed for big corporate chains. There were observation apps that did one thing. There were scheduling tools. But nothing that ran the whole day of an early learning centre — not Australian, not regulation-aware, not intelligent.
+              &ldquo;There has to be software for this,&rdquo; he thought. He looked. There were systems designed for big corporate chains. There were observation apps that did one thing. There were scheduling tools. But nothing that ran the whole day of an early learning centre — not Australian, not regulation-aware, not intelligent.
             </p>
 
             <p>
@@ -40,19 +40,19 @@ export default function AboutPage() {
             </p>
 
             <p>
-              DR. SparkPlay is the result of 19 days of continuous building, informed by conversations with educators across NSW, VIC, QLD, and SA. It's built on a foundation of:
+              DR. SparkPlay is the result of 19 days of continuous building, informed by conversations with educators across NSW, VIC, QLD, and SA. It&apos;s built on a foundation of:
             </p>
 
             <ul className="space-y-3">
               <li><strong>Real problems.</strong> Every feature solves something educators actually complain about.</li>
-              <li><strong>Regulation compliance.</strong> NQF, EYLF, and state-specific rules are embedded, not bolted on. Educators shouldn't have to be lawyers.</li>
+              <li><strong>Regulation compliance.</strong> NQF, EYLF, and state-specific rules are embedded, not bolted on. Educators shouldn&apos;t have to be lawyers.</li>
               <li><strong>AI with guardrails.</strong> We use Claude to handle the writing nobody has time for. But educators stay in control.</li>
               <li><strong>Family transparency.</strong> Parents deserve to know what their children are learning. Observations shared daily, translated into their language, with EYLF links.</li>
-              <li><strong>Australian built.</strong> Data hosted here, regulations understood here, support timezone-aligned here.</li>
+              <li><strong>Australian built.</strong> Regulations understood here, support timezone-aligned here.</li>
             </ul>
 
             <p>
-              The DR. in DR. SparkPlay stands for Daniel Rust (he was a doctor for about 8 days before switching to building software). It's also a doctor joke, which is the kind of thing educators have to endure from software builders.
+              The DR. in DR. SparkPlay stands for Daniel Rust (he was a doctor for about 8 days before switching to building software). It&apos;s also a doctor joke, which is the kind of thing educators have to endure from software builders.
             </p>
           </div>
         </div>
@@ -126,7 +126,7 @@ export default function AboutPage() {
               <div>
                 <h3 className="font-semibold text-ink mb-2">Regulation respect</h3>
                 <p className="text-ink/70">
-                  NQF, EYLF, and state regulations aren't optional. They're built into every feature so compliance is automatic, not an afterthought.
+                  NQF, EYLF, and state regulations aren&apos;t optional. They&apos;re built into every feature so compliance is automatic, not an afterthought.
                 </p>
               </div>
             </div>
