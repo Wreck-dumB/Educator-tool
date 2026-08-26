@@ -174,29 +174,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Proof Section */}
-      <section className="px-4 py-16 md:px-10">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="font-display text-3xl md:text-4xl font-bold text-center text-ink mb-12">
-            What educators tell us
-          </h2>
-          <div className="space-y-6">
-            <div className="rounded-xl bg-white p-6 border border-ink/5 italic text-ink/70">
-              "I used to spend 45 minutes after close writing up observations. Now they're done in the moment."
-              <div className="mt-2 text-sm font-semibold text-ink not-italic">— Early childhood educator, NSW</div>
-            </div>
-            <div className="rounded-xl bg-white p-6 border border-ink/5 italic text-ink/70">
-              "For the first time, I actually understand whether we're meeting ratios. It's built in, not guessed."
-              <div className="mt-2 text-sm font-semibold text-ink not-italic">— Centre director, VIC</div>
-            </div>
-            <div className="rounded-xl bg-white p-6 border border-ink/5 italic text-ink/70">
-              "Parents actually understand what their child is learning. The EYLF links make it obvious."
-              <div className="mt-2 text-sm font-semibold text-ink not-italic">— Service manager, QLD</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* FAQ Section */}
       <section className="px-4 py-16 md:px-10 bg-cream-dark">
         <div className="max-w-4xl mx-auto">
@@ -225,7 +202,7 @@ export default function Home() {
             <div>
               <h3 className="font-semibold text-ink mb-2">How much does it cost?</h3>
               <p className="text-ink/70 text-sm">
-                Starting from $99/month. No setup fees. Billed per centre, includes all staff and families.
+                Starting from $59/month, with plans up to $129/month as your centre grows. No setup fees.
               </p>
             </div>
             <div>
@@ -286,15 +263,13 @@ export default function Home() {
               <h4 className="font-semibold text-ink mb-3">Product</h4>
               <ul className="space-y-2 text-sm text-ink/70">
                 <li><Link href="/tour" className="hover:text-coral">Features</Link></li>
-                <li><Link href="/pricing" className="hover:text-coral">Pricing</Link></li>
                 <li><Link href="/faq" className="hover:text-coral">FAQ</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="font-semibold text-ink mb-3">Support</h4>
               <ul className="space-y-2 text-sm text-ink/70">
-                <li><Link href="/help" className="hover:text-coral">Help centre</Link></li>
-                <li><a href="mailto:hello@sparkplay.com.au" className="hover:text-coral">Email us</a></li>
+                <li><a href="mailto:support@drsparkplay.com.au" className="hover:text-coral">Email us</a></li>
               </ul>
             </div>
             <div>
@@ -308,7 +283,6 @@ export default function Home() {
               <h4 className="font-semibold text-ink mb-3">About</h4>
               <ul className="space-y-2 text-sm text-ink/70">
                 <li><Link href="/about" className="hover:text-coral">About us</Link></li>
-                <li><a href="https://github.com/sparkplay" className="hover:text-coral">GitHub</a></li>
               </ul>
             </div>
           </div>

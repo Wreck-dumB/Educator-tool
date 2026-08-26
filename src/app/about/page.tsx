@@ -194,7 +194,7 @@ export default function AboutPage() {
             Join us
           </h2>
           <p className="text-ink/70 text-lg mb-8">
-            Hundreds of Australian educators are already using DR. SparkPlay to run their centres better. Join them.
+            Built to run a real early learning centre, day to day. Try it free for 7 days.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

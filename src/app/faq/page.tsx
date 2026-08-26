@@ -83,7 +83,7 @@ export default function FAQPage() {
       questions: [
         {
           q: "How much does it cost?",
-          a: "Pricing starts at $99/month for small centres (under 20 children). Mid-size centres (20–40) are $199/month. Large centres (40+) are $299/month. All plans include unlimited staff and families.",
+          a: "Plans start at $59/month (Starter), $89/month (Standard), and $129/month (Premium), each with a monthly AI-credit allowance that scales with the plan. No setup fees.",
         },
         {
           q: "Can I cancel anytime?",
@@ -91,7 +91,7 @@ export default function FAQPage() {
         },
         {
           q: "Do you offer discounts for multiple centres?",
-          a: "Yes. If you run more than one centre, we'll bundle them. Get in touch at hello@sparkplay.com.au for a quote.",
+          a: "Yes. If you run more than one centre, we'll bundle them. Get in touch at support@drsparkplay.com.au for a quote.",
         },
         {
           q: "Is there a setup fee?",
@@ -104,7 +104,7 @@ export default function FAQPage() {
       questions: [
         {
           q: "What if I get stuck?",
-          a: "We have a built-in help centre with walkthroughs for every feature. Email support is included (hello@sparkplay.com.au). We aim to respond to support emails within 24 hours.",
+          a: "We have a built-in help centre with walkthroughs for every feature. Email support is included (support@drsparkplay.com.au). We aim to respond to support emails within 24 hours.",
         },
         {
           q: "Is there video training?",
@@ -112,11 +112,11 @@ export default function FAQPage() {
         },
         {
           q: "What if something breaks?",
-          a: "We monitor the system 24/7 for outages. If something does go down, we'll post status updates at status.sparkplay.com.au and notify you via email. We also have incident escalation and a dedicated support line for centre directors.",
+          a: "We monitor the system for outages and will notify you by email if something goes down.",
         },
         {
           q: "Can I request a feature?",
-          a: "Yes. We have a public roadmap and feedback channel. You can upvote features other centres have requested. We prioritise based on community demand.",
+          a: "Yes. Email us your idea at support@drsparkplay.com.au — we read every request and prioritise based on what centres actually need.",
         },
       ],
     },
@@ -129,7 +129,7 @@ export default function FAQPage() {
         },
         {
           q: "Do I need to download anything?",
-          a: "No. It's web-based. Just log in at sparkplay.com.au from any device.",
+          a: "No. It's web-based. Just log in from your browser on any device.",
         },
         {
           q: "What about internet speed?",
@@ -167,7 +167,7 @@ export default function FAQPage() {
       questions: [
         {
           q: "Can I import my existing data?",
-          a: "Yes. If you have historical observations, children, or activity records, we can help import them. Get in touch at hello@sparkplay.com.au and we'll discuss your specific data format.",
+          a: "Yes. If you have historical observations, children, or activity records, we can help import them. Get in touch at support@drsparkplay.com.au and we'll discuss your specific data format.",
         },
         {
           q: "Will I lose data if I switch from another system?",
@@ -197,7 +197,7 @@ export default function FAQPage() {
       <section className="flex flex-col items-center justify-center px-4 py-12 md:px-10 text-center">
         <h1 className="font-display text-4xl md:text-5xl font-bold text-ink">Frequently Asked Questions</h1>
         <p className="mt-4 max-w-2xl text-lg text-ink/70">
-          Can't find what you're looking for? Email us at hello@sparkplay.com.au
+          Can't find what you're looking for? Email us at support@drsparkplay.com.au
         </p>
       </section>
 
