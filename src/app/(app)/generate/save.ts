@@ -52,6 +52,7 @@ export async function saveActivity(
       odd_one_out_same: suggestion.oddOneOutSame,
       odd_one_out_different: suggestion.oddOneOutDifferent,
       cut_and_sort_groups: suggestion.cutAndSortGroups,
+      topic_tags: suggestion.topicTags,
     })
     .select("id")
     .single();

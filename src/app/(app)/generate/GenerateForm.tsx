@@ -206,6 +206,20 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
 
   return (
     <div>
+      {/* ── Community library nudge ──────────────────────────────────────── */}
+      <div className="mb-4 flex items-center justify-between rounded-2xl border border-coral-light bg-white p-4">
+        <div>
+          <p className="text-sm font-medium text-ink">🔍 Check the Community Library first</p>
+          <p className="text-xs text-ink/50">Something already shared and approved might fit — no wait, no credit used.</p>
+        </div>
+        <Link
+          href="/library"
+          className="shrink-0 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
+        >
+          Browse library →
+        </Link>
+      </div>
+
       {/* ── Already have an idea? ────────────────────────────────────────── */}
       <div className="mb-4 rounded-2xl border border-sage-light bg-sage-light/20 p-5">
         <h2 className="font-display text-lg font-semibold text-sage-dark">Already have an activity in mind?</h2>

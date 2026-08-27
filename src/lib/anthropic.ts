@@ -5,6 +5,7 @@ import { splitIntoBlocks } from "@/lib/documentExtraction";
 import { runToolCall, runTextCall } from "@/lib/ai/backend";
 import { CLIPART_ITEMS } from "@/lib/clipart";
 import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
+import { TOPIC_TAG_IDS } from "@/lib/topicTags";
 
 const SUGGESTED_TEMPLATE_VALUES = [
   "name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame",
@@ -74,6 +75,7 @@ export interface RawActivitySuggestion {
   odd_one_out_same?: string[];
   odd_one_out_different?: string;
   cut_and_sort_groups?: { label: string; items: string[] }[];
+  topic_tags?: string[];
 }
 
 function makeActivitiesTool(count: number): Anthropic.Tool {
@@ -108,6 +110,13 @@ function makeActivitiesTool(count: number): Anthropic.Tool {
               type: "array",
               items: { type: "string" },
               description: "EYLF sub-outcome codes (e.g. '1.2') that this activity supports. Must only use codes from the provided taxonomy.",
+            },
+            topic_tags: {
+              type: "array",
+              items: { type: "string", enum: TOPIC_TAG_IDS },
+              minItems: 1,
+              maxItems: 3,
+              description: `1-3 domain/skill tags that best describe this activity, from: ${TOPIC_TAG_IDS.join(", ")}. Used to search/reuse activities later, independent of the printable template — e.g. a sensory bin activity that also builds fine motor skills gets ["sensory", "fine_motor"].`,
             },
             suggested_template: {
               type: "string",
@@ -449,6 +458,100 @@ async function applyTemplateClassifications(activities: RawActivitySuggestion[])
       cut_and_sort_groups: c.cut_and_sort_groups ?? activity.cut_and_sort_groups,
     };
   });
+}
+
+// ─── Shared-library submission review ──────────────────────────────────────
+// First-pass, automated check run when an educator submits one of their own
+// activities to the cross-tenant shared library. Two things are checked,
+// independent of each other: copyright (does the text reference a specific
+// copyrighted/trademarked character, franchise, brand, book, or song, rather
+// than a generic equivalent — the same "generic emblematic object/animal,
+// never the real IP" rule already enforced on image_subject, just checked
+// against the written content here instead of an image prompt) and personal
+// information (names, addresses, phone numbers, or other identifying detail
+// that shouldn't appear in something meant to be reused by strangers). This
+// is deliberately a single-purpose forced tool call, not a field bolted onto
+// a bigger schema — see the classify_worksheet_templates comment above for
+// why that pattern was chosen over a buried field after direct testing.
+// It is a second, AI-judgment layer on top of (not a replacement for) the
+// deterministic findEnrolledChildNameMentions() regex check the caller runs
+// first — that catches known enrolled children's names with certainty; this
+// catches everything else (other names, addresses, copyrighted references)
+// an editor might reasonably ask about but can't be guaranteed against.
+export interface SharedWorksheetReview {
+  contains_copyrighted_content: boolean;
+  copyright_concerns: string[];
+  contains_personal_information: boolean;
+  personal_info_concerns: string[];
+  verdict: "clear" | "flagged";
+  reasoning: string;
+}
+
+function makeReviewSharedWorksheetTool(): Anthropic.Tool {
+  return {
+    name: "review_shared_worksheet",
+    description: "Review one early-childhood activity/worksheet that an educator wants to share into a cross-service community library, checking for copyright infringement and personal/identifying information.",
+    input_schema: {
+      type: "object",
+      required: ["contains_copyrighted_content", "contains_personal_information", "verdict", "reasoning"],
+      properties: {
+        contains_copyrighted_content: {
+          type: "boolean",
+          description: "True if the text references a specific copyrighted or trademarked character, franchise, brand, book title, song, or other identifiable IP (e.g. 'Peppa Pig', 'Bluey', 'Frozen', a Disney character, a named pop song) rather than a generic equivalent (e.g. 'a friendly cartoon pig', 'a popular animated dog character').",
+        },
+        copyright_concerns: {
+          type: "array",
+          items: { type: "string" },
+          description: "REQUIRED when — and only when — contains_copyrighted_content is true. The specific term(s)/reference(s) found. Omit entirely otherwise.",
+        },
+        contains_personal_information: {
+          type: "boolean",
+          description: "True if the text contains what looks like a real person's name (a child, family member, or staff member — not a generic placeholder), an address, phone number, email, or other identifying detail that shouldn't be shared with strangers.",
+        },
+        personal_info_concerns: {
+          type: "array",
+          items: { type: "string" },
+          description: "REQUIRED when — and only when — contains_personal_information is true. What was found (describe the type, e.g. 'a child's first name in step 3' — do not repeat the actual name/detail back). Omit entirely otherwise.",
+        },
+        verdict: {
+          type: "string",
+          enum: ["clear", "flagged"],
+          description: "'flagged' if either contains_copyrighted_content or contains_personal_information is true. 'clear' only if both are false.",
+        },
+        reasoning: {
+          type: "string",
+          description: "One or two sentences explaining the verdict — shown to both the submitting educator and the platform admin reviewing it.",
+        },
+      },
+    },
+  };
+}
+
+export async function reviewSharedWorksheet(activity: {
+  title: string;
+  summary?: string | null;
+  steps: string[];
+  materials_used: string[];
+  reflection_prompts: string[];
+  image_subject?: string | null;
+  letter_text?: string | null;
+}): Promise<SharedWorksheetReview> {
+  const userPrompt =
+    `Review this early-childhood activity before it's shared into a cross-service community library:\n\n` +
+    `Title: ${activity.title}\n` +
+    (activity.summary ? `Summary: ${activity.summary}\n` : "") +
+    (activity.steps.length > 0 ? `Steps: ${activity.steps.join(" | ")}\n` : "") +
+    (activity.materials_used.length > 0 ? `Materials: ${activity.materials_used.join(", ")}\n` : "") +
+    (activity.reflection_prompts.length > 0 ? `Reflection prompts: ${activity.reflection_prompts.join(" | ")}\n` : "") +
+    (activity.image_subject ? `Image subject: ${activity.image_subject}\n` : "") +
+    (activity.letter_text ? `Letter/text content: ${activity.letter_text}\n` : "");
+
+  return callTool<SharedWorksheetReview>(
+    "You review early-childhood activities for copyright infringement and personal/identifying information before they're shared into a cross-service community library for an Australian childcare app. Be reasonably strict — err toward flagging anything ambiguous rather than letting it through, since this is shown to strangers at other centres.",
+    userPrompt,
+    makeReviewSharedWorksheetTool(),
+    1024,
+  );
 }
 
 function buildSystemPrompt(outcomes: EylfOutcome[]): string {

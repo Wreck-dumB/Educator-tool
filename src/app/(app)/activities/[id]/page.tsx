@@ -20,6 +20,8 @@ import ObservationForm, { ObservationTypeName } from "@/components/ObservationFo
 import ObservationList from "@/components/ObservationList";
 import { detectPrintTemplate, buildWorksheetUrl, TEMPLATE_LABELS } from "@/lib/utils/printable";
 import DeleteActivityButton from "./DeleteActivityButton";
+import ShareToLibraryButton from "./ShareToLibraryButton";
+import { getSubmissionForActivity } from "@/lib/supabase/sharedLibrary";
 
 export default async function ActivityDetailPage({
   params,
@@ -33,7 +35,7 @@ export default async function ActivityDetailPage({
   const activity = await getActivity(id);
   if (!activity) notFound();
 
-  const [children, allObservations, riskAssessments, outcomes, programs, enabledObsTypes, inventory] = await Promise.all([
+  const [children, allObservations, riskAssessments, outcomes, programs, enabledObsTypes, inventory, librarySubmission] = await Promise.all([
     getChildren(),
     getObservations(),
     getRiskAssessments(activity.id),
@@ -41,6 +43,7 @@ export default async function ActivityDetailPage({
     getPrograms(),
     getServiceObservationTypes(),
     getMaterials(),
+    getSubmissionForActivity(activity.id),
   ]);
 
   const materialStatuses = activity.materials_used.length > 0
@@ -99,19 +102,22 @@ export default async function ActivityDetailPage({
         </div>
       )}
 
-      {(() => {
-        const tpl = detectPrintTemplate(activity);
-        return (
-          <a
-            href={buildWorksheetUrl(tpl, activity)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
-          >
-            🖨 Print {TEMPLATE_LABELS[tpl].toLowerCase()}
-          </a>
-        );
-      })()}
+      <div className="mt-4 flex flex-wrap items-center gap-3">
+        {(() => {
+          const tpl = detectPrintTemplate(activity);
+          return (
+            <a
+              href={buildWorksheetUrl(tpl, activity)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full border border-coral-light px-4 py-2 text-sm font-medium text-coral-dark hover:bg-coral-light"
+            >
+              🖨 Print {TEMPLATE_LABELS[tpl].toLowerCase()}
+            </a>
+          );
+        })()}
+        <ShareToLibraryButton activityId={activity.id} initialSubmission={librarySubmission} />
+      </div>
 
       {activity.steps.length > 0 && (
         <ol className="mt-4 list-decimal space-y-1 pl-5 text-sm text-ink/80">

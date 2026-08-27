@@ -103,6 +103,7 @@ export async function POST(request: Request) {
     reflectionPrompts: Array.isArray(result.reflection_prompts) ? result.reflection_prompts : [],
     adaptationNotes: Array.isArray(result.adaptation_notes) ? result.adaptation_notes : [],
     eylfCodes: (Array.isArray(result.eylf_codes) ? result.eylf_codes : []).filter((c) => validCodes.has(c)),
+    topicTags: [],
     // Pass-through from original so the save action has everything it needs
     ageRange: activity.age_range ?? null,
     durationMinutes: activity.duration_minutes ?? null,

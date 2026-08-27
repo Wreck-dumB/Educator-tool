@@ -33,6 +33,7 @@ const NAV_GROUPS = [
       { href: "/generate", label: "Generate Activity" },
       { href: "/brain-breaks", label: "Brain Breaks" },
       { href: "/activities", label: "Activities" },
+      { href: "/library", label: "Community Library" },
       { href: "/observations", label: "Observations" },
       { href: "/programming", label: "Programming Workspace" },
       { href: "/programs", label: "Programs" },

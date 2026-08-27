@@ -81,6 +81,7 @@ export default function GroupSuggestionPanel({ followUps }: Props) {
           energyLevel: suggestion.energy_level ?? null,
           groupSizeFit: suggestion.group_size_fit ?? null,
           eylfCodes: suggestion.eylf_codes ?? [],
+          topicTags: suggestion.topic_tags ?? [],
           suggestedTemplate: suggestion.suggested_template ?? null,
           cardItems: suggestion.card_items ?? [],
           cardPairs: suggestion.card_pairs !== false,

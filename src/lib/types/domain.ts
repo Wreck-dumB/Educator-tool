@@ -96,6 +96,8 @@ export interface ActivitySuggestion {
   energyLevel: GeneratedActivity["energy_level"];
   groupSizeFit: GeneratedActivity["group_size_fit"];
   eylfCodes: string[];
+  /** 1-3 domain/skill tags (src/lib/topicTags.ts) for searching/reusing activities later. */
+  topicTags: string[];
   /** Set when the activity warrants a printable worksheet. */
   suggestedTemplate: "name_trace" | "name_colouring" | "name_label" | "letter_colouring" | "drawing_frame" | "writing_lines" | "card_set" | "matching_pairs" | "counting_groups" | "letter_trace" | "trace_maze" | "dot_to_dot" | "odd_one_out" | "feelings_checkin" | "cut_and_sort" | null;
   /** Card labels when suggestedTemplate is "card_set" — one label per distinct card face. */

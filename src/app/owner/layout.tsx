@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { isPlatformOwner } from "@/lib/supabase/serviceAccess";
 
@@ -16,6 +17,10 @@ export default async function OwnerLayout({ children }: { children: React.ReactN
         <header className="mb-8">
           <span className="font-display text-xl font-semibold text-coral-dark">DR. SparkPlay</span>
           <p className="text-xs uppercase tracking-wide text-ink/40">Platform owner</p>
+          <nav className="mt-3 flex gap-4 text-sm">
+            <Link href="/owner/businesses" className="text-ink/60 hover:text-coral-dark">Businesses</Link>
+            <Link href="/owner/library-review" className="text-ink/60 hover:text-coral-dark">Library review</Link>
+          </nav>
         </header>
         {children}
       </div>

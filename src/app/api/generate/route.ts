@@ -10,6 +10,7 @@ import { decryptField } from "@/lib/encryption";
 import type { ActivitySuggestion } from "@/lib/types/domain";
 import { CLIPART_ITEMS } from "@/lib/clipart";
 import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
+import { TOPIC_TAG_IDS } from "@/lib/topicTags";
 
 const VALID_MODES = ["materials", "time", "outcome", "interest", "surprise_me"];
 const VALID_GROUP_SIZES = ["solo", "small_group", "whole_group"];
@@ -232,6 +233,7 @@ export async function POST(request: Request) {
       // taxonomy, rather than trusting it blindly — wrong framework links are a
       // real compliance/trust risk if this is ever relied on for documentation.
       eylfCodes: (Array.isArray(activity.eylf_codes) ? activity.eylf_codes : []).filter((code) => validCodes.has(code)),
+      topicTags: (Array.isArray(activity.topic_tags) ? activity.topic_tags : []).filter((t) => TOPIC_TAG_IDS.includes(t)).slice(0, 3),
       suggestedTemplate: suggestedTemplate === "card_set" && cardItems.length === 0 ? null : suggestedTemplate,
       cardItems: suggestedTemplate === "card_set" ? cardItems : [],
       cardPairs: activity.card_pairs !== false,
