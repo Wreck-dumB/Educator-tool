@@ -91,16 +91,16 @@ export default async function StaffPage({
       {canManage && (
         <div className={`mt-6 p-4 ${cardClass}`}>
           <h2 className="font-display text-sm font-semibold text-ink">Invite staff</h2>
-          <form action={createStaffInvite} className="mt-3 flex gap-2">
+          <form action={createStaffInvite} className="mt-3 flex flex-wrap gap-2">
             <input type="hidden" name="service_id" value={service.id} />
             <input
               name="invited_email"
               type="email"
               required
               placeholder="staff@example.com"
-              className={`${inputClass} mt-0 flex-1`}
+              className={`${inputClass} mt-0 min-w-[12rem] flex-1`}
             />
-            <select name="invited_role" defaultValue="staff" className={`${inputClass} mt-0 w-32`}>
+            <select name="invited_role" defaultValue="staff" className={`${inputClass} mt-0 w-32 shrink-0`}>
               <option value="staff">Staff</option>
               {isDirector && <option value="2ic">2IC</option>}
             </select>
