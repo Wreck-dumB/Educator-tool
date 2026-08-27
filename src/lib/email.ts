@@ -125,6 +125,27 @@ export function materialOrderAlertEmail(p: MaterialAlertPayload): EmailPayload {
   };
 }
 
+export function staffInviteEmail(invitedEmail: string, serviceName: string, roleLabel: string, token: string): EmailPayload {
+  return {
+    to: invitedEmail,
+    subject: `You're invited to join ${serviceName} on DR. SparkPlay`,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px">
+        <h2 style="color:#E8614A;margin-bottom:8px">You've been invited</h2>
+        <p style="color:#444;line-height:1.6">
+          You've been invited to join <strong>${serviceName}</strong> on DR. SparkPlay as ${roleLabel}.
+        </p>
+        <a href="${SITE_URL}/onboarding/accept-invite/${token}"
+           style="display:inline-block;margin-top:16px;background:#E8614A;color:#fff;padding:12px 24px;border-radius:999px;text-decoration:none;font-weight:600">
+          Accept invite
+        </a>
+        <p style="margin-top:24px;color:#999;font-size:12px">
+          DR. SparkPlay · This invite expires in 7 days. If you weren't expecting this, you can ignore it.
+        </p>
+      </div>`,
+  };
+}
+
 export function permissionSlipEmail(parentEmail: string, childName: string, slipTitle: string): EmailPayload {
   return {
     to: parentEmail,
