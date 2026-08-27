@@ -44,11 +44,12 @@ export async function createStaffInvite(formData: FormData) {
     redirect(`/staff?error=${encodeURIComponent(error.message)}`);
   }
 
-  // Best-effort — the invite row is already created regardless of whether
-  // the email goes out, so a director can still relay the accept link manually.
+  // The invite row is already created regardless of whether the email goes
+  // out, so on failure we still surface the accept link for manual sharing.
+  let emailSent = false;
   try {
     const { data: service } = await supabase.from("services").select("name").eq("id", serviceId).maybeSingle();
-    await sendEmail(
+    emailSent = await sendEmail(
       staffInviteEmail(invitedEmail, service?.name ?? "your service", ROLE_LABELS[invitedRole] ?? invitedRole, invite.token)
     );
   } catch (err) {
@@ -56,7 +57,10 @@ export async function createStaffInvite(formData: FormData) {
   }
 
   revalidatePath("/staff");
-  redirect("/staff");
+  if (emailSent) {
+    redirect(`/staff?invited=${encodeURIComponent(invitedEmail)}`);
+  }
+  redirect(`/staff?invited=${encodeURIComponent(invitedEmail)}&emailFailed=1&token=${invite.token}`);
 }
 
 export async function revokeStaffInvite(formData: FormData) {

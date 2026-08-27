@@ -12,8 +12,8 @@ interface EmailPayload {
   html: string;
 }
 
-export async function sendEmail(payload: EmailPayload): Promise<void> {
-  if (!RESEND_API_KEY) return;
+export async function sendEmail(payload: EmailPayload): Promise<boolean> {
+  if (!RESEND_API_KEY) return false;
 
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -31,9 +31,12 @@ export async function sendEmail(payload: EmailPayload): Promise<void> {
     });
     if (!res.ok) {
       console.error("Resend email failed:", await res.text());
+      return false;
     }
+    return true;
   } catch (err) {
     console.error("Email send error:", err);
+    return false;
   }
 }
 

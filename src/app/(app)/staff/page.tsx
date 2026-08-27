@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getMyService, getStaffMembers, getStaffInvites } from "@/lib/supabase/staff";
-import { inputClass, cardClass, primaryButtonClass, errorBannerClass } from "@/lib/ui";
+import { inputClass, cardClass, primaryButtonClass, errorBannerClass, successBannerClass } from "@/lib/ui";
 import { createStaffInvite, revokeStaffInvite, setStaffMemberStatus } from "./actions";
 import RoleSelect from "./RoleSelect";
 import AttendanceExport from "./AttendanceExport";
@@ -14,9 +14,9 @@ const ROLE_LABELS: Record<string, string> = {
 export default async function StaffPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; invited?: string; emailFailed?: string; token?: string }>;
 }) {
-  const { error } = await searchParams;
+  const { error, invited, emailFailed, token } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -47,6 +47,24 @@ export default async function StaffPage({
       </p>
 
       {error && <p className={errorBannerClass}>{error}</p>}
+
+      {invited && emailFailed && token && (
+        <div className={errorBannerClass}>
+          <p>
+            Invite for <strong>{invited}</strong> was created, but the invite email couldn&apos;t be delivered.
+            Share this link with them directly instead:
+          </p>
+          <p className="mt-2 break-all rounded bg-white/60 px-2 py-1 font-mono text-xs">
+            {`${process.env.NEXT_PUBLIC_SITE_URL ?? ""}/onboarding/accept-invite/${token}`}
+          </p>
+        </div>
+      )}
+
+      {invited && !emailFailed && (
+        <p className={successBannerClass}>
+          Invite sent to <strong>{invited}</strong>.
+        </p>
+      )}
 
       <div className={`mt-6 ${cardClass}`}>
         <div className="border-b border-coral-light px-4 py-3">
