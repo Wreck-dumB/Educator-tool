@@ -49,12 +49,14 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
   const [childId, setChildId] = useState("");
   const [childQuery, setChildQuery] = useState("");
   const [focusInterest, setFocusInterest] = useState("");
+  const [teachingPurpose, setTeachingPurpose] = useState("");
   const [additionalNeeds, setAdditionalNeeds] = useState("");
   const [targetAgeBracket, setTargetAgeBracket] = useState("");
   const [ageBracketFocused, setAgeBracketFocused] = useState(false);
   const [targetMilestone, setTargetMilestone] = useState("");
   const [milestoneFocused, setMilestoneFocused] = useState(false);
   const [ideaDescription, setIdeaDescription] = useState("");
+  const [showIdeaModal, setShowIdeaModal] = useState(false);
   const [printNames, setPrintNames] = useState("");
 
   const selectedChild = childProfiles.find((c) => c.id === childId);
@@ -142,12 +144,13 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
       .filter(Boolean);
     const allMaterials = [...selectedMaterials, ...adhoc];
     const trimmedInterest = focusInterest.trim();
+    const trimmedPurpose = teachingPurpose.trim();
     const trimmedNeeds = additionalNeeds.trim();
 
     let generationMode: GenerationMode = "surprise_me";
     if (allMaterials.length > 0) generationMode = "materials";
     else if (selectedOutcomes.size > 0) generationMode = "outcome";
-    else if (trimmedInterest) generationMode = "interest";
+    else if (trimmedPurpose || trimmedInterest) generationMode = "interest";
     else if (timeMinutes) generationMode = "time";
     else if (surpriseMe) generationMode = "surprise_me";
     setMode(generationMode);
@@ -165,6 +168,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
           energyLevel: energyLevel || undefined,
           targetOutcomeCodes: [...selectedOutcomes],
           childInterest: trimmedInterest || undefined,
+          teachingPurpose: trimmedPurpose || undefined,
           childId: childId || undefined,
           additionalNeeds: trimmedNeeds || undefined,
           targetAgeBracket: targetAgeBracket.trim() || undefined,
@@ -191,6 +195,17 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
     } finally {
       setLoading(false);
     }
+  }
+
+  function closeIdeaModal() {
+    setShowIdeaModal(false);
+    setIdeaDescription("");
+  }
+
+  async function buildFromIdea() {
+    setShowIdeaModal(false);
+    await generate(false);
+    setIdeaDescription("");
   }
 
   async function handleSave(suggestion: ActivitySuggestion, index: number) {
@@ -221,38 +236,62 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
       </div>
 
       {/* ── Already have an idea? ────────────────────────────────────────── */}
-      <div className="mb-4 rounded-2xl border border-sage-light bg-sage-light/20 p-5">
-        <h2 className="font-display text-lg font-semibold text-sage-dark">Already have an activity in mind?</h2>
-        <p className="mt-0.5 text-xs text-ink/50">
-          Describe it and we&apos;ll build it out — steps, materials, EYLF links, and the right printable sheet.
-          Leave blank to use the generator below.
-        </p>
-        <div className="mt-3 flex gap-2">
-          <textarea
-            value={ideaDescription}
-            onChange={(e) => setIdeaDescription(e.target.value)}
-            rows={2}
-            maxLength={500}
-            placeholder="e.g. Torn Paper Colour Collage — 'This Is Me' · mindful breathing circle · name writing practice with sand trays"
-            className="flex-1 resize-none rounded-xl border border-sage-light bg-white px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-sage focus:outline-none focus:ring-1 focus:ring-sage"
-          />
-          {ideaDescription.trim() && (
-            <button
-              type="button"
-              onClick={() => setIdeaDescription("")}
-              className="self-start rounded-xl border border-sage-light px-3 py-2.5 text-xs font-medium text-sage-dark hover:bg-sage-light"
-            >
-              Clear
-            </button>
-          )}
+      <button
+        type="button"
+        onClick={() => setShowIdeaModal(true)}
+        className="mb-4 flex w-full items-center justify-between rounded-2xl border border-sage-light bg-sage-light/20 p-4 text-left transition-colors hover:bg-sage-light/30"
+      >
+        <div>
+          <p className="text-sm font-medium text-sage-dark">💡 Already have an activity in mind?</p>
+          <p className="text-xs text-ink/50">Describe it and we&apos;ll build it out — steps, materials, EYLF links, and the right printable sheet.</p>
         </div>
-        {ideaDescription.trim() && (
-          <p className="mt-2 text-xs text-sage-dark/70">
-            ✓ We&apos;ll expand your idea into one structured activity — ready to save and print.
-            You can still add time, group size, or EYLF targets below if helpful.
-          </p>
-        )}
-      </div>
+        <span className="shrink-0 rounded-full border border-sage px-4 py-2 text-sm font-medium text-sage-dark">
+          Build from my idea →
+        </span>
+      </button>
+
+      {showIdeaModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={closeIdeaModal}
+        >
+          <div
+            className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-display text-lg font-semibold text-sage-dark">Already have an activity in mind?</h2>
+            <p className="mt-0.5 text-xs text-ink/50">
+              Describe it and we&apos;ll build it out — steps, materials, EYLF links, and the right printable sheet.
+            </p>
+            <textarea
+              autoFocus
+              value={ideaDescription}
+              onChange={(e) => setIdeaDescription(e.target.value)}
+              rows={3}
+              maxLength={500}
+              placeholder="e.g. Torn Paper Colour Collage — 'This Is Me' · mindful breathing circle · name writing practice with sand trays"
+              className="mt-3 w-full resize-none rounded-xl border border-sage-light bg-white px-3 py-2.5 text-sm text-ink placeholder-ink/30 focus:border-sage focus:outline-none focus:ring-1 focus:ring-sage"
+            />
+            <div className="mt-4 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeIdeaModal}
+                className="rounded-full px-4 py-2 text-sm font-medium text-ink/60 hover:bg-cream-dark"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={buildFromIdea}
+                disabled={loading || !ideaDescription.trim()}
+                className="rounded-full bg-sage px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-sage-dark disabled:opacity-50"
+              >
+                {loading ? "Building…" : "Build this activity"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
         <h2 className="font-display text-lg font-semibold text-coral-dark">What do you have?</h2>
@@ -420,6 +459,24 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
           <p className="mt-1 text-xs text-ink/50">
             Selecting a focus child above fills this in from their saved interests — feel free to
             type your own topic instead, whether or not a child is selected.
+          </p>
+        </div>
+
+        <div className="mt-4">
+          <label htmlFor="teaching_purpose" className="block text-sm font-medium text-ink/70">
+            Teaching purpose / subject (optional)
+          </label>
+          <input
+            id="teaching_purpose"
+            type="text"
+            value={teachingPurpose}
+            onChange={(e) => setTeachingPurpose(e.target.value)}
+            placeholder="e.g. counting to 10, colour recognition, letter sounds, sharing & turn-taking"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-ink/50">
+            What you want the child to learn or practise — every activity will be built to genuinely teach this,
+            not just touch on it. Different from focus interest below, which is what they already like.
           </p>
         </div>
 
@@ -643,18 +700,16 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
             disabled={loading}
             className="rounded-full bg-coral px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-coral-dark disabled:opacity-50"
           >
-            {loading ? "Generating…" : ideaDescription.trim() ? "Build this activity" : "Generate"}
+            {loading ? "Generating…" : "Generate"}
           </button>
-          {!ideaDescription.trim() && (
-            <button
-              type="button"
-              onClick={() => generate(true)}
-              disabled={loading}
-              className="rounded-full border-2 border-sage px-5 py-2.5 text-sm font-semibold text-sage-dark transition-colors hover:bg-sage-light disabled:opacity-50"
-            >
-              ✨ Surprise me
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => generate(true)}
+            disabled={loading}
+            className="rounded-full border-2 border-sage px-5 py-2.5 text-sm font-semibold text-sage-dark transition-colors hover:bg-sage-light disabled:opacity-50"
+          >
+            ✨ Surprise me
+          </button>
         </div>
       </div>
 

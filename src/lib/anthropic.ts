@@ -43,6 +43,8 @@ export interface GenerationInput {
   additionalNeeds?: string;
   targetAgeBracket?: string;
   targetMilestone?: string;
+  /** Curriculum-driven ask, e.g. "counting to 10", "letter sounds", "sharing and turn-taking" — distinct from childInterest, which is what the child likes rather than what the educator wants taught. */
+  teachingPurpose?: string;
   /** Educator already has an activity idea — expand it into a full structured activity. */
   ideaDescription?: string;
 }
@@ -603,6 +605,11 @@ function buildUserPrompt(input: GenerationInput, count: number): string {
   }
   if (input.targetOutcomeCodes && input.targetOutcomeCodes.length > 0) {
     lines.push(`Target these EYLF outcome codes specifically: ${input.targetOutcomeCodes.join(", ")}.`);
+  }
+  if (input.teachingPurpose) {
+    lines.push(
+      `Teaching purpose / subject the educator wants covered: "${input.teachingPurpose}". Every activity MUST genuinely teach or give real practice at this specific skill or topic, not just gesture at it.`,
+    );
   }
   if (input.childInterest) {
     lines.push(`A child's current interest to weave in if relevant: ${input.childInterest}.`);

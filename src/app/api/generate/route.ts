@@ -80,6 +80,10 @@ export async function POST(request: Request) {
     input.childInterest = body.childInterest.trim().slice(0, 200) || undefined;
   }
 
+  if (typeof body.teachingPurpose === "string") {
+    input.teachingPurpose = body.teachingPurpose.trim().slice(0, 200) || undefined;
+  }
+
   if (typeof body.additionalNeeds === "string") {
     input.additionalNeeds = body.additionalNeeds.trim().slice(0, 500) || undefined;
   }
@@ -142,6 +146,7 @@ export async function POST(request: Request) {
   // child's name before it reaches the AI prompt, no matter which field it
   // came in on.
   if (input.childInterest) input.childInterest = await redactEnrolledChildNames(input.childInterest);
+  if (input.teachingPurpose) input.teachingPurpose = await redactEnrolledChildNames(input.teachingPurpose);
   if (input.additionalNeeds) input.additionalNeeds = await redactEnrolledChildNames(input.additionalNeeds);
   if (input.ideaDescription) input.ideaDescription = await redactEnrolledChildNames(input.ideaDescription);
   if (input.targetMilestone) input.targetMilestone = await redactEnrolledChildNames(input.targetMilestone);
