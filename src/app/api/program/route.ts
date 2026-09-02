@@ -7,6 +7,7 @@ import { generateCulturalDays, generateProgram, type RawCulturalDay } from "@/li
 import { isRateLimited } from "@/lib/rateLimit";
 import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { withBathurst1000 } from "@/lib/bathurst1000";
+import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -89,12 +90,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate program" }, { status: 502 });
   }
 
-  const dayCounters = new Map<string, number>();
+  const validBlockKeys = new Set(DEFAULT_PROGRAM_BLOCKS.map((b) => b.key));
+  const dayBlockCounters = new Map<string, number>();
   const entries = rawEntries
     .filter((e) => DATE_RE.test(e.day_date) && e.day_date >= startDate && e.day_date <= endDate)
     .map((e) => {
-      const orderIndex = dayCounters.get(e.day_date) ?? 0;
-      dayCounters.set(e.day_date, orderIndex + 1);
+      const blockKey = e.block_key && validBlockKeys.has(e.block_key) ? e.block_key : null;
+      // Order within a block, not within the whole day — entries in
+      // different blocks render in separate cells in the editor.
+      const counterKey = `${e.day_date}:${blockKey ?? "unsorted"}`;
+      const orderIndex = dayBlockCounters.get(counterKey) ?? 0;
+      dayBlockCounters.set(counterKey, orderIndex + 1);
       return {
         dayDate: e.day_date,
         title: e.title,
@@ -103,9 +109,10 @@ export async function POST(request: Request) {
         activityId: e.reused_activity_title
           ? activityByTitle.get(e.reused_activity_title.trim().toLowerCase()) ?? null
           : null,
-        // AI drafts start unsorted — the educator assigns each entry to a
-        // block of the day (Morning Tea, Lunch, etc.) in the editor.
-        blockKey: null,
+        // The AI assigns each entry to a block of the day (Morning Tea,
+        // Lunch, etc.) directly, matching the program's fixed routine —
+        // falls back to unsorted if it returned something unrecognised.
+        blockKey,
         orderIndex,
       };
     });

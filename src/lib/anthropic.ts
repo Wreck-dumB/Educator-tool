@@ -6,6 +6,8 @@ import { runToolCall, runTextCall } from "@/lib/ai/backend";
 import { CLIPART_ITEMS } from "@/lib/clipart";
 import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
 import { TOPIC_TAG_IDS } from "@/lib/topicTags";
+import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
+import { eachDateInRange, isWeekday } from "@/lib/programDates";
 
 const SUGGESTED_TEMPLATE_VALUES = [
   "name_trace", "name_colouring", "name_label", "letter_colouring", "drawing_frame",
@@ -1360,7 +1362,10 @@ export interface RawProgramEntry {
   notes?: string;
   eylf_codes: string[];
   reused_activity_title?: string | null;
+  block_key?: string | null;
 }
+
+const PROGRAM_BLOCK_KEYS = DEFAULT_PROGRAM_BLOCKS.map((b) => b.key);
 
 const PROPOSE_PROGRAM_TOOL: Anthropic.Tool = {
   name: "propose_program",
@@ -1373,7 +1378,7 @@ const PROPOSE_PROGRAM_TOOL: Anthropic.Tool = {
         type: "array",
         items: {
           type: "object",
-          required: ["day_date", "title", "eylf_codes"],
+          required: ["day_date", "title", "eylf_codes", "block_key"],
           properties: {
             day_date: { type: "string", description: "YYYY-MM-DD, within the program's date range." },
             title: { type: "string" },
@@ -1382,6 +1387,11 @@ const PROPOSE_PROGRAM_TOOL: Anthropic.Tool = {
             reused_activity_title: {
               type: "string",
               description: "If this entry reuses one of the educator's existing saved activities, its EXACT title as given. Omit/null if this is a new suggestion.",
+            },
+            block_key: {
+              type: "string",
+              enum: PROGRAM_BLOCK_KEYS,
+              description: "Which block of the day this entry belongs to, from the given list of blocks. Every entry must be assigned to exactly one block.",
             },
           },
         },
@@ -1396,7 +1406,9 @@ function buildProgramSystemPrompt(outcomes: EylfOutcome[]): string {
 
 ${taxonomy}
 
-Never invent a code outside this list. Prefer reusing the educator's existing saved activities (listed below) where they genuinely fit a day/outcome well — that's less prep work for them — rather than always inventing something new. When you do reuse one, set reused_activity_title to its EXACT title as given; do not paraphrase it. Spread coverage across the outcomes that need it most (also listed below) rather than repeating the same one or two outcomes every day. Where a cultural/national day genuinely falls on or near one of the program's dates, consider weaving in a simple, age-appropriate, respectful entry for it — but don't force one in if nothing fits naturally.`;
+Never invent a code outside this list. Prefer reusing the educator's existing saved activities (listed below) where they genuinely fit a day/outcome well — that's less prep work for them — rather than always inventing something new. When you do reuse one, set reused_activity_title to its EXACT title as given; do not paraphrase it. Spread coverage across the outcomes that need it most (also listed below) rather than repeating the same one or two outcomes every day. Where a cultural/national day genuinely falls on or near one of the program's dates, consider weaving in a simple, age-appropriate, respectful entry for it — but don't force one in if nothing fits naturally.
+
+The educator's day is divided into fixed blocks of the day (routine segments) which are given to you in order below. Every weekday in range needs one entry for EVERY block, so the finished program has no empty gaps in the daily routine. For curriculum-style blocks (free play, group time, indoor/outdoor play) write a genuine learning experience with real EYLF links. For care-routine blocks (meals, rest, home time) it's fine for the entry to be a short, practical routine note rather than a full activity — e.g. "Lunch" with notes about what's happening or a simple tied-in idea (a mindful eating moment, a cultural-day connection). Only include eylf_codes that genuinely apply (Outcome 3 health/wellbeing often fits meal/rest/transition entries) — leave eylf_codes as an empty array rather than force a code that doesn't really fit. Tag every entry with the block_key it belongs to.`;
 }
 
 function buildProgramUserPrompt(
@@ -1409,6 +1421,10 @@ function buildProgramUserPrompt(
   educatorNotes?: string,
 ): string {
   const lines: string[] = [`Program date range: ${startDate} to ${endDate}.`];
+
+  lines.push(
+    `Blocks of the day, in order (use these exact keys for block_key):\n${DEFAULT_PROGRAM_BLOCKS.map((b) => `- ${b.key}: ${b.label}`).join("\n")}`,
+  );
 
   if (outcomeGaps.length > 0) {
     lines.push(
@@ -1447,7 +1463,9 @@ function buildProgramUserPrompt(
     lines.push(`Educator's guidance for this program: ${educatorNotes}`);
   }
 
-  lines.push("Propose the program entries using the propose_program tool — one or more entries per day across the range.");
+  lines.push(
+    "Propose the program entries using the propose_program tool — exactly one entry for every block listed above, for every weekday (Mon–Fri) in the range. Skip weekends entirely.",
+  );
   return lines.join("\n\n");
 }
 
@@ -1461,10 +1479,17 @@ export async function generateProgram(
   recentlyUsedTitles: string[],
   educatorNotes?: string,
 ): Promise<RawProgramEntry[]> {
+  // One entry per block per weekday — scale the token budget with the date
+  // range so a long program doesn't get its tool call truncated mid-JSON.
+  const weekdayCount = eachDateInRange(startDate, endDate).filter(isWeekday).length;
+  const expectedEntries = weekdayCount * PROGRAM_BLOCK_KEYS.length;
+  const maxTokens = Math.min(24576, Math.max(4096, expectedEntries * 130));
+
   const result = await callTool<{ entries?: unknown }>(
     buildProgramSystemPrompt(outcomes),
     buildProgramUserPrompt(startDate, endDate, outcomeGaps, culturalDays, existingActivities, recentlyUsedTitles, educatorNotes),
     PROPOSE_PROGRAM_TOOL,
+    maxTokens,
   );
   return asArray<RawProgramEntry>(result.entries ?? [], "program entries");
 }

@@ -93,6 +93,7 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
   const [savedIds, setSavedIds] = useState<Record<number, string>>({});
   const [count, setCount] = useState(5);
   const [quickList, setQuickList] = useState<Set<number>>(new Set());
+  const [savingAll, setSavingAll] = useState(false);
   const [outcomeDropdownOpen, setOutcomeDropdownOpen] = useState(false);
   const outcomeDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -217,6 +218,13 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
       setSaveStates((prev) => ({ ...prev, [index]: "saved" }));
       setSavedIds((prev) => ({ ...prev, [index]: result.id }));
     }
+  }
+
+  async function handleSaveAll() {
+    setSavingAll(true);
+    const indices = [...quickList].filter((i) => saveStates[i] !== "saved" && saveStates[i] !== "saving");
+    await Promise.all(indices.map((i) => handleSave(suggestions[i], i)));
+    setSavingAll(false);
   }
 
   return (
@@ -721,19 +729,32 @@ export default function GenerateForm({ outcomes, materials, childProfiles, miles
         <div className="mt-6 rounded-2xl border border-sage bg-sage-light p-4">
           <div className="flex items-center justify-between">
             <p className="text-sm font-semibold text-sage-dark">Quick list ({quickList.size})</p>
-            <button
-              type="button"
-              onClick={() => setQuickList(new Set())}
-              className="text-xs text-sage-dark/60 hover:text-sage-dark"
-            >
-              Clear
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSaveAll}
+                disabled={savingAll || [...quickList].every((i) => saveStates[i] === "saved")}
+                className="rounded-full bg-sage px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-sage-dark disabled:opacity-50"
+              >
+                {savingAll ? "Saving…" : "Save all to library"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickList(new Set())}
+                className="text-xs text-sage-dark/60 hover:text-sage-dark"
+              >
+                Clear
+              </button>
+            </div>
           </div>
           <ul className="mt-2 space-y-1">
             {[...quickList].sort((a, b) => a - b).map((i) => (
               <li key={i} className="flex items-center gap-2 text-sm text-sage-dark">
                 <span className="text-xs text-sage-dark/50">{i + 1}.</span>
                 {suggestions[i]?.title}
+                {saveStates[i] === "saved" && <span className="text-xs text-sage-dark/70">✓ saved</span>}
+                {saveStates[i] === "saving" && <span className="text-xs text-sage-dark/50">saving…</span>}
+                {saveStates[i] === "error" && <span className="text-xs text-coral-dark">couldn&apos;t save</span>}
               </li>
             ))}
           </ul>

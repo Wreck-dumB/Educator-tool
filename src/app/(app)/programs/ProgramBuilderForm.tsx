@@ -4,7 +4,11 @@ import { useState } from "react";
 import type { ProgramSuggestion } from "@/lib/types/domain";
 import type { Room } from "@/lib/types/domain";
 import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
+import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
 import { saveProgram } from "./actions";
+
+const blockOrder = new Map(DEFAULT_PROGRAM_BLOCKS.map((b, i) => [b.key, i]));
+const blockLabelByKey = new Map(DEFAULT_PROGRAM_BLOCKS.map((b) => [b.key, b.label]));
 
 function todayPlus(days: number): string {
   const d = new Date();
@@ -78,6 +82,9 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
         return acc;
       }, {})
     : {};
+  for (const dayEntries of Object.values(entriesByDay)) {
+    dayEntries.sort((a, b) => (blockOrder.get(a.blockKey ?? "") ?? 99) - (blockOrder.get(b.blockKey ?? "") ?? 99));
+  }
 
   return (
     <div className="rounded-2xl border border-coral-light bg-white p-5 shadow-sm">
@@ -190,6 +197,11 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
                 </p>
                 {entries.map((e, idx) => (
                   <div key={idx} className="mt-2">
+                    {e.blockKey && blockLabelByKey.has(e.blockKey) && (
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-coral-dark/60">
+                        {blockLabelByKey.get(e.blockKey)}
+                      </p>
+                    )}
                     <p className="text-sm font-medium text-ink">
                       {e.title}
                       {e.activityId && (
