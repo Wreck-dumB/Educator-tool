@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getMyServiceOwnerId } from "@/lib/supabase/services";
+import { getActivity } from "@/lib/supabase/activities";
 
 // Clears the cooldown for this service then runs the alert function so director/2IC
 // get an immediate in-app notification regardless of the 3-day dedup window.
@@ -26,7 +27,7 @@ export async function sendMaterialAlertNow(): Promise<{ notificationsCreated: nu
   revalidatePath("/dashboard");
   return { notificationsCreated: count };
 }
-import type { ProgramEntrySuggestion, ProgramBlock, ProgramStatus } from "@/lib/types/domain";
+import type { ProgramEntrySuggestion, ProgramBlock, ProgramStatus, ProgramEntry } from "@/lib/types/domain";
 import type { CulturalDay } from "@/lib/types/database.types";
 
 export async function addActivityToProgram(formData: FormData) {
@@ -136,6 +137,60 @@ async function requireOwnerForProgram(supabase: Awaited<ReturnType<typeof create
     .eq("owner_user_id", ownerUserId)
     .maybeSingle();
   return program ? ownerUserId : null;
+}
+
+// Fills a specific day/block cell that's empty — either never generated
+// (deleted by the educator, or a block the AI skipped) or freshly cleared.
+// Lets the educator either link a saved activity or just write freehand
+// notes, since a routine segment doesn't always need a full activity (e.g.
+// a flexible "choice time" or a simple note about how the day is running).
+export async function addProgramEntry(
+  programId: string,
+  dayDate: string,
+  blockKey: string | null,
+  input: { activityId?: string | null; title: string; notes?: string | null },
+): Promise<{ entry: ProgramEntry } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const title = input.title.trim();
+  if (!title) return { error: "Title is required" };
+
+  let eylfCodes: string[] = [];
+  if (input.activityId) {
+    const activity = await getActivity(input.activityId);
+    if (activity) eylfCodes = activity.eylf_codes;
+  }
+
+  let orderQuery = supabase
+    .from("program_entries")
+    .select("order_index")
+    .eq("program_id", programId)
+    .eq("day_date", dayDate);
+  orderQuery = blockKey ? orderQuery.eq("block_key", blockKey) : orderQuery.is("block_key", null);
+  const { data: siblings } = await orderQuery;
+  const orderIndex = siblings && siblings.length > 0 ? Math.max(...siblings.map((s) => s.order_index)) + 1 : 0;
+
+  const { data: inserted, error } = await supabase
+    .from("program_entries")
+    .insert({
+      program_id: programId,
+      day_date: dayDate,
+      block_key: blockKey,
+      title,
+      notes: input.notes?.trim() || null,
+      activity_id: input.activityId || null,
+      eylf_codes: eylfCodes,
+      order_index: orderIndex,
+    })
+    .select("*")
+    .single();
+
+  if (error || !inserted) return { error: error?.message ?? "Could not add entry" };
+
+  revalidatePath(`/programs/${programId}`);
+  return { entry: inserted };
 }
 
 export async function updateProgramEntry(

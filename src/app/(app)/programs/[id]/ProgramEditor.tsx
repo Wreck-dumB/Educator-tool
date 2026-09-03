@@ -7,6 +7,7 @@ import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
 import { isWeekday, eachDateInRange } from "@/lib/programDates";
 import { primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import {
+  addProgramEntry,
   updateProgramEntry,
   deleteProgramEntry,
   swapProgramEntryOrder,
@@ -126,6 +127,19 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
     });
   }
 
+  async function handleAddEntry(
+    dayDate: string,
+    blockKey: string | null,
+    input: { activityId?: string | null; title: string; notes?: string | null },
+  ) {
+    const result = await addProgramEntry(programId, dayDate, blockKey, input);
+    if ("error" in result) {
+      setError(result.error);
+      return;
+    }
+    setEntries((prev) => [...prev, result.entry]);
+  }
+
   function handleDelete(entry: ProgramEntry) {
     setEntries((prev) => prev.filter((e) => e.id !== entry.id));
     startTransition(async () => {
@@ -235,12 +249,15 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
                     entries={entriesFor(date, null)}
                     blocks={blocks}
                     activities={activities}
+                    dayDate={date}
+                    blockKey={null}
                     onTextCommit={handleTextCommit}
                     onBlockChange={handleBlockChange}
                     onReorder={handleReorder}
                     onDelete={handleDelete}
                     onActivityLink={handleActivityLink}
                     onStepsCommit={handleStepsCommit}
+                    onAdd={handleAddEntry}
                   />
                 </td>
               ))}
@@ -264,12 +281,15 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
                       entries={entriesFor(date, block.key)}
                       blocks={blocks}
                       activities={activities}
+                      dayDate={date}
+                      blockKey={block.key}
                       onTextCommit={handleTextCommit}
                       onBlockChange={handleBlockChange}
                       onReorder={handleReorder}
                       onDelete={handleDelete}
                       onActivityLink={handleActivityLink}
                       onStepsCommit={handleStepsCommit}
+                      onAdd={handleAddEntry}
                     />
                   </td>
                 ))}
@@ -289,25 +309,30 @@ function EntryCell({
   entries,
   blocks,
   activities,
+  dayDate,
+  blockKey,
   onTextCommit,
   onBlockChange,
   onReorder,
   onDelete,
   onActivityLink,
   onStepsCommit,
+  onAdd,
 }: {
   entries: ProgramEntry[];
   blocks: ProgramBlock[];
   activities: { id: string; title: string }[];
+  dayDate: string;
+  blockKey: string | null;
   onTextCommit: (entry: ProgramEntry, field: "title" | "notes", value: string) => void;
   onBlockChange: (entry: ProgramEntry, newBlockKey: string) => void;
   onReorder: (entry: ProgramEntry, direction: "up" | "down") => void;
   onDelete: (entry: ProgramEntry) => void;
   onActivityLink: (entry: ProgramEntry, activityId: string) => void;
   onStepsCommit: (entry: ProgramEntry, stepsText: string) => void;
+  onAdd: (dayDate: string, blockKey: string | null, input: { activityId?: string | null; title: string; notes?: string | null }) => Promise<void>;
 }) {
   const activityTitleById = new Map(activities.map((a) => [a.id, a.title]));
-  if (entries.length === 0) return <span className="text-xs text-ink/30">—</span>;
   return (
     <div className="space-y-2">
       {entries.map((entry, idx) => (
@@ -386,6 +411,106 @@ function EntryCell({
           </div>
         </div>
       ))}
+      <AddEntryButton dayDate={dayDate} blockKey={blockKey} activities={activities} onAdd={onAdd} />
+    </div>
+  );
+}
+
+function AddEntryButton({
+  dayDate,
+  blockKey,
+  activities,
+  onAdd,
+}: {
+  dayDate: string;
+  blockKey: string | null;
+  activities: { id: string; title: string }[];
+  onAdd: (dayDate: string, blockKey: string | null, input: { activityId?: string | null; title: string; notes?: string | null }) => Promise<void>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [activityId, setActivityId] = useState("");
+  const [title, setTitle] = useState("");
+  const [notes, setNotes] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  function reset() {
+    setOpen(false);
+    setActivityId("");
+    setTitle("");
+    setNotes("");
+  }
+
+  function handleActivityPick(id: string) {
+    setActivityId(id);
+    if (id) {
+      const picked = activities.find((a) => a.id === id);
+      if (picked) setTitle(picked.title);
+    }
+  }
+
+  async function handleSubmit() {
+    const trimmed = title.trim();
+    if (!trimmed) return;
+    setSaving(true);
+    await onAdd(dayDate, blockKey, { activityId: activityId || null, title: trimmed, notes: notes.trim() || null });
+    setSaving(false);
+    reset();
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="w-full rounded-lg border border-dashed border-coral-light/70 px-2 py-1.5 text-[10px] font-medium text-ink/40 hover:border-coral hover:text-coral-dark"
+      >
+        + Add
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-coral-light/60 bg-white p-1.5">
+      {activities.length > 0 && (
+        <select
+          value={activityId}
+          onChange={(e) => handleActivityPick(e.target.value)}
+          className="w-full rounded-md border border-coral-light/60 bg-white px-1 py-0.5 text-[10px] text-ink/60"
+        >
+          <option value="">Write freehand instead…</option>
+          {activities.map((a) => (
+            <option key={a.id} value={a.id}>{a.title}</option>
+          ))}
+        </select>
+      )}
+      <textarea
+        autoFocus
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        rows={2}
+        placeholder="What's happening in this block…"
+        className="mt-1 w-full resize-none rounded-md border-none bg-transparent p-0.5 text-xs font-medium text-ink focus:outline-none focus:ring-1 focus:ring-coral"
+      />
+      <textarea
+        value={notes}
+        onChange={(e) => setNotes(e.target.value)}
+        rows={1}
+        placeholder="Notes — flexible options, choices for the day…"
+        className="mt-0.5 w-full resize-none rounded-md border-none bg-transparent p-0.5 text-[11px] text-ink/60 placeholder:text-ink/30 focus:outline-none focus:ring-1 focus:ring-coral"
+      />
+      <div className="mt-1 flex items-center justify-end gap-2">
+        <button type="button" onClick={reset} className="text-[10px] text-ink/40 hover:text-coral-dark">
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={saving || !title.trim()}
+          className="rounded-full bg-coral px-2.5 py-0.5 text-[10px] font-semibold text-white disabled:opacity-50"
+        >
+          {saving ? "Adding…" : "Add"}
+        </button>
+      </div>
     </div>
   );
 }
