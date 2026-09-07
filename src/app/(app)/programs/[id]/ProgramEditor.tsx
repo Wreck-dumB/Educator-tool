@@ -1,7 +1,27 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  pointerWithin,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  sortableKeyboardCoordinates,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { ProgramEntry, ProgramBlock, ProgramStatus } from "@/lib/types/domain";
 import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
 import { isWeekday, eachDateInRange } from "@/lib/programDates";
@@ -11,11 +31,25 @@ import {
   updateProgramEntry,
   deleteProgramEntry,
   swapProgramEntryOrder,
+  reorderProgramEntries,
   updateProgramBlocks,
   setProgramStatus,
 } from "../actions";
 
 const UNSORTED_KEY = "__unsorted__";
+
+// Groups entries into droppable containers keyed by day + block, so an entry
+// dragged between blocks on the same day resolves to a single container id.
+function cellId(dayDate: string, blockKey: string | null): string {
+  return `cell::${dayDate}::${blockKey ?? UNSORTED_KEY}`;
+}
+
+function parseCellId(id: string): { dayDate: string; blockKey: string | null } | null {
+  if (!id.startsWith("cell::")) return null;
+  const [, dayDate, blockPart] = id.split("::");
+  if (!dayDate || blockPart === undefined) return null;
+  return { dayDate, blockKey: blockPart === UNSORTED_KEY ? null : blockPart };
+}
 
 function formatDay(dateStr: string): string {
   // Fixed locale, not the environment default: this renders inside a client
@@ -52,6 +86,13 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
   const [error, setError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [, startTransition] = useTransition();
+  const [draggingEntry, setDraggingEntry] = useState<ProgramEntry | null>(null);
+  const [draggingBlock, setDraggingBlock] = useState<ProgramBlock | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
 
   const weekdayDates = eachDateInRange(startDate, endDate).filter(isWeekday);
   const extraDates = [...new Set(entries.map((e) => e.day_date))]
@@ -105,6 +146,62 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
         { id: entry.id, orderIndex: entry.order_index },
         { id: other.id, orderIndex: other.order_index },
       );
+      if ("error" in result) setError(result.error);
+    });
+  }
+
+  function handleEntryDragStart(event: DragStartEvent) {
+    const entry = entries.find((e) => e.id === event.active.id);
+    setDraggingEntry(entry ?? null);
+  }
+
+  function handleEntryDragEnd(event: DragEndEvent) {
+    setDraggingEntry(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const activeEntry = entries.find((e) => e.id === active.id);
+    if (!activeEntry) return;
+
+    const overId = String(over.id);
+    const overEntry = entries.find((e) => e.id === overId);
+    const target = overEntry
+      ? { dayDate: overEntry.day_date, blockKey: overEntry.block_key }
+      : parseCellId(overId);
+    // Reordering only ever happens within the same day's blocks — dragging
+    // an entry to another date would silently reschedule it, which isn't
+    // what "reorder the layout" means here.
+    if (!target || target.dayDate !== activeEntry.day_date) return;
+
+    const sameContainer = target.blockKey === activeEntry.block_key;
+    let reordered: ProgramEntry[];
+    if (sameContainer) {
+      // Reordering inside one block: move the dragged card to the position
+      // it was dropped on — arrayMove, not "insert before the target", so
+      // dropping onto the very next card actually swaps them instead of
+      // silently landing back where it started.
+      const group = entriesFor(target.dayDate, target.blockKey);
+      const oldIndex = group.findIndex((e) => e.id === activeEntry.id);
+      const newIndex = overEntry ? group.findIndex((e) => e.id === overEntry.id) : group.length - 1;
+      if (oldIndex === -1 || newIndex === -1 || oldIndex === newIndex) return;
+      reordered = arrayMove(group, oldIndex, newIndex);
+    } else {
+      const destSiblings = entriesFor(target.dayDate, target.blockKey);
+      const insertAt = overEntry ? destSiblings.findIndex((e) => e.id === overEntry.id) : destSiblings.length;
+      reordered = [...destSiblings];
+      reordered.splice(insertAt, 0, activeEntry);
+    }
+
+    const updates = reordered.map((e, i) => ({ id: e.id, orderIndex: i, blockKey: target.blockKey }));
+    setEntries((prev) => {
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      return prev.map((e) => {
+        const u = byId.get(e.id);
+        return u ? { ...e, order_index: u.orderIndex, block_key: u.blockKey } : e;
+      });
+    });
+    startTransition(async () => {
+      const result = await reorderProgramEntries(programId, updates);
       if ("error" in result) setError(result.error);
     });
   }
@@ -171,6 +268,26 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
     });
   }
 
+  function handleBlockDragStart(event: DragStartEvent) {
+    const block = blocks.find((b) => b.key === event.active.id);
+    setDraggingBlock(block ?? null);
+  }
+
+  function handleBlockDragEnd(event: DragEndEvent) {
+    setDraggingBlock(null);
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const fromIndex = blocks.findIndex((b) => b.key === active.id);
+    const toIndex = blocks.findIndex((b) => b.key === over.id);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const next = arrayMove(blocks, fromIndex, toIndex);
+    setBlocks(next);
+    startTransition(async () => {
+      const result = await updateProgramBlocks(programId, next);
+      if ("error" in result) setError(result.error);
+    });
+  }
+
   async function handlePublishToggle() {
     const next: ProgramStatus = programStatus === "published" ? "draft" : "published";
     setPublishing(true);
@@ -184,6 +301,21 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
     // opening the printable calendar — once the write is actually confirmed,
     // so "View calendar" right after publishing never shows a stale draft.
     setProgramStatusLocal(next);
+  }
+
+  // Entry cards and block rows are both draggable inside one DndContext,
+  // distinguished by the `type` tag each sets on its own sortable data —
+  // that's what lets a single onDragStart/onDragEnd route to the right handler.
+  function handleDragStart(event: DragStartEvent) {
+    const type = event.active.data.current?.type;
+    if (type === "block") handleBlockDragStart(event);
+    else if (type === "entry") handleEntryDragStart(event);
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const type = event.active.data.current?.type;
+    if (type === "block") handleBlockDragEnd(event);
+    else if (type === "entry") handleEntryDragEnd(event);
   }
 
   const unsortedCount = entries.filter((e) => !e.block_key).length;
@@ -228,61 +360,36 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
         </div>
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-2xl border border-coral-light">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
-          <thead>
-            <tr className="bg-coral-light/40">
-              <th className="w-40 px-3 py-2 text-left text-xs font-semibold uppercase tracking-widest text-ink/50">Block of the day</th>
-              {columns.map((date) => (
-                <th key={date} className="px-3 py-2 text-left text-xs font-semibold text-ink">
-                  {formatDay(date)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-t border-coral-light/50">
-              <td className="px-3 py-2 align-top text-xs font-semibold text-ink/60">Unsorted</td>
-              {columns.map((date) => (
-                <td key={date} className="px-2 py-1.5 align-top">
-                  <EntryCell
-                    entries={entriesFor(date, null)}
-                    blocks={blocks}
-                    activities={activities}
-                    dayDate={date}
-                    blockKey={null}
-                    onTextCommit={handleTextCommit}
-                    onBlockChange={handleBlockChange}
-                    onReorder={handleReorder}
-                    onDelete={handleDelete}
-                    onActivityLink={handleActivityLink}
-                    onStepsCommit={handleStepsCommit}
-                    onAdd={handleAddEntry}
-                  />
-                </td>
-              ))}
-            </tr>
-            {blocks.map((block, index) => (
-              <tr key={block.key} className="border-t border-coral-light/50 hover:bg-coral-light/10">
-                <td className="px-3 py-2 align-top">
-                  <input
-                    defaultValue={block.label}
-                    onBlur={(e) => handleBlockRename(index, e.target.value)}
-                    className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-semibold text-ink/70 hover:border-coral-light focus:border-coral focus:bg-white focus:outline-none"
-                  />
-                  <div className="mt-1 flex gap-1">
-                    <button type="button" onClick={() => handleBlockReorder(index, "up")} className="text-[10px] text-ink/30 hover:text-coral-dark" title="Move block up">▲</button>
-                    <button type="button" onClick={() => handleBlockReorder(index, "down")} className="text-[10px] text-ink/30 hover:text-coral-dark" title="Move block down">▼</button>
-                  </div>
-                </td>
+      <DndContext
+        id={`program-editor-${programId}`}
+        sensors={sensors}
+        collisionDetection={pointerWithin}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="mt-4 overflow-x-auto rounded-2xl border border-coral-light">
+          <table className="w-full min-w-[720px] border-collapse text-sm">
+            <thead>
+              <tr className="bg-coral-light/40">
+                <th className="w-40 px-3 py-2 text-left text-xs font-semibold uppercase tracking-widest text-ink/50">Block of the day</th>
+                {columns.map((date) => (
+                  <th key={date} className="px-3 py-2 text-left text-xs font-semibold text-ink">
+                    {formatDay(date)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-t border-coral-light/50">
+                <td className="px-3 py-2 align-top text-xs font-semibold text-ink/60">Unsorted</td>
                 {columns.map((date) => (
                   <td key={date} className="px-2 py-1.5 align-top">
                     <EntryCell
-                      entries={entriesFor(date, block.key)}
+                      entries={entriesFor(date, null)}
                       blocks={blocks}
                       activities={activities}
                       dayDate={date}
-                      blockKey={block.key}
+                      blockKey={null}
                       onTextCommit={handleTextCommit}
                       onBlockChange={handleBlockChange}
                       onReorder={handleReorder}
@@ -294,13 +401,111 @@ export default function ProgramEditor({ programId, startDate, endDate, status, i
                   </td>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              <SortableContext items={blocks.map((b) => b.key)} strategy={verticalListSortingStrategy}>
+                {blocks.map((block, index) => (
+                  <SortableBlockRow key={block.key} block={block} index={index} onRename={handleBlockRename} onReorder={handleBlockReorder}>
+                    {columns.map((date) => (
+                      <td key={date} className="px-2 py-1.5 align-top">
+                        <EntryCell
+                          entries={entriesFor(date, block.key)}
+                          blocks={blocks}
+                          activities={activities}
+                          dayDate={date}
+                          blockKey={block.key}
+                          onTextCommit={handleTextCommit}
+                          onBlockChange={handleBlockChange}
+                          onReorder={handleReorder}
+                          onDelete={handleDelete}
+                          onActivityLink={handleActivityLink}
+                          onStepsCommit={handleStepsCommit}
+                          onAdd={handleAddEntry}
+                        />
+                      </td>
+                    ))}
+                  </SortableBlockRow>
+                ))}
+              </SortableContext>
+            </tbody>
+          </table>
+        </div>
+        <DragOverlay>
+          {draggingEntry ? <EntryCardPreview entry={draggingEntry} /> : null}
+          {draggingBlock ? <BlockRowPreview label={draggingBlock.label} /> : null}
+        </DragOverlay>
+      </DndContext>
       <p className="mt-2 text-xs text-ink/40">
-        Edit an activity&rsquo;s wording directly, use the block dropdown to move it into a different part of the day, and the arrows to reorder within a block.
+        Drag the ⠿ handle to reorder — activities within a block, or whole blocks up and down the day. The dropdown and arrows still work too.
       </p>
+    </div>
+  );
+}
+
+function SortableBlockRow({
+  block,
+  index,
+  onRename,
+  onReorder,
+  children,
+}: {
+  block: ProgramBlock;
+  index: number;
+  onRename: (index: number, label: string) => void;
+  onReorder: (index: number, direction: "up" | "down") => void;
+  children: ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: block.key,
+    data: { type: "block" },
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-t border-coral-light/50 hover:bg-coral-light/10">
+      <td className="px-3 py-2 align-top">
+        <div className="flex items-start gap-1">
+          <button
+            type="button"
+            {...attributes}
+            {...listeners}
+            className="mt-0.5 shrink-0 cursor-grab touch-none text-xs text-ink/30 hover:text-coral-dark active:cursor-grabbing"
+            title="Drag to reorder this block"
+          >
+            ⠿
+          </button>
+          <div className="min-w-0 flex-1">
+            <input
+              defaultValue={block.label}
+              onBlur={(e) => onRename(index, e.target.value)}
+              className="w-full rounded-lg border border-transparent bg-transparent px-1 py-0.5 text-xs font-semibold text-ink/70 hover:border-coral-light focus:border-coral focus:bg-white focus:outline-none"
+            />
+            <div className="mt-1 flex gap-1">
+              <button type="button" onClick={() => onReorder(index, "up")} className="text-[10px] text-ink/30 hover:text-coral-dark" title="Move block up">▲</button>
+              <button type="button" onClick={() => onReorder(index, "down")} className="text-[10px] text-ink/30 hover:text-coral-dark" title="Move block down">▼</button>
+            </div>
+          </div>
+        </div>
+      </td>
+      {children}
+    </tr>
+  );
+}
+
+function BlockRowPreview({ label }: { label: string }) {
+  return (
+    <div className="w-40 rounded-lg border border-coral bg-white px-3 py-2 text-xs font-semibold text-ink/70 shadow-lg">
+      ⠿ {label}
+    </div>
+  );
+}
+
+function EntryCardPreview({ entry }: { entry: ProgramEntry }) {
+  return (
+    <div className="w-56 rounded-lg border border-coral bg-white p-1.5 text-xs font-medium text-ink shadow-lg">
+      {entry.title}
     </div>
   );
 }
@@ -332,11 +537,81 @@ function EntryCell({
   onStepsCommit: (entry: ProgramEntry, stepsText: string) => void;
   onAdd: (dayDate: string, blockKey: string | null, input: { activityId?: string | null; title: string; notes?: string | null }) => Promise<void>;
 }) {
-  const activityTitleById = new Map(activities.map((a) => [a.id, a.title]));
+  const { setNodeRef } = useDroppable({ id: cellId(dayDate, blockKey), data: { type: "cell" } });
   return (
-    <div className="space-y-2">
-      {entries.map((entry, idx) => (
-        <div key={entry.id} className="rounded-lg border border-coral-light/60 bg-white p-1.5">
+    <div ref={setNodeRef} className="min-h-[3rem] h-full space-y-2">
+      <SortableContext items={entries.map((e) => e.id)} strategy={verticalListSortingStrategy}>
+        {entries.map((entry, idx) => (
+          <SortableEntryCard
+            key={entry.id}
+            entry={entry}
+            idx={idx}
+            isLast={idx === entries.length - 1}
+            blocks={blocks}
+            activities={activities}
+            onTextCommit={onTextCommit}
+            onBlockChange={onBlockChange}
+            onReorder={onReorder}
+            onDelete={onDelete}
+            onActivityLink={onActivityLink}
+            onStepsCommit={onStepsCommit}
+          />
+        ))}
+      </SortableContext>
+      <AddEntryButton dayDate={dayDate} blockKey={blockKey} activities={activities} onAdd={onAdd} />
+    </div>
+  );
+}
+
+function SortableEntryCard({
+  entry,
+  idx,
+  isLast,
+  blocks,
+  activities,
+  onTextCommit,
+  onBlockChange,
+  onReorder,
+  onDelete,
+  onActivityLink,
+  onStepsCommit,
+}: {
+  entry: ProgramEntry;
+  idx: number;
+  isLast: boolean;
+  blocks: ProgramBlock[];
+  activities: { id: string; title: string }[];
+  onTextCommit: (entry: ProgramEntry, field: "title" | "notes", value: string) => void;
+  onBlockChange: (entry: ProgramEntry, newBlockKey: string) => void;
+  onReorder: (entry: ProgramEntry, direction: "up" | "down") => void;
+  onDelete: (entry: ProgramEntry) => void;
+  onActivityLink: (entry: ProgramEntry, activityId: string) => void;
+  onStepsCommit: (entry: ProgramEntry, stepsText: string) => void;
+}) {
+  const activityTitleById = new Map(activities.map((a) => [a.id, a.title]));
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: entry.id,
+    data: { type: "entry" },
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} className="rounded-lg border border-coral-light/60 bg-white p-1.5">
+      <div className="flex items-start gap-1">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          className="mt-0.5 shrink-0 cursor-grab touch-none text-xs text-ink/30 hover:text-coral-dark active:cursor-grabbing"
+          title="Drag to reorder or move to another block"
+        >
+          ⠿
+        </button>
+        <div className="min-w-0 flex-1">
           <textarea
             defaultValue={entry.title}
             rows={2}
@@ -406,12 +681,11 @@ function EntryCell({
               ))}
             </select>
             <button type="button" disabled={idx === 0} onClick={() => onReorder(entry, "up")} className="shrink-0 text-[10px] text-ink/30 hover:text-coral-dark disabled:opacity-20" title="Move up">▲</button>
-            <button type="button" disabled={idx === entries.length - 1} onClick={() => onReorder(entry, "down")} className="shrink-0 text-[10px] text-ink/30 hover:text-coral-dark disabled:opacity-20" title="Move down">▼</button>
+            <button type="button" disabled={isLast} onClick={() => onReorder(entry, "down")} className="shrink-0 text-[10px] text-ink/30 hover:text-coral-dark disabled:opacity-20" title="Move down">▼</button>
             <button type="button" onClick={() => onDelete(entry)} className="shrink-0 text-[10px] text-ink/30 hover:text-coral-dark" title="Remove">✕</button>
           </div>
         </div>
-      ))}
-      <AddEntryButton dayDate={dayDate} blockKey={blockKey} activities={activities} onAdd={onAdd} />
+      </div>
     </div>
   );
 }

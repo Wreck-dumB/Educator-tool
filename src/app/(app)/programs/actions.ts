@@ -258,6 +258,33 @@ export async function swapProgramEntryOrder(
   return { ok: true };
 }
 
+// Backs drag-and-drop reordering: the client sends the destination group's
+// final order (including the moved entry) as sequential indices, so one
+// write settles both a same-block reorder and a move into a different block.
+export async function reorderProgramEntries(
+  programId: string,
+  updates: { id: string; orderIndex: number; blockKey: string | null }[],
+): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  const results = await Promise.all(
+    updates.map((u) =>
+      supabase
+        .from("program_entries")
+        .update({ order_index: u.orderIndex, block_key: u.blockKey })
+        .eq("id", u.id)
+        .eq("program_id", programId),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { error: failed.error.message };
+
+  revalidatePath(`/programs/${programId}`);
+  return { ok: true };
+}
+
 export async function updateProgramBlocks(
   programId: string,
   blocks: ProgramBlock[],
