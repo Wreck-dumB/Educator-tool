@@ -8,8 +8,27 @@ import { isRateLimited } from "@/lib/rateLimit";
 import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
 import { withBathurst1000 } from "@/lib/bathurst1000";
 import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
+import type { ProgramBlock } from "@/lib/types/domain";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseBlocks(input: unknown): ProgramBlock[] | null {
+  if (!Array.isArray(input) || input.length === 0 || input.length > 12) return null;
+  const blocks: ProgramBlock[] = [];
+  const seenKeys = new Set<string>();
+  for (const raw of input) {
+    if (typeof raw !== "object" || raw === null) return null;
+    const key = (raw as Record<string, unknown>).key;
+    const label = (raw as Record<string, unknown>).label;
+    if (typeof key !== "string" || typeof label !== "string") return null;
+    const trimmedKey = key.trim();
+    const trimmedLabel = label.trim().slice(0, 80);
+    if (!trimmedKey || !trimmedLabel || seenKeys.has(trimmedKey)) return null;
+    seenKeys.add(trimmedKey);
+    blocks.push({ key: trimmedKey, label: trimmedLabel });
+  }
+  return blocks;
+}
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -38,6 +57,7 @@ export async function POST(request: Request) {
   const endDate = typeof body?.endDate === "string" ? body.endDate : "";
   const educatorNotes =
     typeof body?.educatorNotes === "string" ? body.educatorNotes.trim().slice(0, 1000) : undefined;
+  const blocks = parseBlocks(body?.blocks) ?? DEFAULT_PROGRAM_BLOCKS;
 
   if (!DATE_RE.test(startDate) || !DATE_RE.test(endDate) || endDate < startDate) {
     return NextResponse.json({ error: "Invalid date range" }, { status: 400 });
@@ -78,6 +98,7 @@ export async function POST(request: Request) {
     rawEntries = await generateProgram(
       startDate,
       endDate,
+      blocks,
       outcomes,
       coverage,
       culturalDays,
@@ -90,7 +111,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Failed to generate program" }, { status: 502 });
   }
 
-  const validBlockKeys = new Set(DEFAULT_PROGRAM_BLOCKS.map((b) => b.key));
+  const validBlockKeys = new Set(blocks.map((b) => b.key));
   const dayBlockCounters = new Map<string, number>();
   const entries = rawEntries
     .filter((e) => DATE_RE.test(e.day_date) && e.day_date >= startDate && e.day_date <= endDate)
@@ -120,5 +141,9 @@ export async function POST(request: Request) {
   return NextResponse.json({
     entries,
     culturalDays: culturalDays.filter((d) => DATE_RE.test(d.date) && d.date >= startDate && d.date <= endDate),
+    // Echoed back so the client saves against the exact list actually used
+    // for generation (it falls back to the default set server-side if what
+    // was sent was missing/invalid) rather than trusting its own local state.
+    blocks,
   });
 }

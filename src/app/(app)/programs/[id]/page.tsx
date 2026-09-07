@@ -8,6 +8,7 @@ import { getMyStaffRole } from "@/lib/supabase/staff";
 import { sendMaterialAlertNow } from "../actions";
 import PrintButton from "@/components/PrintButton";
 import ProgramEditor from "./ProgramEditor";
+import DeleteProgramButton from "./DeleteProgramButton";
 
 export default async function ProgramDetailPage({
   params,
@@ -183,6 +184,10 @@ export default async function ProgramDetailPage({
 
         <div className="mt-10 border-t border-ink/20 pt-4 text-sm text-ink/60 print:text-black">
           <p>Displayed for families on: ______________________</p>
+        </div>
+
+        <div className="mt-10 border-t border-ink/10 pt-4 print:hidden">
+          <DeleteProgramButton programId={program.id} title={program.title} />
         </div>
       </div>
     </div>

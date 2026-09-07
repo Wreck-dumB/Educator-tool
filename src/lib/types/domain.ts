@@ -196,4 +196,5 @@ export interface ProgramEntrySuggestion {
 export interface ProgramSuggestion {
   entries: ProgramEntrySuggestion[];
   culturalDays: import("./database.types").CulturalDay[];
+  blocks: import("./database.types").ProgramBlock[];
 }

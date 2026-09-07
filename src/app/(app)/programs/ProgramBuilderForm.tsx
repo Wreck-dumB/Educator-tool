@@ -1,14 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import type { ProgramSuggestion } from "@/lib/types/domain";
+import type { ProgramSuggestion, ProgramBlock } from "@/lib/types/domain";
 import type { Room } from "@/lib/types/domain";
 import { inputClass, primaryButtonClass, secondaryButtonClass, errorBannerClass } from "@/lib/ui";
 import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
 import { saveProgram } from "./actions";
 
-const blockOrder = new Map(DEFAULT_PROGRAM_BLOCKS.map((b, i) => [b.key, i]));
-const blockLabelByKey = new Map(DEFAULT_PROGRAM_BLOCKS.map((b) => [b.key, b.label]));
+function newBlock(label = ""): ProgramBlock {
+  return { key: `block_${crypto.randomUUID().slice(0, 8)}`, label };
+}
 
 function todayPlus(days: number): string {
   const d = new Date();
@@ -29,13 +30,38 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
   const [endDate, setEndDate] = useState(initialEndDate ?? todayPlus(6));
   const [roomId, setRoomId] = useState<string>("");
   const [educatorNotes, setEducatorNotes] = useState(initialNotes ?? "");
+  const [blocks, setBlocks] = useState<ProgramBlock[]>(DEFAULT_PROGRAM_BLOCKS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<ProgramSuggestion | null>(null);
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
 
+  function handleBlockLabelChange(index: number, label: string) {
+    setBlocks((prev) => prev.map((b, i) => (i === index ? { ...b, label } : b)));
+  }
+  function handleAddBlock() {
+    setBlocks((prev) => [...prev, newBlock()]);
+  }
+  function handleRemoveBlock(index: number) {
+    setBlocks((prev) => (prev.length > 1 ? prev.filter((_, i) => i !== index) : prev));
+  }
+  function handleMoveBlock(index: number, direction: "up" | "down") {
+    const swapIdx = direction === "up" ? index - 1 : index + 1;
+    setBlocks((prev) => {
+      if (swapIdx < 0 || swapIdx >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[swapIdx]] = [next[swapIdx], next[index]];
+      return next;
+    });
+  }
+
   async function handleGenerate() {
+    const cleanBlocks = blocks.map((b) => ({ ...b, label: b.label.trim() })).filter((b) => b.label);
+    if (cleanBlocks.length === 0) {
+      setError("Add at least one segment of the day before drafting.");
+      return;
+    }
     setLoading(true);
     setError(null);
     setDraft(null);
@@ -44,11 +70,17 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
       const res = await fetch("/api/program", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ startDate, endDate, educatorNotes: educatorNotes || undefined }),
+        body: JSON.stringify({ startDate, endDate, educatorNotes: educatorNotes || undefined, blocks: cleanBlocks }),
       });
       const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Something went wrong");
-      else setDraft(data);
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong");
+      } else {
+        setDraft(data);
+        // The server falls back to a default block set if what was sent was
+        // ever invalid — resync so what we save matches what was generated.
+        if (Array.isArray(data.blocks)) setBlocks(data.blocks);
+      }
     } catch {
       setError("Could not reach the server");
     } finally {
@@ -66,6 +98,7 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
       draft.culturalDays,
       draft.entries,
       roomId || null,
+      draft.blocks,
     );
     if ("error" in result) {
       setError(result.error);
@@ -76,6 +109,8 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
     setSaving(false);
   }
 
+  const blockOrder = new Map(blocks.map((b, i) => [b.key, i]));
+  const blockLabelByKey = new Map(blocks.map((b) => [b.key, b.label]));
   const entriesByDay = draft
     ? draft.entries.reduce<Record<string, typeof draft.entries>>((acc, e) => {
         (acc[e.dayDate] ??= []).push(e);
@@ -161,6 +196,62 @@ export default function ProgramBuilderForm({ initialStartDate, initialEndDate, i
           className={inputClass}
         />
       </div>
+
+      {!draft && (
+        <div className="mt-4">
+          <p className="block text-sm font-medium text-ink/70">Segments of the day</p>
+          <p className="mt-0.5 text-xs text-ink/50">
+            How should the day be broken up? Every weekday in the program gets one entry per segment below.
+          </p>
+          <div className="mt-2 space-y-1.5">
+            {blocks.map((block, index) => (
+              <div key={block.key} className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  value={block.label}
+                  onChange={(e) => handleBlockLabelChange(index, e.target.value)}
+                  placeholder="e.g. Morning Tea"
+                  className={`${inputClass} py-1.5 text-sm`}
+                />
+                <button
+                  type="button"
+                  disabled={index === 0}
+                  onClick={() => handleMoveBlock(index, "up")}
+                  className="shrink-0 text-xs text-ink/30 hover:text-coral-dark disabled:opacity-20"
+                  title="Move up"
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  disabled={index === blocks.length - 1}
+                  onClick={() => handleMoveBlock(index, "down")}
+                  className="shrink-0 text-xs text-ink/30 hover:text-coral-dark disabled:opacity-20"
+                  title="Move down"
+                >
+                  ▼
+                </button>
+                <button
+                  type="button"
+                  disabled={blocks.length <= 1}
+                  onClick={() => handleRemoveBlock(index)}
+                  className="shrink-0 text-xs text-ink/30 hover:text-coral-dark disabled:opacity-20"
+                  title="Remove segment"
+                >
+                  ✕
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleAddBlock}
+            className="mt-2 rounded-full border border-dashed border-coral-light px-3 py-1 text-xs font-medium text-ink/50 hover:border-coral hover:text-coral-dark"
+          >
+            + Add segment
+          </button>
+        </div>
+      )}
 
       {error && <p className={errorBannerClass}>{error}</p>}
       {savedId && <p className="mt-3 text-sm font-medium text-sage-dark">Saved — view it in the list below.</p>}

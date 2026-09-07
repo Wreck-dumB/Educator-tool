@@ -6,7 +6,7 @@ import { runToolCall, runTextCall } from "@/lib/ai/backend";
 import { CLIPART_ITEMS } from "@/lib/clipart";
 import { DOT_TO_DOT_SHAPES } from "@/lib/dotToDot";
 import { TOPIC_TAG_IDS } from "@/lib/topicTags";
-import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
+import type { ProgramBlock } from "@/lib/types/domain";
 import { eachDateInRange, isWeekday } from "@/lib/programDates";
 
 const SUGGESTED_TEMPLATE_VALUES = [
@@ -1365,40 +1365,40 @@ export interface RawProgramEntry {
   block_key?: string | null;
 }
 
-const PROGRAM_BLOCK_KEYS = DEFAULT_PROGRAM_BLOCKS.map((b) => b.key);
-
-const PROPOSE_PROGRAM_TOOL: Anthropic.Tool = {
-  name: "propose_program",
-  description: "Draft a fun, inclusive educational program of learning experiences across a date range, linked to EYLF outcomes.",
-  input_schema: {
-    type: "object",
-    required: ["entries"],
-    properties: {
-      entries: {
-        type: "array",
-        items: {
-          type: "object",
-          required: ["day_date", "title", "eylf_codes", "block_key"],
-          properties: {
-            day_date: { type: "string", description: "YYYY-MM-DD, within the program's date range." },
-            title: { type: "string" },
-            notes: { type: "string", description: "Brief practical note - what to do, or how it ties to a cultural day if relevant." },
-            eylf_codes: { type: "array", items: { type: "string" }, description: "EYLF sub-outcome codes this entry targets, from the provided taxonomy only." },
-            reused_activity_title: {
-              type: "string",
-              description: "If this entry reuses one of the educator's existing saved activities, its EXACT title as given. Omit/null if this is a new suggestion.",
-            },
-            block_key: {
-              type: "string",
-              enum: PROGRAM_BLOCK_KEYS,
-              description: "Which block of the day this entry belongs to, from the given list of blocks. Every entry must be assigned to exactly one block.",
+function buildProposeProgramTool(blockKeys: string[]): Anthropic.Tool {
+  return {
+    name: "propose_program",
+    description: "Draft a fun, inclusive educational program of learning experiences across a date range, linked to EYLF outcomes.",
+    input_schema: {
+      type: "object",
+      required: ["entries"],
+      properties: {
+        entries: {
+          type: "array",
+          items: {
+            type: "object",
+            required: ["day_date", "title", "eylf_codes", "block_key"],
+            properties: {
+              day_date: { type: "string", description: "YYYY-MM-DD, within the program's date range." },
+              title: { type: "string" },
+              notes: { type: "string", description: "Brief practical note - what to do, or how it ties to a cultural day if relevant." },
+              eylf_codes: { type: "array", items: { type: "string" }, description: "EYLF sub-outcome codes this entry targets, from the provided taxonomy only." },
+              reused_activity_title: {
+                type: "string",
+                description: "If this entry reuses one of the educator's existing saved activities, its EXACT title as given. Omit/null if this is a new suggestion.",
+              },
+              block_key: {
+                type: "string",
+                enum: blockKeys,
+                description: "Which block of the day this entry belongs to, from the given list of blocks. Every entry must be assigned to exactly one block.",
+              },
             },
           },
         },
       },
     },
-  },
-};
+  };
+}
 
 function buildProgramSystemPrompt(outcomes: EylfOutcome[]): string {
   const taxonomy = outcomes.map((o) => `${o.code} — ${o.sub_outcome_text}`).join("\n");
@@ -1414,6 +1414,7 @@ The educator's day is divided into fixed blocks of the day (routine segments) wh
 function buildProgramUserPrompt(
   startDate: string,
   endDate: string,
+  blocks: ProgramBlock[],
   outcomeGaps: { code: string; subOutcomeText: string; timesCovered: number }[],
   culturalDays: RawCulturalDay[],
   existingActivities: { title: string; eylfCodes: string[] }[],
@@ -1423,7 +1424,7 @@ function buildProgramUserPrompt(
   const lines: string[] = [`Program date range: ${startDate} to ${endDate}.`];
 
   lines.push(
-    `Blocks of the day, in order (use these exact keys for block_key):\n${DEFAULT_PROGRAM_BLOCKS.map((b) => `- ${b.key}: ${b.label}`).join("\n")}`,
+    `Blocks of the day, in order (use these exact keys for block_key):\n${blocks.map((b) => `- ${b.key}: ${b.label}`).join("\n")}`,
   );
 
   if (outcomeGaps.length > 0) {
@@ -1472,6 +1473,7 @@ function buildProgramUserPrompt(
 export async function generateProgram(
   startDate: string,
   endDate: string,
+  blocks: ProgramBlock[],
   outcomes: EylfOutcome[],
   outcomeGaps: { code: string; subOutcomeText: string; timesCovered: number }[],
   culturalDays: RawCulturalDay[],
@@ -1482,13 +1484,13 @@ export async function generateProgram(
   // One entry per block per weekday — scale the token budget with the date
   // range so a long program doesn't get its tool call truncated mid-JSON.
   const weekdayCount = eachDateInRange(startDate, endDate).filter(isWeekday).length;
-  const expectedEntries = weekdayCount * PROGRAM_BLOCK_KEYS.length;
+  const expectedEntries = weekdayCount * blocks.length;
   const maxTokens = Math.min(24576, Math.max(4096, expectedEntries * 130));
 
   const result = await callTool<{ entries?: unknown }>(
     buildProgramSystemPrompt(outcomes),
-    buildProgramUserPrompt(startDate, endDate, outcomeGaps, culturalDays, existingActivities, recentlyUsedTitles, educatorNotes),
-    PROPOSE_PROGRAM_TOOL,
+    buildProgramUserPrompt(startDate, endDate, blocks, outcomeGaps, culturalDays, existingActivities, recentlyUsedTitles, educatorNotes),
+    buildProposeProgramTool(blocks.map((b) => b.key)),
     maxTokens,
   );
   return asArray<RawProgramEntry>(result.entries ?? [], "program entries");

@@ -29,6 +29,7 @@ export async function sendMaterialAlertNow(): Promise<{ notificationsCreated: nu
 }
 import type { ProgramEntrySuggestion, ProgramBlock, ProgramStatus, ProgramEntry } from "@/lib/types/domain";
 import type { CulturalDay } from "@/lib/types/database.types";
+import { DEFAULT_PROGRAM_BLOCKS } from "@/lib/programBlocks";
 
 export async function addActivityToProgram(formData: FormData) {
   const supabase = await createClient();
@@ -73,6 +74,7 @@ export async function saveProgram(
   culturalDays: CulturalDay[],
   entries: ProgramEntrySuggestion[],
   roomId: string | null = null,
+  blocks: ProgramBlock[] = DEFAULT_PROGRAM_BLOCKS,
 ): Promise<{ id: string } | { error: string }> {
   const supabase = await createClient();
   const {
@@ -97,6 +99,7 @@ export async function saveProgram(
       end_date: endDate,
       cultural_days: culturalDays,
       room_id: roomId,
+      blocks,
     })
     .select("id")
     .single();
@@ -125,6 +128,19 @@ export async function saveProgram(
 
   revalidatePath("/programs");
   return { id: program.id };
+}
+
+export async function deleteProgram(programId: string): Promise<{ ok: true } | { error: string }> {
+  const supabase = await createClient();
+  const owned = await requireOwnerForProgram(supabase, programId);
+  if (!owned) return { error: "Not authorised" };
+
+  // program_entries cascade-delete with the program row (FK on delete cascade).
+  const { error } = await supabase.from("programs").delete().eq("id", programId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/programs");
+  return { ok: true };
 }
 
 async function requireOwnerForProgram(supabase: Awaited<ReturnType<typeof createClient>>, programId: string) {
