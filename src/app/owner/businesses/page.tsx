@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { updateServiceAccess } from "./actions";
 import type { AccessStatus } from "@/lib/supabase/serviceAccess";
@@ -111,6 +112,12 @@ export default async function OwnerBusinessesPage() {
                     {r.updatedAt ? ` · updated ${fmtDate(r.updatedAt)}` : ""}
                   </p>
                 </div>
+                <Link
+                  href={`/owner/businesses/${r.id}`}
+                  className="shrink-0 text-sm text-coral-dark hover:underline"
+                >
+                  View centre →
+                </Link>
               </div>
 
               <div className="mt-4 grid gap-3 sm:grid-cols-[10rem_11rem_1fr_auto] sm:items-end">
