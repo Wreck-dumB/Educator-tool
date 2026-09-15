@@ -4,7 +4,7 @@ import { getEylfOutcomes } from "@/lib/supabase/eylf";
 import { getObservations } from "@/lib/supabase/observations";
 import { generateActivitySuggestions, type GenerationInput } from "@/lib/anthropic";
 import { isRateLimited } from "@/lib/rateLimit";
-import { checkAndConsumeCredit, creditErrorResponse } from "@/lib/credits";
+import { checkAndConsumeCredit, creditErrorResponse, refundCredit } from "@/lib/credits";
 import { redactEnrolledChildNames } from "@/lib/childNameGuard";
 import { decryptField } from "@/lib/encryption";
 import type { ActivitySuggestion } from "@/lib/types/domain";
@@ -31,11 +31,6 @@ export async function POST(request: Request) {
       { error: "You've hit the generation limit for now — try again in a bit." },
       { status: 429 },
     );
-  }
-
-  const credit = await checkAndConsumeCredit("activity-generate");
-  if (!credit.ok) {
-    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
   }
 
   const body = await request.json().catch(() => null);
@@ -165,11 +160,22 @@ export async function POST(request: Request) {
   }
   const validCodes = new Set(outcomes.map((o) => o.code));
 
+  // Consume the credit right before the AI call, not before input validation —
+  // an invalid request never got a chance to generate anything, so it should
+  // never be charged. If the AI call itself then fails (backend outage,
+  // malformed model output), the credit is refunded below rather than
+  // permanently burned for nothing.
+  const credit = await checkAndConsumeCredit("activity-generate");
+  if (!credit.ok) {
+    return NextResponse.json(creditErrorResponse(credit.reason), { status: credit.reason === "out_of_credits" ? 402 : 403 });
+  }
+
   let raw;
   try {
     raw = await generateActivitySuggestions(input, outcomes, count);
   } catch (err) {
     console.error("Generation failed", err);
+    await refundCredit("activity-generate-failed");
     return NextResponse.json({ error: "Failed to generate activities" }, { status: 502 });
   }
 

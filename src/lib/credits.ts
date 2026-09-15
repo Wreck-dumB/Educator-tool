@@ -52,6 +52,45 @@ export async function checkAndConsumeCredit(reason: string): Promise<CreditCheck
   }
 }
 
+/**
+ * Compensating action for when a credit was already consumed via
+ * checkAndConsumeCredit() but the generation it paid for then failed (e.g.
+ * an AI backend outage) — without this, a failed attempt permanently burns
+ * a real credit for nothing. Re-checks plan status itself rather than
+ * trusting the caller, and is a no-op (not an error) for any service that
+ * was never actually metered in the first place. Fails silently the same
+ * way checkAndConsumeCredit does — a billing-plumbing error here must never
+ * surface as a user-facing error on top of the generation failure that
+ * triggered it.
+ */
+export async function refundCredit(reason: string): Promise<void> {
+  if (!process.env.STRIPE_SECRET_KEY) return;
+
+  try {
+    const serviceId = await getMyServiceId();
+    if (!serviceId) return;
+
+    const admin = createAdminClient();
+    const { data: access } = await admin
+      .from("service_access")
+      .select("plan")
+      .eq("service_id", serviceId)
+      .maybeSingle();
+
+    if (!access?.plan) return;
+
+    const { error } = await admin.rpc("grant_credits", {
+      p_service_id: serviceId,
+      p_amount: 1,
+      p_reason: reason,
+      p_reset: false,
+    });
+    if (error) console.error("refundCredit failed:", error);
+  } catch (err) {
+    console.error("refundCredit threw:", err);
+  }
+}
+
 export function creditErrorResponse(reason: Exclude<CreditCheckResult, { ok: true }>["reason"]): { error: string } {
   switch (reason) {
     case "no_service":
